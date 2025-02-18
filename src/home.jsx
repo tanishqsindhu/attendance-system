@@ -13,7 +13,7 @@ export default function PayrollDashboard() {
 			const fileContent = event.target.result;
 			const response = await fetch("/.netlify/functions/upload-attendance-data", {
 				method: "POST",
-				body: JSON.stringify({ fileContent }),
+				body: JSON.stringify({ fileContent,branchId:'1' }),
 			});
 			const result = await response.json();
 			setPayrollData(result.data);
@@ -33,30 +33,30 @@ export default function PayrollDashboard() {
 				<div>
 					<div>
 						<h2 className="text-xl font-bold mb-2">Payroll Report</h2>
-						<div>
-							<div>
-								<div>
-									<p>Employee ID</p>
-									<p>Name</p>
-									<p>Total Hours</p>
-									<p>Overtime</p>
-									<p>Late Deductions</p>
-									<p>Final Pay</p>
-								</div>
-							</div>
-							<div>
+						<table>
+							<thead>
+								<tr>
+									<td>Employee ID</td>
+									<td>Name</td>
+									<td>Total Hours</td>
+									<td>Overtime</td>
+									<td>Late Deductions</td>
+									<td>Final Pay</td>
+								</tr>
+							</thead>
+							<tbody>
 								{payrollData.map((record) => (
-									<div key={record.employeeId}>
-										<p>{record.employeeId}</p>
-										<p>{record.name}</p>
-										<p>{record.totalWorkHours.toFixed(2)}</p>
-										<p>{record.overtimeHours.toFixed(2)}</p>
-										<p>{record.lateDeductions.toFixed(2)}</p>
-										<p>{record.finalPay.toFixed(2)}</p>
-									</div>
+									<tr key={record.employeeId}>
+										<td>{record.employeeId}</td>
+										<td>{record.name}</td>
+										<td>{record.totalWorkHours.toFixed(2)}</td>
+										<td>{record.overtimeHours.toFixed(2)}</td>
+										<td>{record.lateDeductions.toFixed(2)}</td>
+										<td>{record.finalPay.toFixed(2)}</td>
+									</tr>
 								))}
-							</div>
-						</div>
+							</tbody>
+						</table>
 					</div>
 				</div>
 			)}

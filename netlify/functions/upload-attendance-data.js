@@ -1,11 +1,11 @@
 const { parse } = require("csv-parse/sync");
-const fs = require("fs");
-const { db, collection, addDoc } = require("../../src/firebase/firebase");
-// Employee-specific shift and payroll rules (this would ideally come from a database)
+const { db, collection, doc, setDoc } = require("../../src/firebase/firebase");
+
+// Employee-specific shift rules (No overtime here, just work hours)
 const employeeConfigs = {
-	1: { shiftStart: "09:00", shiftEnd: "17:00", overtimeRate: 1.5, latePenalty: 10 },
-	2: { shiftStart: "10:00", shiftEnd: "18:00", overtimeRate: 1.2, latePenalty: 5 },
-	3: { shiftStart: "9:00", shiftEnd: "18:00", overtimeRate: 1.2, latePenalty: 5 },
+	1: { shiftStart: "09:00", shiftEnd: "17:00", latePenalty: 10 },
+	2: { shiftStart: "10:00", shiftEnd: "18:00", latePenalty: 5 },
+	3: { shiftStart: "9:00", shiftEnd: "18:00", latePenalty: 5 },
 };
 
 exports.handler = async (event) => {
@@ -17,13 +17,17 @@ exports.handler = async (event) => {
 	}
 
 	try {
-		const { fileContent } = JSON.parse(event.body);
-		if (!fileContent) {
+		const { fileContent, branchId } = JSON.parse(event.body);
+		if (!fileContent || !branchId) {
 			return {
 				statusCode: 400,
 				body: JSON.stringify({ message: "No file content provided" }),
 			};
 		}
+
+		// Convert records to structured data
+		const attendanceData = {};
+		attendanceData.rawData = `${fileContent}`;
 
 		// Parse the biometric text data
 		const records = parse(fileContent, {
@@ -31,10 +35,9 @@ exports.handler = async (event) => {
 			columns: true,
 			skip_empty_lines: true,
 		});
-
-		// Convert records to structured data
-		const attendanceData = {};
-
+		let noOfProcessDate = 0,
+			earliestDate = new Date("9999-01-01"),
+			endDate = new Date("1999-01-01");
 		records.forEach((record) => {
 			const employeeId = record.EnNo.trim().replace(/^0+/, ""); // Remove leading zeroes
 			const name = record.Name.trim();
@@ -42,69 +45,91 @@ exports.handler = async (event) => {
 			const inOut = record["In/Out"].trim();
 			const dateTime = new Date(record.DateTime.trim());
 
+			if (earliestDate > dateTime) {
+				earliestDate = dateTime;
+			}
+			if (endDate < dateTime) {
+				endDate = dateTime;
+			}
 			if (!attendanceData[employeeId]) {
 				attendanceData[employeeId] = { name, logs: [] };
 			}
 
 			// Store the mode along with inOut and dateTime
 			attendanceData[employeeId].logs.push({ mode, inOut, dateTime });
+			noOfProcessDate++;
 		});
+		attendanceData.date = new Date();
+		// console.log(attendanceData[55]);
+		// Now, store the attendance logs in Firestore
+		// const attendanceCollection = collection(db, "attendance");
 
-		// Calculate payroll details
-		const payrollData = Object.entries(attendanceData).map(([employeeId, data]) => {
-			const config = employeeConfigs[employeeId] || {};
-			const shiftStart = config.shiftStart ? new Date(`1970-01-01T${config.shiftStart}:00Z`) : null;
-			const shiftEnd = config.shiftEnd ? new Date(`1970-01-01T${config.shiftEnd}:00Z`) : null;
-			const overtimeRate = config.overtimeRate || 1.0;
-			const latePenalty = config.latePenalty || 0;
+		// for (const [employeeId, data] of Object.entries(attendanceData)) {
+		// 	const employeeRef = doc(attendanceCollection, employeeId); // Use employee ID as document ID
 
-			let totalWorkHours = 0;
-			let overtimeHours = 0;
-			let lateDeductions = 0;
+		// 	// Sort logs by date/time
+		// 	data.logs.sort((a, b) => a.dateTime - b.dateTime);
 
-			data.logs.sort((a, b) => a.dateTime - b.dateTime);
-			for (let i = 0; i < data.logs.length - 1; i += 2) {
-				const inTime = data.logs[i].dateTime;
-				const outTime = data.logs[i + 1] ? data.logs[i + 1].dateTime : null;
-				if (inTime && outTime) {
-					const workHours = (outTime - inTime) / (1000 * 60 * 60); // Convert to hours
-					totalWorkHours += workHours;
+		// 	// Group logs by date
+		// 	const dailyLogs = {};
 
-					// Overtime calculation (if the shift ends after normal working hours)
-					if (shiftEnd && outTime > shiftEnd) {
-						overtimeHours += (outTime - shiftEnd) / (1000 * 60 * 60);
-					}
+		// 	data.logs.forEach((log) => {
+		// 		const date = log.dateTime.toISOString().split("T")[0]; // Use the date (YYYY-MM-DD)
+		// 		if (!dailyLogs[date]) {
+		// 			dailyLogs[date] = { checkInTimes: [], checkOutTimes: [], totalWorkHours: 0 };
+		// 		}
 
-					// Late deduction (if the employee checked in after shift start time)
-					if (shiftStart && inTime > shiftStart) {
-						lateDeductions += latePenalty;
-					}
-				}
-			}
+		// 		if (log.inOut === "In") {
+		// 			dailyLogs[date].checkInTimes.push(log.dateTime);
+		// 		} else if (log.inOut === "Out") {
+		// 			dailyLogs[date].checkOutTimes.push(log.dateTime);
+		// 		}
+		// 	});
 
-			return {
-				employeeId,
-				name: data.name,
-				totalWorkHours,
-				overtimeHours,
-				lateDeductions,
-				finalPay: totalWorkHours + overtimeHours * overtimeRate - lateDeductions,
-			};
-		});
+		// 	// Calculate total work hours for each day
+		// 	for (const [date, logs] of Object.entries(dailyLogs)) {
+		// 		const { checkInTimes, checkOutTimes } = logs;
 
-		// console.log(payrollData); This will print the calculated payroll data
-		// Save payroll data to Firestore
-		const payrollCollection = collection(db, "attendance");
-		await Promise.all(
-			payrollData.map(async (entry) => {
-				await addDoc(payrollCollection, entry);
-			})
-		);
+		// 		let totalWorkHours = 0;
+		// 		for (let i = 0; i < checkInTimes.length && i < checkOutTimes.length; i++) {
+		// 			const inTime = checkInTimes[i];
+		// 			const outTime = checkOutTimes[i];
+
+		// 			// Calculate work hours for each pair of check-in and check-out
+		// 			if (inTime && outTime) {
+		// 				const workHours = (outTime - inTime) / (1000 * 60 * 60); // Convert to hours
+		// 				totalWorkHours += workHours;
+		// 			}
+		// 		}
+
+		// 		// Store the total hours worked in Firestore
+		// 		const attendanceRef = doc(employeeRef, date); // Store attendance by date
+		// 		await setDoc(
+		// 			attendanceRef,
+		// 			{
+		// 				checkInTimes: checkInTimes.map((time) => time.toISOString()),
+		// 				checkOutTimes: checkOutTimes.map((time) => time.toISOString()),
+		// 				totalWorkHours: totalWorkHours,
+		// 				status: "Present", // Default status is "Present"
+		// 			},
+		// 			{ merge: true }
+		// 		);
+		// 	}
+		// }
+
 		return {
 			statusCode: 200,
-			body: JSON.stringify({ message: "Payroll processed", data: payrollData }),
+			body: JSON.stringify({
+				message: "Attendance processed and stored in Firestore",
+				data: {
+					noOfProcessDate,
+					earliestDate,
+					endDate,
+				},
+			}),
 		};
 	} catch (error) {
+		console.log(error);
 		return {
 			statusCode: 500,
 			body: JSON.stringify({ message: "Error processing file", error: error.message }),

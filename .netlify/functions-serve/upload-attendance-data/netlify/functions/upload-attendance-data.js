@@ -8332,14 +8332,14 @@ var require_tls_helpers = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getDefaultRootsData = exports2.CIPHER_SUITES = void 0;
-    var fs2 = require("fs");
+    var fs = require("fs");
     exports2.CIPHER_SUITES = process.env.GRPC_SSL_CIPHER_SUITES;
     var DEFAULT_ROOTS_FILE_PATH = process.env.GRPC_DEFAULT_SSL_ROOTS_FILE_PATH;
     var defaultRootsData = null;
     function getDefaultRootsData() {
       if (DEFAULT_ROOTS_FILE_PATH) {
         if (defaultRootsData === null) {
-          defaultRootsData = fs2.readFileSync(DEFAULT_ROOTS_FILE_PATH);
+          defaultRootsData = fs.readFileSync(DEFAULT_ROOTS_FILE_PATH);
         }
         return defaultRootsData;
       }
@@ -12576,7 +12576,7 @@ var require_fetch = __commonJS({
     module2.exports = fetch2;
     var asPromise = require_aspromise();
     var inquire2 = require_inquire();
-    var fs2 = inquire2("fs");
+    var fs = inquire2("fs");
     function fetch2(filename, options, callback) {
       if (typeof options === "function") {
         callback = options;
@@ -12585,8 +12585,8 @@ var require_fetch = __commonJS({
         options = {};
       if (!callback)
         return asPromise(fetch2, this, filename, options);
-      if (!options.xhr && fs2 && fs2.readFile)
-        return fs2.readFile(filename, function fetchReadFileCallback(err, contents) {
+      if (!options.xhr && fs && fs.readFile)
+        return fs.readFile(filename, function fetchReadFileCallback(err, contents) {
           return err && typeof XMLHttpRequest !== "undefined" ? fetch2.xhr(filename, options, callback) : err ? callback(err) : callback(null, options.binary ? contents : contents.toString("utf8"));
         });
       return fetch2.xhr(filename, options, callback);
@@ -17858,7 +17858,7 @@ var require_util2 = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.addCommonProtos = exports2.loadProtosWithOptionsSync = exports2.loadProtosWithOptions = void 0;
-    var fs2 = require("fs");
+    var fs = require("fs");
     var path = require("path");
     var Protobuf = require_protobufjs();
     function addIncludePathResolver(root, includePaths) {
@@ -17870,7 +17870,7 @@ var require_util2 = __commonJS({
         for (const directory of includePaths) {
           const fullPath = path.join(directory, target);
           try {
-            fs2.accessSync(fullPath, fs2.constants.R_OK);
+            fs.accessSync(fullPath, fs.constants.R_OK);
             return fullPath;
           } catch (err) {
             continue;
@@ -27227,15 +27227,15 @@ function compareDocumentsByField(field, d1, d2) {
     return fail();
   }
 }
-function boundCompareToDocument(bound, orderBy, doc2) {
+function boundCompareToDocument(bound, orderBy, doc3) {
   let comparison = 0;
   for (let i = 0; i < bound.position.length; i++) {
     const orderByComponent = orderBy[i];
     const component = bound.position[i];
     if (orderByComponent.field.isKeyField()) {
-      comparison = DocumentKey.comparator(DocumentKey.fromName(component.referenceValue), doc2.key);
+      comparison = DocumentKey.comparator(DocumentKey.fromName(component.referenceValue), doc3.key);
     } else {
-      const docValue = doc2.data.field(orderByComponent.field);
+      const docValue = doc3.data.field(orderByComponent.field);
       comparison = valueCompare(component, docValue);
     }
     if (orderByComponent.dir === "desc") {
@@ -27247,12 +27247,12 @@ function boundCompareToDocument(bound, orderBy, doc2) {
   }
   return comparison;
 }
-function boundSortsAfterDocument(bound, orderBy, doc2) {
-  const comparison = boundCompareToDocument(bound, orderBy, doc2);
+function boundSortsAfterDocument(bound, orderBy, doc3) {
+  const comparison = boundCompareToDocument(bound, orderBy, doc3);
   return bound.inclusive ? comparison >= 0 : comparison > 0;
 }
-function boundSortsBeforeDocument(bound, orderBy, doc2) {
-  const comparison = boundCompareToDocument(bound, orderBy, doc2);
+function boundSortsBeforeDocument(bound, orderBy, doc3) {
+  const comparison = boundCompareToDocument(bound, orderBy, doc3);
   return bound.inclusive ? comparison <= 0 : comparison < 0;
 }
 function boundEquals(left, right) {
@@ -27536,40 +27536,40 @@ function canonifyQuery(query2) {
 function stringifyQuery(query2) {
   return `Query(target=${stringifyTarget(queryToTarget(query2))}; limitType=${query2.limitType})`;
 }
-function queryMatches(query2, doc2) {
-  return doc2.isFoundDocument() && queryMatchesPathAndCollectionGroup(query2, doc2) && queryMatchesOrderBy(query2, doc2) && queryMatchesFilters(query2, doc2) && queryMatchesBounds(query2, doc2);
+function queryMatches(query2, doc3) {
+  return doc3.isFoundDocument() && queryMatchesPathAndCollectionGroup(query2, doc3) && queryMatchesOrderBy(query2, doc3) && queryMatchesFilters(query2, doc3) && queryMatchesBounds(query2, doc3);
 }
-function queryMatchesPathAndCollectionGroup(query2, doc2) {
-  const docPath = doc2.key.path;
+function queryMatchesPathAndCollectionGroup(query2, doc3) {
+  const docPath = doc3.key.path;
   if (query2.collectionGroup !== null) {
-    return doc2.key.hasCollectionId(query2.collectionGroup) && query2.path.isPrefixOf(docPath);
+    return doc3.key.hasCollectionId(query2.collectionGroup) && query2.path.isPrefixOf(docPath);
   } else if (DocumentKey.isDocumentKey(query2.path)) {
     return query2.path.isEqual(docPath);
   } else {
     return query2.path.isImmediateParentOf(docPath);
   }
 }
-function queryMatchesOrderBy(query2, doc2) {
+function queryMatchesOrderBy(query2, doc3) {
   for (const orderBy of queryNormalizedOrderBy(query2)) {
-    if (!orderBy.field.isKeyField() && doc2.data.field(orderBy.field) === null) {
+    if (!orderBy.field.isKeyField() && doc3.data.field(orderBy.field) === null) {
       return false;
     }
   }
   return true;
 }
-function queryMatchesFilters(query2, doc2) {
+function queryMatchesFilters(query2, doc3) {
   for (const filter of query2.filters) {
-    if (!filter.matches(doc2)) {
+    if (!filter.matches(doc3)) {
       return false;
     }
   }
   return true;
 }
-function queryMatchesBounds(query2, doc2) {
-  if (query2.startAt && !boundSortsBeforeDocument(query2.startAt, queryNormalizedOrderBy(query2), doc2)) {
+function queryMatchesBounds(query2, doc3) {
+  if (query2.startAt && !boundSortsBeforeDocument(query2.startAt, queryNormalizedOrderBy(query2), doc3)) {
     return false;
   }
-  if (query2.endAt && !boundSortsAfterDocument(query2.endAt, queryNormalizedOrderBy(query2), doc2)) {
+  if (query2.endAt && !boundSortsAfterDocument(query2.endAt, queryNormalizedOrderBy(query2), doc3)) {
     return false;
   }
   return true;
@@ -27606,8 +27606,8 @@ function mutableDocumentMap() {
 }
 function documentMap(...docs) {
   let map = EMPTY_DOCUMENT_MAP;
-  for (const doc2 of docs) {
-    map = map.insert(doc2.key, doc2);
+  for (const doc3 of docs) {
+    map = map.insert(doc3.key, doc3);
   }
   return map;
 }
@@ -27746,18 +27746,18 @@ function preconditionIsValidForDocument(precondition, document2) {
     return true;
   }
 }
-function calculateOverlayMutation(doc2, mask) {
-  if (!doc2.hasLocalMutations || mask && mask.fields.length === 0) {
+function calculateOverlayMutation(doc3, mask) {
+  if (!doc3.hasLocalMutations || mask && mask.fields.length === 0) {
     return null;
   }
   if (mask === null) {
-    if (doc2.isNoDocument()) {
-      return new DeleteMutation(doc2.key, Precondition.none());
+    if (doc3.isNoDocument()) {
+      return new DeleteMutation(doc3.key, Precondition.none());
     } else {
-      return new SetMutation(doc2.key, doc2.data, Precondition.none());
+      return new SetMutation(doc3.key, doc3.data, Precondition.none());
     }
   } else {
-    const docValue = doc2.data;
+    const docValue = doc3.data;
     const patchValue = ObjectValue.empty();
     let maskSet = new SortedSet(FieldPath$1.comparator);
     for (let path of mask.fields) {
@@ -27775,7 +27775,7 @@ function calculateOverlayMutation(doc2, mask) {
         maskSet = maskSet.add(path);
       }
     }
-    return new PatchMutation(doc2.key, patchValue, new FieldMask(maskSet.toArray()), Precondition.none());
+    return new PatchMutation(doc3.key, patchValue, new FieldMask(maskSet.toArray()), Precondition.none());
   }
 }
 function mutationApplyToRemoteDocument(mutation, document2, mutationResult) {
@@ -28200,19 +28200,19 @@ function fromWatchChange(serializer, change) {
     const data = new ObjectValue({
       mapValue: { fields: entityChange.document.fields }
     });
-    const doc2 = MutableDocument.newFoundDocument(key, version5, createTime, data);
+    const doc3 = MutableDocument.newFoundDocument(key, version5, createTime, data);
     const updatedTargetIds = entityChange.targetIds || [];
     const removedTargetIds = entityChange.removedTargetIds || [];
-    watchChange = new DocumentWatchChange(updatedTargetIds, removedTargetIds, doc2.key, doc2);
+    watchChange = new DocumentWatchChange(updatedTargetIds, removedTargetIds, doc3.key, doc3);
   } else if ("documentDelete" in change) {
     assertPresent(change.documentDelete);
     const docDelete = change.documentDelete;
     assertPresent(docDelete.document);
     const key = fromName(serializer, docDelete.document);
     const version5 = docDelete.readTime ? fromVersion(docDelete.readTime) : SnapshotVersion.min();
-    const doc2 = MutableDocument.newNoDocument(key, version5);
+    const doc3 = MutableDocument.newNoDocument(key, version5);
     const removedTargetIds = docDelete.removedTargetIds || [];
-    watchChange = new DocumentWatchChange([], removedTargetIds, doc2.key, doc2);
+    watchChange = new DocumentWatchChange([], removedTargetIds, doc3.key, doc3);
   } else if ("documentRemove" in change) {
     assertPresent(change.documentRemove);
     const docRemove = change.documentRemove;
@@ -28813,8 +28813,8 @@ function localStoreWriteLocally(localStore, mutations) {
     let docsWithoutRemoteVersion = documentKeySet();
     return localStoreImpl.remoteDocuments.getEntries(txn, keys).next((docs) => {
       remoteDocs = docs;
-      remoteDocs.forEach((key, doc2) => {
-        if (!doc2.isValidDocument()) {
+      remoteDocs.forEach((key, doc3) => {
+        if (!doc3.isValidDocument()) {
           docsWithoutRemoteVersion = docsWithoutRemoteVersion.add(key);
         }
       });
@@ -28935,19 +28935,19 @@ function populateDocumentChangeBuffer(txn, documentBuffer, documents) {
   documents.forEach((k) => updatedKeys = updatedKeys.add(k));
   return documentBuffer.getEntries(txn, updatedKeys).next((existingDocs) => {
     let changedDocuments = mutableDocumentMap();
-    documents.forEach((key, doc2) => {
+    documents.forEach((key, doc3) => {
       const existingDoc = existingDocs.get(key);
-      if (doc2.isFoundDocument() !== existingDoc.isFoundDocument()) {
+      if (doc3.isFoundDocument() !== existingDoc.isFoundDocument()) {
         existenceChangedKeys = existenceChangedKeys.add(key);
       }
-      if (doc2.isNoDocument() && doc2.version.isEqual(SnapshotVersion.min())) {
-        documentBuffer.removeEntry(key, doc2.readTime);
-        changedDocuments = changedDocuments.insert(key, doc2);
-      } else if (!existingDoc.isValidDocument() || doc2.version.compareTo(existingDoc.version) > 0 || doc2.version.compareTo(existingDoc.version) === 0 && existingDoc.hasPendingWrites) {
-        documentBuffer.addEntry(doc2);
-        changedDocuments = changedDocuments.insert(key, doc2);
+      if (doc3.isNoDocument() && doc3.version.isEqual(SnapshotVersion.min())) {
+        documentBuffer.removeEntry(key, doc3.readTime);
+        changedDocuments = changedDocuments.insert(key, doc3);
+      } else if (!existingDoc.isValidDocument() || doc3.version.compareTo(existingDoc.version) > 0 || doc3.version.compareTo(existingDoc.version) === 0 && existingDoc.hasPendingWrites) {
+        documentBuffer.addEntry(doc3);
+        changedDocuments = changedDocuments.insert(key, doc3);
       } else {
-        logDebug(LOG_TAG$b, "Ignoring outdated watch update for ", key, ". Current version:", existingDoc.version, " Watch version:", doc2.version);
+        logDebug(LOG_TAG$b, "Ignoring outdated watch update for ", key, ". Current version:", existingDoc.version, " Watch version:", doc3.version);
       }
     });
     return { changedDocuments, existenceChangedKeys };
@@ -29080,14 +29080,14 @@ function applyWriteToRemoteDocuments(localStoreImpl, txn, batchResult, documentB
   const docKeys = batch.keys();
   let promiseChain = PersistencePromise.resolve();
   docKeys.forEach((docKey) => {
-    promiseChain = promiseChain.next(() => documentBuffer.getEntry(txn, docKey)).next((doc2) => {
+    promiseChain = promiseChain.next(() => documentBuffer.getEntry(txn, docKey)).next((doc3) => {
       const ackVersion = batchResult.docVersions.get(docKey);
       hardAssert(ackVersion !== null);
-      if (doc2.version.compareTo(ackVersion) < 0) {
-        batch.applyToRemoteDocument(doc2, batchResult);
-        if (doc2.isValidDocument()) {
-          doc2.setReadTime(batchResult.commitVersion);
-          documentBuffer.addEntry(doc2);
+      if (doc3.version.compareTo(ackVersion) < 0) {
+        batch.applyToRemoteDocument(doc3, batchResult);
+        if (doc3.isValidDocument()) {
+          doc3.setReadTime(batchResult.commitVersion);
+          documentBuffer.addEntry(doc3);
         }
       }
     });
@@ -29096,9 +29096,9 @@ function applyWriteToRemoteDocuments(localStoreImpl, txn, batchResult, documentB
 }
 function setMaxReadTime(localStoreImpl, collectionGroup, changedDocs) {
   let readTime = localStoreImpl.collectionGroupReadTime.get(collectionGroup) || SnapshotVersion.min();
-  changedDocs.forEach((_, doc2) => {
-    if (doc2.readTime.compareTo(readTime) > 0) {
-      readTime = doc2.readTime;
+  changedDocs.forEach((_, doc3) => {
+    if (doc3.readTime.compareTo(readTime) > 0) {
+      readTime = doc3.readTime;
     }
   });
   localStoreImpl.collectionGroupReadTime.set(collectionGroup, readTime);
@@ -30998,11 +30998,11 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
   if (querySnapshot._snapshot.oldDocs.isEmpty()) {
     let index = 0;
     return querySnapshot._snapshot.docChanges.map((change) => {
-      const doc2 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
+      const doc3 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
       change.doc;
       return {
         type: "added",
-        doc: doc2,
+        doc: doc3,
         oldIndex: -1,
         newIndex: index++
       };
@@ -31013,7 +31013,7 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
       (change) => includeMetadataChanges || change.type !== 3
       /* ChangeType.Metadata */
     ).map((change) => {
-      const doc2 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
+      const doc3 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
       let oldIndex = -1;
       let newIndex = -1;
       if (change.type !== 0) {
@@ -31026,7 +31026,7 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
       }
       return {
         type: resultChangeType(change.type),
-        doc: doc2,
+        doc: doc3,
         oldIndex,
         newIndex
       };
@@ -33289,8 +33289,8 @@ var init_index_node = __esm({
       static createKeyFieldInFilter(field, op, value) {
         return op === "in" ? new KeyFieldInFilter(field, value) : new KeyFieldNotInFilter(field, value);
       }
-      matches(doc2) {
-        const other = doc2.data.field(this.field);
+      matches(doc3) {
+        const other = doc3.data.field(this.field);
         if (this.op === "!=") {
           return other !== null && this.matchesComparison(valueCompare(other, this.value));
         }
@@ -33345,11 +33345,11 @@ var init_index_node = __esm({
       static create(filters, op) {
         return new _CompositeFilter(filters, op);
       }
-      matches(doc2) {
+      matches(doc3) {
         if (compositeFilterIsConjunction(this)) {
-          return this.filters.find((filter) => !filter.matches(doc2)) === void 0;
+          return this.filters.find((filter) => !filter.matches(doc3)) === void 0;
         } else {
-          return this.filters.find((filter) => filter.matches(doc2)) !== void 0;
+          return this.filters.find((filter) => filter.matches(doc3)) !== void 0;
         }
       }
       getFlattenedFilters() {
@@ -33371,8 +33371,8 @@ var init_index_node = __esm({
         super(field, op, value);
         this.key = DocumentKey.fromName(value.referenceValue);
       }
-      matches(doc2) {
-        const comparison = DocumentKey.comparator(doc2.key, this.key);
+      matches(doc3) {
+        const comparison = DocumentKey.comparator(doc3.key, this.key);
         return this.matchesComparison(comparison);
       }
     };
@@ -33381,8 +33381,8 @@ var init_index_node = __esm({
         super(field, "in", value);
         this.keys = extractDocumentKeysFromArrayValue("in", value);
       }
-      matches(doc2) {
-        return this.keys.some((key) => key.isEqual(doc2.key));
+      matches(doc3) {
+        return this.keys.some((key) => key.isEqual(doc3.key));
       }
     };
     KeyFieldNotInFilter = class extends FieldFilter {
@@ -33390,16 +33390,16 @@ var init_index_node = __esm({
         super(field, "not-in", value);
         this.keys = extractDocumentKeysFromArrayValue("not-in", value);
       }
-      matches(doc2) {
-        return !this.keys.some((key) => key.isEqual(doc2.key));
+      matches(doc3) {
+        return !this.keys.some((key) => key.isEqual(doc3.key));
       }
     };
     ArrayContainsFilter = class extends FieldFilter {
       constructor(field, value) {
         super(field, "array-contains", value);
       }
-      matches(doc2) {
-        const other = doc2.data.field(this.field);
+      matches(doc3) {
+        const other = doc3.data.field(this.field);
         return isArray(other) && arrayValueContains(other.arrayValue, this.value);
       }
     };
@@ -33407,8 +33407,8 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "in", value);
       }
-      matches(doc2) {
-        const other = doc2.data.field(this.field);
+      matches(doc3) {
+        const other = doc3.data.field(this.field);
         return other !== null && arrayValueContains(this.value.arrayValue, other);
       }
     };
@@ -33416,11 +33416,11 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "not-in", value);
       }
-      matches(doc2) {
+      matches(doc3) {
         if (arrayValueContains(this.value.arrayValue, { nullValue: "NULL_VALUE" })) {
           return false;
         }
-        const other = doc2.data.field(this.field);
+        const other = doc3.data.field(this.field);
         return other !== null && !arrayValueContains(this.value.arrayValue, other);
       }
     };
@@ -33428,8 +33428,8 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "array-contains-any", value);
       }
-      matches(doc2) {
-        const other = doc2.data.field(this.field);
+      matches(doc3) {
+        const other = doc3.data.field(this.field);
         if (!isArray(other) || !other.arrayValue.values) {
           return false;
         }
@@ -34276,7 +34276,7 @@ var init_index_node = __esm({
             resolvedLimboDocuments = resolvedLimboDocuments.add(key);
           }
         });
-        this.pendingDocumentUpdates.forEach((_, doc2) => doc2.setReadTime(snapshotVersion));
+        this.pendingDocumentUpdates.forEach((_, doc3) => doc3.setReadTime(snapshotVersion));
         const remoteEvent = new RemoteEvent(snapshotVersion, targetChanges, this.pendingTargetResets, this.pendingDocumentUpdates, resolvedLimboDocuments);
         this.pendingDocumentUpdates = mutableDocumentMap();
         this.pendingDocumentUpdatesByTarget = documentTargetMap();
@@ -35121,15 +35121,15 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         let recalculateDocuments = mutableDocumentMap();
         const mutatedFields = newDocumentKeyMap();
         const results = newOverlayedDocumentMap();
-        docs.forEach((_, doc2) => {
-          const overlay = overlays.get(doc2.key);
-          if (existenceStateChanged.has(doc2.key) && (overlay === void 0 || overlay.mutation instanceof PatchMutation)) {
-            recalculateDocuments = recalculateDocuments.insert(doc2.key, doc2);
+        docs.forEach((_, doc3) => {
+          const overlay = overlays.get(doc3.key);
+          if (existenceStateChanged.has(doc3.key) && (overlay === void 0 || overlay.mutation instanceof PatchMutation)) {
+            recalculateDocuments = recalculateDocuments.insert(doc3.key, doc3);
           } else if (overlay !== void 0) {
-            mutatedFields.set(doc2.key, overlay.mutation.getFieldMask());
-            mutationApplyToLocalView(overlay.mutation, doc2, overlay.mutation.getFieldMask(), Timestamp.now());
+            mutatedFields.set(doc3.key, overlay.mutation.getFieldMask());
+            mutationApplyToLocalView(overlay.mutation, doc3, overlay.mutation.getFieldMask(), Timestamp.now());
           } else {
-            mutatedFields.set(doc2.key, FieldMask.empty());
+            mutatedFields.set(doc3.key, FieldMask.empty());
           }
         });
         return this.recalculateAndSaveOverlays(transaction, recalculateDocuments).next((recalculatedFields) => {
@@ -35234,8 +35234,8 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
               if (originalDocs.get(key)) {
                 return PersistencePromise.resolve();
               }
-              return this.remoteDocumentCache.getEntry(transaction, key).next((doc2) => {
-                modifiedDocs = modifiedDocs.insert(key, doc2);
+              return this.remoteDocumentCache.getEntry(transaction, key).next((doc3) => {
+                modifiedDocs = modifiedDocs.insert(key, doc3);
               });
             }).next(() => this.populateOverlays(transaction, overlays, originalDocs)).next(() => this.computeViews(transaction, modifiedDocs, overlays, documentKeySet())).next((localDocs) => ({
               batchId: largestBatchId,
@@ -35260,8 +35260,8 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
           return PersistencePromise.forEach(parents, (parent) => {
             const collectionQuery = asCollectionQueryAtPath(query2, parent.child(collectionId));
             return this.getDocumentsMatchingCollectionQuery(transaction, collectionQuery, offset, context).next((r) => {
-              r.forEach((key, doc2) => {
-                results = results.insert(key, doc2);
+              r.forEach((key, doc3) => {
+                results = results.insert(key, doc3);
               });
             });
           }).next(() => results);
@@ -35686,13 +35686,13 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
        * All calls of `addEntry`  are required to go through the RemoteDocumentChangeBuffer
        * returned by `newChangeBuffer()`.
        */
-      addEntry(transaction, doc2) {
-        const key = doc2.key;
+      addEntry(transaction, doc3) {
+        const key = doc3.key;
         const entry = this.docs.get(key);
         const previousSize = entry ? entry.size : 0;
-        const currentSize = this.sizer(doc2);
+        const currentSize = this.sizer(doc3);
         this.docs = this.docs.insert(key, {
-          document: doc2.mutableCopy(),
+          document: doc3.mutableCopy(),
           size: currentSize
         });
         this.size += currentSize - previousSize;
@@ -35766,9 +35766,9 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
       }
       applyChanges(transaction) {
         const promises = [];
-        this.changes.forEach((key, doc2) => {
-          if (doc2.isValidDocument()) {
-            promises.push(this.documentCache.addEntry(transaction, doc2));
+        this.changes.forEach((key, doc3) => {
+          if (doc3.isValidDocument()) {
+            promises.push(this.documentCache.addEntry(transaction, doc3));
           } else {
             this.documentCache.removeEntry(key);
           }
@@ -35905,7 +35905,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         this.globalsCache = new MemoryGlobalsCache();
         this.referenceDelegate = referenceDelegateFactory(this);
         this.targetCache = new MemoryTargetCache(this);
-        const sizer = (doc2) => this.referenceDelegate.documentSize(doc2);
+        const sizer = (doc3) => this.referenceDelegate.documentSize(doc3);
         this.indexManager = new MemoryIndexManager();
         this.remoteDocumentCache = newMemoryRemoteDocumentCache(sizer);
         this.serializer = new LocalSerializer(serializer);
@@ -36042,7 +36042,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
           }
         });
       }
-      documentSize(doc2) {
+      documentSize(doc3) {
         return 0;
       }
       isReferenced(txn, key) {
@@ -40249,8 +40249,8 @@ This typically indicates that your device does not have a healthy Internet conne
        * document key is not present in the set;
        */
       indexOf(key) {
-        const doc2 = this.keyedMap.get(key);
-        return doc2 ? this.sortedSet.indexOf(doc2) : -1;
+        const doc3 = this.keyedMap.get(key);
+        return doc3 ? this.sortedSet.indexOf(doc3) : -1;
       }
       get size() {
         return this.sortedSet.size;
@@ -40263,17 +40263,17 @@ This typically indicates that your device does not have a healthy Internet conne
         });
       }
       /** Inserts or updates a document with the same key */
-      add(doc2) {
-        const set = this.delete(doc2.key);
-        return set.copy(set.keyedMap.insert(doc2.key, doc2), set.sortedSet.insert(doc2, null));
+      add(doc3) {
+        const set = this.delete(doc3.key);
+        return set.copy(set.keyedMap.insert(doc3.key, doc3), set.sortedSet.insert(doc3, null));
       }
       /** Deletes a document with a given key */
       delete(key) {
-        const doc2 = this.get(key);
-        if (!doc2) {
+        const doc3 = this.get(key);
+        if (!doc3) {
           return this;
         }
-        return this.copy(this.keyedMap.remove(key), this.sortedSet.remove(doc2));
+        return this.copy(this.keyedMap.remove(key), this.sortedSet.remove(doc3));
       }
       isEqual(other) {
         if (!(other instanceof _DocumentSet)) {
@@ -40295,8 +40295,8 @@ This typically indicates that your device does not have a healthy Internet conne
       }
       toString() {
         const docStrings = [];
-        this.forEach((doc2) => {
-          docStrings.push(doc2.toString());
+        this.forEach((doc3) => {
+          docStrings.push(doc3.toString());
         });
         if (docStrings.length === 0) {
           return "DocumentSet ()";
@@ -40379,8 +40379,8 @@ This typically indicates that your device does not have a healthy Internet conne
       /** Returns a view snapshot as if all documents in the snapshot were added. */
       static fromInitialDocuments(query2, documents, mutatedKeys, fromCache, hasCachedResults) {
         const changes = [];
-        documents.forEach((doc2) => {
-          changes.push({ type: 0, doc: doc2 });
+        documents.forEach((doc3) => {
+          changes.push({ type: 0, doc: doc3 });
         });
         return new _ViewSnapshot(
           query2,
@@ -40776,9 +40776,9 @@ This typically indicates that your device does not have a healthy Internet conne
         }
         const oldLimboDocuments = this.limboDocuments;
         this.limboDocuments = documentKeySet();
-        this.documentSet.forEach((doc2) => {
-          if (this.shouldBeInLimbo(doc2.key)) {
-            this.limboDocuments = this.limboDocuments.add(doc2.key);
+        this.documentSet.forEach((doc3) => {
+          if (this.shouldBeInLimbo(doc3.key)) {
+            this.limboDocuments = this.limboDocuments.add(doc3.key);
           }
         });
         const changes = [];
@@ -42122,7 +42122,7 @@ This typically indicates that your device does not have a healthy Internet conne
       /** An array of all the documents in the `QuerySnapshot`. */
       get docs() {
         const result = [];
-        this.forEach((doc2) => result.push(doc2));
+        this.forEach((doc3) => result.push(doc3));
         return result;
       }
       /** The number of documents in the `QuerySnapshot`. */
@@ -42141,8 +42141,8 @@ This typically indicates that your device does not have a healthy Internet conne
        * @param thisArg - The `this` binding for the callback.
        */
       forEach(callback, thisArg) {
-        this._snapshot.docs.forEach((doc2) => {
-          callback.call(thisArg, new QueryDocumentSnapshot(this._firestore, this._userDataWriter, doc2.key, doc2, new SnapshotMetadata(this._snapshot.mutatedKeys.has(doc2.key), this._snapshot.fromCache), this.query.converter));
+        this._snapshot.docs.forEach((doc3) => {
+          callback.call(thisArg, new QueryDocumentSnapshot(this._firestore, this._userDataWriter, doc3.key, doc3, new SnapshotMetadata(this._snapshot.mutatedKeys.has(doc3.key), this._snapshot.fromCache), this.query.converter));
         });
       }
       /**
@@ -42232,13 +42232,7 @@ var init_firebase = __esm({
 
 // netlify/functions/upload-attendance-data.js
 var { parse } = require_sync();
-var fs = require("fs");
-var { db: db2, collection: collection2, addDoc: addDoc2 } = (init_firebase(), __toCommonJS(firebase_exports));
-var employeeConfigs = {
-  1: { shiftStart: "09:00", shiftEnd: "17:00", overtimeRate: 1.5, latePenalty: 10 },
-  2: { shiftStart: "10:00", shiftEnd: "18:00", overtimeRate: 1.2, latePenalty: 5 },
-  3: { shiftStart: "9:00", shiftEnd: "18:00", overtimeRate: 1.2, latePenalty: 5 }
-};
+var { db: db2, collection: collection2, doc: doc2, setDoc } = (init_firebase(), __toCommonJS(firebase_exports));
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return {
@@ -42247,74 +42241,53 @@ exports.handler = async (event) => {
     };
   }
   try {
-    const { fileContent } = JSON.parse(event.body);
-    if (!fileContent) {
+    const { fileContent, branchId } = JSON.parse(event.body);
+    if (!fileContent || !branchId) {
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "No file content provided" })
       };
     }
+    const attendanceData = {};
+    attendanceData.rawData = `${fileContent}`;
     const records = parse(fileContent, {
       delimiter: "	",
       columns: true,
       skip_empty_lines: true
     });
-    const attendanceData = {};
+    let noOfProcessDate = 0, earliestDate = /* @__PURE__ */ new Date("9999-01-01"), endDate = /* @__PURE__ */ new Date("1999-01-01");
     records.forEach((record) => {
       const employeeId = record.EnNo.trim().replace(/^0+/, "");
       const name5 = record.Name.trim();
       const mode = record.Mode.trim();
       const inOut = record["In/Out"].trim();
       const dateTime = new Date(record.DateTime.trim());
+      if (earliestDate > dateTime) {
+        earliestDate = dateTime;
+      }
+      if (endDate < dateTime) {
+        endDate = dateTime;
+      }
       if (!attendanceData[employeeId]) {
         attendanceData[employeeId] = { name: name5, logs: [] };
       }
       attendanceData[employeeId].logs.push({ mode, inOut, dateTime });
+      noOfProcessDate++;
     });
-    const payrollData = Object.entries(attendanceData).map(([employeeId, data]) => {
-      const config = employeeConfigs[employeeId] || {};
-      const shiftStart = config.shiftStart ? /* @__PURE__ */ new Date(`1970-01-01T${config.shiftStart}:00Z`) : null;
-      const shiftEnd = config.shiftEnd ? /* @__PURE__ */ new Date(`1970-01-01T${config.shiftEnd}:00Z`) : null;
-      const overtimeRate = config.overtimeRate || 1;
-      const latePenalty = config.latePenalty || 0;
-      let totalWorkHours = 0;
-      let overtimeHours = 0;
-      let lateDeductions = 0;
-      data.logs.sort((a, b) => a.dateTime - b.dateTime);
-      for (let i = 0; i < data.logs.length - 1; i += 2) {
-        const inTime = data.logs[i].dateTime;
-        const outTime = data.logs[i + 1] ? data.logs[i + 1].dateTime : null;
-        if (inTime && outTime) {
-          const workHours = (outTime - inTime) / (1e3 * 60 * 60);
-          totalWorkHours += workHours;
-          if (shiftEnd && outTime > shiftEnd) {
-            overtimeHours += (outTime - shiftEnd) / (1e3 * 60 * 60);
-          }
-          if (shiftStart && inTime > shiftStart) {
-            lateDeductions += latePenalty;
-          }
-        }
-      }
-      return {
-        employeeId,
-        name: data.name,
-        totalWorkHours,
-        overtimeHours,
-        lateDeductions,
-        finalPay: totalWorkHours + overtimeHours * overtimeRate - lateDeductions
-      };
-    });
-    const payrollCollection = collection2(db2, "attendance");
-    await Promise.all(
-      payrollData.map(async (entry) => {
-        await addDoc2(payrollCollection, entry);
-      })
-    );
+    attendanceData.date = /* @__PURE__ */ new Date();
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: "Payroll processed", data: payrollData })
+      body: JSON.stringify({
+        message: "Attendance processed and stored in Firestore",
+        data: {
+          noOfProcessDate,
+          earliestDate,
+          endDate
+        }
+      })
     };
   } catch (error) {
+    console.log(error);
     return {
       statusCode: 500,
       body: JSON.stringify({ message: "Error processing file", error: error.message })

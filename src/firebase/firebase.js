@@ -1,12 +1,6 @@
 import { initializeApp } from "firebase/app";
-import {
-	getAuth,
-	signInWithEmailAndPassword,
-	createUserWithEmailAndPassword,
-	onAuthStateChanged,
-	signOut,
-} from "firebase/auth";
-import { getFirestore, collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { getAuth, signInWithRedirect, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, collection, writeBatch, query, getDocs } from "firebase/firestore";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyCYeIbDzTfZnXjJkfJG6EQynOWkblj4msQ",
@@ -17,20 +11,79 @@ const firebaseConfig = {
 	appId: "1:375230490779:web:637d2d9205133c270afe3e",
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const firebaseApp = initializeApp(firebaseConfig);
 
-export {
-	auth,
-	db,
-	signInWithEmailAndPassword,
-	createUserWithEmailAndPassword,
-	onAuthStateChanged,
-	signOut,
-	collection,
-	addDoc,
-	getDocs,
-	query,
-	where,
+const googleProvider = new GoogleAuthProvider();
+
+googleProvider.setCustomParameters({
+	prompt: "select_account",
+});
+
+export const auth = getAuth();
+export const signInWithGooglePopup = () => signInWithPopup(auth, googleProvider);
+export const signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider);
+
+export const db = getFirestore();
+
+export const addCollectionAndDocuments = async (collectionKey, objectsToAdd, field) => {
+	const collectionRef = collection(db, collectionKey);
+	const batch = writeBatch(db);
+
+	objectsToAdd.forEach((object) => {
+		const docRef = doc(collectionRef, object.date.toString());
+		batch.set(docRef, object);
+	});
+
+	await batch.commit();
+	console.log("done");
 };
+
+export const getMachineData = async () => {
+	const collectionRef = collection(db, "categories");
+	const q = query(collectionRef);
+
+	const querySnapshot = await getDocs(q);
+	return querySnapshot.docs.map((docSnapshot) => docSnapshot.data());
+};
+
+export const createUserDocumentFromAuth = async (userAuth, additionalInformation = {}) => {
+	if (!userAuth) return;
+
+	const userDocRef = doc(db, "users", userAuth.uid);
+
+	const userSnapshot = await getDoc(userDocRef);
+
+	if (!userSnapshot.exists()) {
+		const { displayName, email } = userAuth;
+		const createdAt = new Date();
+
+		try {
+			await setDoc(userDocRef, {
+				displayName,
+				email,
+				createdAt,
+				...additionalInformation,
+			});
+		} catch (error) {
+			console.log("error creating the user", error.message);
+		}
+	}
+
+	return userDocRef;
+};
+
+export const createAuthUserWithEmailAndPassword = async (email, password) => {
+	if (!email || !password) return;
+
+	return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const signInAuthUserWithEmailAndPassword = async (email, password) => {
+	if (!email || !password) return;
+
+	return await signInWithEmailAndPassword(auth, email, password);
+};
+
+export const signOutUser = async () => await signOut(auth);
+
+export const onAuthStateChangedListener = (callback) => onAuthStateChanged(auth, callback);

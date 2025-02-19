@@ -1,5 +1,5 @@
 const { parse } = require("csv-parse/sync");
-const { db, collection, doc, setDoc } = require("../../src/firebase/firebase");
+const { addCollectionAndDocuments } = require("../../src/firebase/firebase");
 
 // Employee-specific shift rules (No overtime here, just work hours)
 const employeeConfigs = {
@@ -60,6 +60,8 @@ exports.handler = async (event) => {
 			noOfProcessDate++;
 		});
 		attendanceData.date = new Date();
+		attendanceData.date = attendanceData.date.toLocaleString("en-IN", { month: "long", timeZone: "Asia/Kolkata" });
+		await addCollectionAndDocuments(branchId, [attendanceData]);
 		// console.log(attendanceData[55]);
 		// Now, store the attendance logs in Firestore
 		// const attendanceCollection = collection(db, "attendance");

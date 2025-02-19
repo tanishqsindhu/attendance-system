@@ -2849,11 +2849,11 @@ function openDB(name5, version5, { blocked, upgrade, blocking, terminated } = {}
       event
     ));
   }
-  openPromise.then((db3) => {
+  openPromise.then((db2) => {
     if (terminated)
-      db3.addEventListener("close", () => terminated());
+      db2.addEventListener("close", () => terminated());
     if (blocking) {
-      db3.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
+      db2.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
     }
   }).catch(() => {
   });
@@ -2908,11 +2908,11 @@ function isVersionServiceProvider(provider) {
   const component = provider.getComponent();
   return (component === null || component === void 0 ? void 0 : component.type) === "VERSION";
 }
-function _addComponent(app2, component) {
+function _addComponent(app, component) {
   try {
-    app2.container.addComponent(component);
+    app.container.addComponent(component);
   } catch (e) {
-    logger.debug(`Component ${component.name} failed to register with FirebaseApp ${app2.name}`, e);
+    logger.debug(`Component ${component.name} failed to register with FirebaseApp ${app.name}`, e);
   }
 }
 function _registerComponent(component) {
@@ -2922,20 +2922,20 @@ function _registerComponent(component) {
     return false;
   }
   _components.set(componentName, component);
-  for (const app2 of _apps.values()) {
-    _addComponent(app2, component);
+  for (const app of _apps.values()) {
+    _addComponent(app, component);
   }
   for (const serverApp of _serverApps.values()) {
     _addComponent(serverApp, component);
   }
   return true;
 }
-function _getProvider(app2, name5) {
-  const heartbeatController = app2.container.getProvider("heartbeat").getImmediate({ optional: true });
+function _getProvider(app, name5) {
+  const heartbeatController = app.container.getProvider("heartbeat").getImmediate({ optional: true });
   if (heartbeatController) {
     void heartbeatController.triggerHeartbeat();
   }
-  return app2.container.getProvider(name5);
+  return app.container.getProvider(name5);
 }
 function _isFirebaseServerApp(obj) {
   if (obj === null || obj === void 0) {
@@ -2980,14 +2980,14 @@ function initializeApp(_options, rawConfig = {}) {
   return newApp;
 }
 function getApp(name5 = DEFAULT_ENTRY_NAME2) {
-  const app2 = _apps.get(name5);
-  if (!app2 && name5 === DEFAULT_ENTRY_NAME2 && getDefaultAppConfig()) {
+  const app = _apps.get(name5);
+  if (!app && name5 === DEFAULT_ENTRY_NAME2 && getDefaultAppConfig()) {
     return initializeApp();
   }
-  if (!app2) {
+  if (!app) {
     throw ERROR_FACTORY.create("no-app", { appName: name5 });
   }
-  return app2;
+  return app;
 }
 function registerVersion(libraryKeyOrName, version5, variant) {
   var _a;
@@ -3023,11 +3023,11 @@ function registerVersion(libraryKeyOrName, version5, variant) {
 function getDbPromise() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade: (db3, oldVersion) => {
+      upgrade: (db2, oldVersion) => {
         switch (oldVersion) {
           case 0:
             try {
-              db3.createObjectStore(STORE_NAME);
+              db2.createObjectStore(STORE_NAME);
             } catch (e) {
               console.warn(e);
             }
@@ -3041,11 +3041,11 @@ function getDbPromise() {
   }
   return dbPromise;
 }
-async function readHeartbeatsFromIndexedDB(app2) {
+async function readHeartbeatsFromIndexedDB(app) {
   try {
-    const db3 = await getDbPromise();
-    const tx = db3.transaction(STORE_NAME);
-    const result = await tx.objectStore(STORE_NAME).get(computeKey(app2));
+    const db2 = await getDbPromise();
+    const tx = db2.transaction(STORE_NAME);
+    const result = await tx.objectStore(STORE_NAME).get(computeKey(app));
     await tx.done;
     return result;
   } catch (e) {
@@ -3059,12 +3059,12 @@ async function readHeartbeatsFromIndexedDB(app2) {
     }
   }
 }
-async function writeHeartbeatsToIndexedDB(app2, heartbeatObject) {
+async function writeHeartbeatsToIndexedDB(app, heartbeatObject) {
   try {
-    const db3 = await getDbPromise();
-    const tx = db3.transaction(STORE_NAME, "readwrite");
+    const db2 = await getDbPromise();
+    const tx = db2.transaction(STORE_NAME, "readwrite");
     const objectStore = tx.objectStore(STORE_NAME);
-    await objectStore.put(heartbeatObject, computeKey(app2));
+    await objectStore.put(heartbeatObject, computeKey(app));
     await tx.done;
   } catch (e) {
     if (e instanceof FirebaseError) {
@@ -3077,8 +3077,8 @@ async function writeHeartbeatsToIndexedDB(app2, heartbeatObject) {
     }
   }
 }
-function computeKey(app2) {
-  return `${app2.name}!${app2.options.appId}`;
+function computeKey(app) {
+  return `${app.name}!${app.options.appId}`;
 }
 function getUTCDateString() {
   const today = /* @__PURE__ */ new Date();
@@ -3364,8 +3364,8 @@ var init_index_esm20173 = __esm({
       constructor(container) {
         this.container = container;
         this._heartbeatsCache = null;
-        const app2 = this.container.getProvider("app").getImmediate();
-        this._storage = new HeartbeatStorageImpl(app2);
+        const app = this.container.getProvider("app").getImmediate();
+        this._storage = new HeartbeatStorageImpl(app);
         this._heartbeatsCachePromise = this._storage.read().then((result) => {
           this._heartbeatsCache = result;
           return result;
@@ -3439,8 +3439,8 @@ var init_index_esm20173 = __esm({
       }
     };
     HeartbeatStorageImpl = class {
-      constructor(app2) {
-        this.app = app2;
+      constructor(app) {
+        this.app = app;
         this._canUseIndexedDBPromise = this.runIndexedDBEnvironmentCheck();
       }
       async runIndexedDBEnvironmentCheck() {
@@ -4174,8 +4174,8 @@ async function handleRecaptchaFlow(authInstance, request, actionName, actionMeth
     return Promise.reject(recaptchaAuthProvider + " provider is not supported.");
   }
 }
-function initializeAuth(app2, deps) {
-  const provider = _getProvider(app2, "auth");
+function initializeAuth(app, deps) {
+  const provider = _getProvider(app, "auth");
   if (provider.isInitialized()) {
     const auth3 = provider.getImmediate();
     const initialOptions = provider.getOptions();
@@ -4444,11 +4444,11 @@ function registerAuth(clientPlatform) {
   _registerComponent(new Component(
     "auth",
     (container, { options: deps }) => {
-      const app2 = container.getProvider("app").getImmediate();
+      const app = container.getProvider("app").getImmediate();
       const heartbeatServiceProvider = container.getProvider("heartbeat");
       const appCheckServiceProvider = container.getProvider("app-check-internal");
-      const { apiKey, authDomain } = app2.options;
-      _assert(apiKey && !apiKey.includes(":"), "invalid-api-key", { appName: app2.name });
+      const { apiKey, authDomain } = app.options;
+      _assert(apiKey && !apiKey.includes(":"), "invalid-api-key", { appName: app.name });
       const config = {
         apiKey,
         authDomain,
@@ -4458,7 +4458,7 @@ function registerAuth(clientPlatform) {
         apiScheme: "https",
         sdkClientVersion: _getClientVersion(clientPlatform)
       };
-      const authInstance = new AuthImpl(app2, heartbeatServiceProvider, appCheckServiceProvider, config);
+      const authInstance = new AuthImpl(app, heartbeatServiceProvider, appCheckServiceProvider, config);
       _initializeAuthInstance(authInstance, deps);
       return authInstance;
     },
@@ -4492,17 +4492,20 @@ function registerAuth(clientPlatform) {
   registerVersion(name3, version3, getVersionForPlatform(clientPlatform));
   registerVersion(name3, version3, "esm2017");
 }
-function getAuth(app2 = getApp()) {
-  const provider = _getProvider(app2, "auth");
+function getAuth(app = getApp()) {
+  const provider = _getProvider(app, "auth");
   if (provider.isInitialized()) {
     return provider.getImmediate();
   }
-  const auth2 = initializeAuth(app2);
+  const auth2 = initializeAuth(app);
   const authEmulatorHost = getDefaultEmulatorHost("auth");
   if (authEmulatorHost) {
     connectAuthEmulator(auth2, `http://${authEmulatorHost}`);
   }
   return auth2;
+}
+async function fail() {
+  throw NOT_AVAILABLE_ERROR;
 }
 function finalizeSignInTotpMfa(auth2, request) {
   return _performApiRequest(auth2, "POST", "/v2/accounts/mfaSignIn:finalize", _addTidIfNecessary(auth2, request));
@@ -4510,7 +4513,7 @@ function finalizeSignInTotpMfa(auth2, request) {
 function _isEmptyString(input) {
   return typeof input === "undefined" || (input === null || input === void 0 ? void 0 : input.length) === 0;
 }
-var prodErrorMap, _DEFAULT_AUTH_ERROR_FACTORY, logClient, Delay, FetchProvider, SERVER_ERROR_MAP, DEFAULT_API_TIMEOUT_MS, NetworkTimeout, RecaptchaConfig, ProactiveRefresh, UserMetadata, StsTokenManager, UserImpl, instanceCache, InMemoryPersistence, inMemoryPersistence, PersistenceUserManager, AuthMiddlewareQueue, MINIMUM_MIN_PASSWORD_LENGTH, PasswordPolicyImpl, AuthImpl, Subscription, externalJSProvider, MockGreCAPTCHATopLevel, MockGreCAPTCHA, RECAPTCHA_ENTERPRISE_VERIFIER_TYPE, FAKE_TOKEN, RecaptchaEnterpriseVerifier, AuthCredential, EmailAuthCredential, IDP_REQUEST_URI$1, OAuthCredential, ActionCodeURL, EmailAuthProvider, FederatedAuthProvider, BaseOAuthProvider, FacebookAuthProvider, GoogleAuthProvider, GithubAuthProvider, TwitterAuthProvider, UserCredentialImpl, MultiFactorError, name3, version3, AuthInterop, NOT_AVAILABLE_ERROR, MultiFactorAssertionImpl, TotpMultiFactorGenerator, TotpMultiFactorAssertionImpl, TotpSecret;
+var prodErrorMap, _DEFAULT_AUTH_ERROR_FACTORY, logClient, Delay, FetchProvider, SERVER_ERROR_MAP, DEFAULT_API_TIMEOUT_MS, NetworkTimeout, RecaptchaConfig, ProactiveRefresh, UserMetadata, StsTokenManager, UserImpl, instanceCache, InMemoryPersistence, inMemoryPersistence, PersistenceUserManager, AuthMiddlewareQueue, MINIMUM_MIN_PASSWORD_LENGTH, PasswordPolicyImpl, AuthImpl, Subscription, externalJSProvider, MockGreCAPTCHATopLevel, MockGreCAPTCHA, RECAPTCHA_ENTERPRISE_VERIFIER_TYPE, FAKE_TOKEN, RecaptchaEnterpriseVerifier, AuthCredential, EmailAuthCredential, IDP_REQUEST_URI$1, OAuthCredential, ActionCodeURL, EmailAuthProvider, FederatedAuthProvider, BaseOAuthProvider, FacebookAuthProvider, GoogleAuthProvider, GithubAuthProvider, TwitterAuthProvider, UserCredentialImpl, MultiFactorError, name3, version3, AuthInterop, NOT_AVAILABLE_ERROR, signInWithPopup, signInWithRedirect, MultiFactorAssertionImpl, TotpMultiFactorGenerator, TotpMultiFactorAssertionImpl, TotpSecret;
 var init_totp_fb613490 = __esm({
   "node_modules/firebase/node_modules/@firebase/auth/dist/node-esm/totp-fb613490.js"() {
     init_index_esm20173();
@@ -5618,8 +5621,8 @@ var init_totp_fb613490 = __esm({
       }
     };
     AuthImpl = class {
-      constructor(app2, heartbeatServiceProvider, appCheckServiceProvider, config) {
-        this.app = app2;
+      constructor(app, heartbeatServiceProvider, appCheckServiceProvider, config) {
+        this.app = app;
         this.heartbeatServiceProvider = heartbeatServiceProvider;
         this.appCheckServiceProvider = appCheckServiceProvider;
         this.config = config;
@@ -5647,7 +5650,7 @@ var init_totp_fb613490 = __esm({
         this.tenantId = null;
         this.settings = { appVerificationDisabledForTesting: false };
         this.frameworks = [];
-        this.name = app2.name;
+        this.name = app.name;
         this.clientVersion = config.sdkClientVersion;
       }
       _initializeWithPersistence(persistenceHierarchy, popupRedirectResolver) {
@@ -7064,6 +7067,8 @@ var init_totp_fb613490 = __esm({
       "operation-not-supported-in-this-environment"
       /* AuthErrorCode.OPERATION_NOT_SUPPORTED */
     );
+    signInWithPopup = fail;
+    signInWithRedirect = fail;
     AuthImpl.prototype.setPersistence = async () => {
     };
     MultiFactorAssertionImpl = class {
@@ -26535,14 +26540,14 @@ function argToString(obj) {
     }
   }
 }
-function fail(failure = "Unexpected state") {
+function fail2(failure = "Unexpected state") {
   const message = `FIRESTORE (${SDK_VERSION2}) INTERNAL ASSERTION FAILED: ` + failure;
   logError(message);
   throw new Error(message);
 }
 function hardAssert(assertion, message) {
   if (!assertion) {
-    fail();
+    fail2();
   }
 }
 function debugCast(obj, constructor) {
@@ -26763,11 +26768,11 @@ function getLocalWriteTime(value) {
   const localWriteTime = normalizeTimestamp(value.mapValue.fields[LOCAL_WRITE_TIME_KEY].timestampValue);
   return new Timestamp(localWriteTime.seconds, localWriteTime.nanos);
 }
-function databaseIdFromApp(app2, database) {
-  if (!Object.prototype.hasOwnProperty.apply(app2.options, ["projectId"])) {
+function databaseIdFromApp(app, database) {
+  if (!Object.prototype.hasOwnProperty.apply(app.options, ["projectId"])) {
     throw new FirestoreError(Code.INVALID_ARGUMENT, '"projectId" not provided in firebase.initializeApp.');
   }
-  return new DatabaseId(app2.options.projectId, database);
+  return new DatabaseId(app.options.projectId, database);
 }
 function isNullOrUndefined(value) {
   return value === null || value === void 0;
@@ -26807,7 +26812,7 @@ function typeOrder(value) {
     }
     return 11;
   } else {
-    return fail();
+    return fail2();
   }
 }
 function valueEquals(left, right) {
@@ -26846,7 +26851,7 @@ function valueEquals(left, right) {
     case 9007199254740991:
       return true;
     default:
-      return fail();
+      return fail2();
   }
 }
 function timestampEquals(left, right) {
@@ -26931,7 +26936,7 @@ function valueCompare(left, right) {
     case 11:
       return compareMaps(left.mapValue, right.mapValue);
     default:
-      throw fail();
+      throw fail2();
   }
 }
 function compareNumbers(left, right) {
@@ -27062,7 +27067,7 @@ function canonifyValue(value) {
   } else if ("mapValue" in value) {
     return canonifyMap(value.mapValue);
   } else {
-    return fail();
+    return fail2();
   }
 }
 function canonifyByteString(byteString) {
@@ -27132,7 +27137,7 @@ function estimateByteSize(value) {
     case 11:
       return estimateMapByteSize(value.mapValue);
     default:
-      throw fail();
+      throw fail2();
   }
 }
 function estimateMapByteSize(mapValue) {
@@ -27224,18 +27229,18 @@ function compareDocumentsByField(field, d1, d2) {
   if (v1 !== null && v2 !== null) {
     return valueCompare(v1, v2);
   } else {
-    return fail();
+    return fail2();
   }
 }
-function boundCompareToDocument(bound, orderBy, doc3) {
+function boundCompareToDocument(bound, orderBy, doc2) {
   let comparison = 0;
   for (let i = 0; i < bound.position.length; i++) {
     const orderByComponent = orderBy[i];
     const component = bound.position[i];
     if (orderByComponent.field.isKeyField()) {
-      comparison = DocumentKey.comparator(DocumentKey.fromName(component.referenceValue), doc3.key);
+      comparison = DocumentKey.comparator(DocumentKey.fromName(component.referenceValue), doc2.key);
     } else {
-      const docValue = doc3.data.field(orderByComponent.field);
+      const docValue = doc2.data.field(orderByComponent.field);
       comparison = valueCompare(component, docValue);
     }
     if (orderByComponent.dir === "desc") {
@@ -27247,12 +27252,12 @@ function boundCompareToDocument(bound, orderBy, doc3) {
   }
   return comparison;
 }
-function boundSortsAfterDocument(bound, orderBy, doc3) {
-  const comparison = boundCompareToDocument(bound, orderBy, doc3);
+function boundSortsAfterDocument(bound, orderBy, doc2) {
+  const comparison = boundCompareToDocument(bound, orderBy, doc2);
   return bound.inclusive ? comparison >= 0 : comparison > 0;
 }
-function boundSortsBeforeDocument(bound, orderBy, doc3) {
-  const comparison = boundCompareToDocument(bound, orderBy, doc3);
+function boundSortsBeforeDocument(bound, orderBy, doc2) {
+  const comparison = boundCompareToDocument(bound, orderBy, doc2);
   return bound.inclusive ? comparison <= 0 : comparison < 0;
 }
 function boundEquals(left, right) {
@@ -27312,7 +27317,7 @@ function filterEquals(f1, f2) {
   } else if (f1 instanceof CompositeFilter) {
     return compositeFilterEquals(f1, f2);
   } else {
-    fail();
+    fail2();
   }
 }
 function fieldFilterEquals(f1, f2) {
@@ -27536,40 +27541,40 @@ function canonifyQuery(query2) {
 function stringifyQuery(query2) {
   return `Query(target=${stringifyTarget(queryToTarget(query2))}; limitType=${query2.limitType})`;
 }
-function queryMatches(query2, doc3) {
-  return doc3.isFoundDocument() && queryMatchesPathAndCollectionGroup(query2, doc3) && queryMatchesOrderBy(query2, doc3) && queryMatchesFilters(query2, doc3) && queryMatchesBounds(query2, doc3);
+function queryMatches(query2, doc2) {
+  return doc2.isFoundDocument() && queryMatchesPathAndCollectionGroup(query2, doc2) && queryMatchesOrderBy(query2, doc2) && queryMatchesFilters(query2, doc2) && queryMatchesBounds(query2, doc2);
 }
-function queryMatchesPathAndCollectionGroup(query2, doc3) {
-  const docPath = doc3.key.path;
+function queryMatchesPathAndCollectionGroup(query2, doc2) {
+  const docPath = doc2.key.path;
   if (query2.collectionGroup !== null) {
-    return doc3.key.hasCollectionId(query2.collectionGroup) && query2.path.isPrefixOf(docPath);
+    return doc2.key.hasCollectionId(query2.collectionGroup) && query2.path.isPrefixOf(docPath);
   } else if (DocumentKey.isDocumentKey(query2.path)) {
     return query2.path.isEqual(docPath);
   } else {
     return query2.path.isImmediateParentOf(docPath);
   }
 }
-function queryMatchesOrderBy(query2, doc3) {
+function queryMatchesOrderBy(query2, doc2) {
   for (const orderBy of queryNormalizedOrderBy(query2)) {
-    if (!orderBy.field.isKeyField() && doc3.data.field(orderBy.field) === null) {
+    if (!orderBy.field.isKeyField() && doc2.data.field(orderBy.field) === null) {
       return false;
     }
   }
   return true;
 }
-function queryMatchesFilters(query2, doc3) {
+function queryMatchesFilters(query2, doc2) {
   for (const filter of query2.filters) {
-    if (!filter.matches(doc3)) {
+    if (!filter.matches(doc2)) {
       return false;
     }
   }
   return true;
 }
-function queryMatchesBounds(query2, doc3) {
-  if (query2.startAt && !boundSortsBeforeDocument(query2.startAt, queryNormalizedOrderBy(query2), doc3)) {
+function queryMatchesBounds(query2, doc2) {
+  if (query2.startAt && !boundSortsBeforeDocument(query2.startAt, queryNormalizedOrderBy(query2), doc2)) {
     return false;
   }
-  if (query2.endAt && !boundSortsAfterDocument(query2.endAt, queryNormalizedOrderBy(query2), doc3)) {
+  if (query2.endAt && !boundSortsAfterDocument(query2.endAt, queryNormalizedOrderBy(query2), doc2)) {
     return false;
   }
   return true;
@@ -27598,7 +27603,7 @@ function compareDocs(orderBy, d1, d2) {
     case "desc":
       return -1 * comparison;
     default:
-      return fail();
+      return fail2();
   }
 }
 function mutableDocumentMap() {
@@ -27606,17 +27611,17 @@ function mutableDocumentMap() {
 }
 function documentMap(...docs) {
   let map = EMPTY_DOCUMENT_MAP;
-  for (const doc3 of docs) {
-    map = map.insert(doc3.key, doc3);
+  for (const doc2 of docs) {
+    map = map.insert(doc2.key, doc2);
   }
   return map;
 }
 function newOverlayedDocumentMap() {
   return newDocumentKeyMap();
 }
-function convertOverlayedDocumentMapToDocumentMap(collection3) {
+function convertOverlayedDocumentMapToDocumentMap(collection2) {
   let documents = EMPTY_DOCUMENT_MAP;
-  collection3.forEach((k, v) => documents = documents.insert(k, v.overlayedDocument));
+  collection2.forEach((k, v) => documents = documents.insert(k, v.overlayedDocument));
   return documents;
 }
 function newOverlayMap() {
@@ -27746,18 +27751,18 @@ function preconditionIsValidForDocument(precondition, document2) {
     return true;
   }
 }
-function calculateOverlayMutation(doc3, mask) {
-  if (!doc3.hasLocalMutations || mask && mask.fields.length === 0) {
+function calculateOverlayMutation(doc2, mask) {
+  if (!doc2.hasLocalMutations || mask && mask.fields.length === 0) {
     return null;
   }
   if (mask === null) {
-    if (doc3.isNoDocument()) {
-      return new DeleteMutation(doc3.key, Precondition.none());
+    if (doc2.isNoDocument()) {
+      return new DeleteMutation(doc2.key, Precondition.none());
     } else {
-      return new SetMutation(doc3.key, doc3.data, Precondition.none());
+      return new SetMutation(doc2.key, doc2.data, Precondition.none());
     }
   } else {
-    const docValue = doc3.data;
+    const docValue = doc2.data;
     const patchValue = ObjectValue.empty();
     let maskSet = new SortedSet(FieldPath$1.comparator);
     for (let path of mask.fields) {
@@ -27775,7 +27780,7 @@ function calculateOverlayMutation(doc3, mask) {
         maskSet = maskSet.add(path);
       }
     }
-    return new PatchMutation(doc3.key, patchValue, new FieldMask(maskSet.toArray()), Precondition.none());
+    return new PatchMutation(doc2.key, patchValue, new FieldMask(maskSet.toArray()), Precondition.none());
   }
 }
 function mutationApplyToRemoteDocument(mutation, document2, mutationResult) {
@@ -27915,7 +27920,7 @@ function deleteMutationApplyToLocalView(mutation, document2, previousMask) {
 function isPermanentError(code) {
   switch (code) {
     case Code.OK:
-      return fail();
+      return fail2();
     case Code.CANCELLED:
     case Code.UNKNOWN:
     case Code.DEADLINE_EXCEEDED:
@@ -27935,7 +27940,7 @@ function isPermanentError(code) {
     case Code.DATA_LOSS:
       return true;
     default:
-      return fail();
+      return fail2();
   }
 }
 function isPermanentWriteError(code) {
@@ -27982,7 +27987,7 @@ function mapCodeFromRpcCode(code) {
     case RpcCode.DATA_LOSS:
       return Code.DATA_LOSS;
     default:
-      return fail();
+      return fail2();
   }
 }
 function newTextEncoder() {
@@ -28200,19 +28205,19 @@ function fromWatchChange(serializer, change) {
     const data = new ObjectValue({
       mapValue: { fields: entityChange.document.fields }
     });
-    const doc3 = MutableDocument.newFoundDocument(key, version5, createTime, data);
+    const doc2 = MutableDocument.newFoundDocument(key, version5, createTime, data);
     const updatedTargetIds = entityChange.targetIds || [];
     const removedTargetIds = entityChange.removedTargetIds || [];
-    watchChange = new DocumentWatchChange(updatedTargetIds, removedTargetIds, doc3.key, doc3);
+    watchChange = new DocumentWatchChange(updatedTargetIds, removedTargetIds, doc2.key, doc2);
   } else if ("documentDelete" in change) {
     assertPresent(change.documentDelete);
     const docDelete = change.documentDelete;
     assertPresent(docDelete.document);
     const key = fromName(serializer, docDelete.document);
     const version5 = docDelete.readTime ? fromVersion(docDelete.readTime) : SnapshotVersion.min();
-    const doc3 = MutableDocument.newNoDocument(key, version5);
+    const doc2 = MutableDocument.newNoDocument(key, version5);
     const removedTargetIds = docDelete.removedTargetIds || [];
-    watchChange = new DocumentWatchChange([], removedTargetIds, doc3.key, doc3);
+    watchChange = new DocumentWatchChange([], removedTargetIds, doc2.key, doc2);
   } else if ("documentRemove" in change) {
     assertPresent(change.documentRemove);
     const docRemove = change.documentRemove;
@@ -28229,7 +28234,7 @@ function fromWatchChange(serializer, change) {
     const targetId = filter.targetId;
     watchChange = new ExistenceFilterChange(targetId, existenceFilter);
   } else {
-    return fail();
+    return fail2();
   }
   return watchChange;
 }
@@ -28245,7 +28250,7 @@ function fromWatchTargetChangeState(state) {
   } else if (state === "RESET") {
     return 4;
   } else {
-    return fail();
+    return fail2();
   }
 }
 function versionFromListenResponse(change) {
@@ -28279,7 +28284,7 @@ function toMutation(serializer, mutation) {
       verify: toName(serializer, mutation.key)
     };
   } else {
-    return fail();
+    return fail2();
   }
   if (mutation.fieldTransforms.length > 0) {
     result.updateTransforms = mutation.fieldTransforms.map((transform) => toFieldTransform(serializer, transform));
@@ -28297,7 +28302,7 @@ function toPrecondition(serializer, precondition) {
   } else if (precondition.exists !== void 0) {
     return { exists: precondition.exists };
   } else {
-    return fail();
+    return fail2();
   }
 }
 function fromWriteResult(proto, commitTime) {
@@ -28342,7 +28347,7 @@ function toFieldTransform(serializer, fieldTransform) {
       increment: transform.operand
     };
   } else {
-    throw fail();
+    throw fail2();
   }
 }
 function toDocumentsTarget(serializer, target) {
@@ -28365,9 +28370,9 @@ function toQueryTarget(serializer, target) {
     queryTarget.structuredQuery.from = [{ collectionId: path.lastSegment() }];
   }
   queryTarget.parent = toQueryPath(serializer, parent);
-  const where2 = toFilters(target.filters);
-  if (where2) {
-    queryTarget.structuredQuery.where = where2;
+  const where = toFilters(target.filters);
+  if (where) {
+    queryTarget.structuredQuery.where = where;
   }
   const orderBy = toOrder(target.orderBy);
   if (orderBy) {
@@ -28442,7 +28447,7 @@ function toLabel(purpose) {
     case "TargetPurposeLimboResolution":
       return "limbo-document";
     default:
-      return fail();
+      return fail2();
   }
 }
 function toTarget(serializer, targetData) {
@@ -28494,7 +28499,7 @@ function fromFilter(filter) {
   } else if (filter.compositeFilter !== void 0) {
     return fromCompositeFilter(filter);
   } else {
-    return fail();
+    return fail2();
   }
 }
 function toOrder(orderBys) {
@@ -28570,9 +28575,9 @@ function fromOperatorName(op) {
     case "ARRAY_CONTAINS_ANY":
       return "array-contains-any";
     case "OPERATOR_UNSPECIFIED":
-      return fail();
+      return fail2();
     default:
-      return fail();
+      return fail2();
   }
 }
 function fromCompositeOperatorName(op) {
@@ -28582,7 +28587,7 @@ function fromCompositeOperatorName(op) {
     case "OR":
       return "or";
     default:
-      return fail();
+      return fail2();
   }
 }
 function toFieldPathReference(path) {
@@ -28606,7 +28611,7 @@ function toFilter(filter) {
   } else if (filter instanceof CompositeFilter) {
     return toCompositeFilter(filter);
   } else {
-    return fail();
+    return fail2();
   }
 }
 function toCompositeFilter(filter) {
@@ -28686,9 +28691,9 @@ function fromUnaryFilter(filter) {
         nullValue: "NULL_VALUE"
       });
     case "OPERATOR_UNSPECIFIED":
-      return fail();
+      return fail2();
     default:
-      return fail();
+      return fail2();
   }
 }
 function fromFieldFilter(filter) {
@@ -28813,8 +28818,8 @@ function localStoreWriteLocally(localStore, mutations) {
     let docsWithoutRemoteVersion = documentKeySet();
     return localStoreImpl.remoteDocuments.getEntries(txn, keys).next((docs) => {
       remoteDocs = docs;
-      remoteDocs.forEach((key, doc3) => {
-        if (!doc3.isValidDocument()) {
+      remoteDocs.forEach((key, doc2) => {
+        if (!doc2.isValidDocument()) {
           docsWithoutRemoteVersion = docsWithoutRemoteVersion.add(key);
         }
       });
@@ -28935,19 +28940,19 @@ function populateDocumentChangeBuffer(txn, documentBuffer, documents) {
   documents.forEach((k) => updatedKeys = updatedKeys.add(k));
   return documentBuffer.getEntries(txn, updatedKeys).next((existingDocs) => {
     let changedDocuments = mutableDocumentMap();
-    documents.forEach((key, doc3) => {
+    documents.forEach((key, doc2) => {
       const existingDoc = existingDocs.get(key);
-      if (doc3.isFoundDocument() !== existingDoc.isFoundDocument()) {
+      if (doc2.isFoundDocument() !== existingDoc.isFoundDocument()) {
         existenceChangedKeys = existenceChangedKeys.add(key);
       }
-      if (doc3.isNoDocument() && doc3.version.isEqual(SnapshotVersion.min())) {
-        documentBuffer.removeEntry(key, doc3.readTime);
-        changedDocuments = changedDocuments.insert(key, doc3);
-      } else if (!existingDoc.isValidDocument() || doc3.version.compareTo(existingDoc.version) > 0 || doc3.version.compareTo(existingDoc.version) === 0 && existingDoc.hasPendingWrites) {
-        documentBuffer.addEntry(doc3);
-        changedDocuments = changedDocuments.insert(key, doc3);
+      if (doc2.isNoDocument() && doc2.version.isEqual(SnapshotVersion.min())) {
+        documentBuffer.removeEntry(key, doc2.readTime);
+        changedDocuments = changedDocuments.insert(key, doc2);
+      } else if (!existingDoc.isValidDocument() || doc2.version.compareTo(existingDoc.version) > 0 || doc2.version.compareTo(existingDoc.version) === 0 && existingDoc.hasPendingWrites) {
+        documentBuffer.addEntry(doc2);
+        changedDocuments = changedDocuments.insert(key, doc2);
       } else {
-        logDebug(LOG_TAG$b, "Ignoring outdated watch update for ", key, ". Current version:", existingDoc.version, " Watch version:", doc3.version);
+        logDebug(LOG_TAG$b, "Ignoring outdated watch update for ", key, ". Current version:", existingDoc.version, " Watch version:", doc2.version);
       }
     });
     return { changedDocuments, existenceChangedKeys };
@@ -29080,14 +29085,14 @@ function applyWriteToRemoteDocuments(localStoreImpl, txn, batchResult, documentB
   const docKeys = batch.keys();
   let promiseChain = PersistencePromise.resolve();
   docKeys.forEach((docKey) => {
-    promiseChain = promiseChain.next(() => documentBuffer.getEntry(txn, docKey)).next((doc3) => {
+    promiseChain = promiseChain.next(() => documentBuffer.getEntry(txn, docKey)).next((doc2) => {
       const ackVersion = batchResult.docVersions.get(docKey);
       hardAssert(ackVersion !== null);
-      if (doc3.version.compareTo(ackVersion) < 0) {
-        batch.applyToRemoteDocument(doc3, batchResult);
-        if (doc3.isValidDocument()) {
-          doc3.setReadTime(batchResult.commitVersion);
-          documentBuffer.addEntry(doc3);
+      if (doc2.version.compareTo(ackVersion) < 0) {
+        batch.applyToRemoteDocument(doc2, batchResult);
+        if (doc2.isValidDocument()) {
+          doc2.setReadTime(batchResult.commitVersion);
+          documentBuffer.addEntry(doc2);
         }
       }
     });
@@ -29096,9 +29101,9 @@ function applyWriteToRemoteDocuments(localStoreImpl, txn, batchResult, documentB
 }
 function setMaxReadTime(localStoreImpl, collectionGroup, changedDocs) {
   let readTime = localStoreImpl.collectionGroupReadTime.get(collectionGroup) || SnapshotVersion.min();
-  changedDocs.forEach((_, doc3) => {
-    if (doc3.readTime.compareTo(readTime) > 0) {
-      readTime = doc3.readTime;
+  changedDocs.forEach((_, doc2) => {
+    if (doc2.readTime.compareTo(readTime) > 0) {
+      readTime = doc2.readTime;
     }
   });
   localStoreImpl.collectionGroupReadTime.set(collectionGroup, readTime);
@@ -29752,7 +29757,7 @@ function compareChangeType(c1, c2) {
       case 1:
         return 0;
       default:
-        return fail();
+        return fail2();
     }
   };
   return order(c1) - order(c2);
@@ -30081,7 +30086,7 @@ function updateTrackedLimbos(syncEngineImpl, targetId, limboChanges) {
         removeLimboTarget(syncEngineImpl, limboChange.key);
       }
     } else {
-      fail();
+      fail2();
     }
   }
 }
@@ -30251,7 +30256,7 @@ function valueDescription(input) {
   } else if (typeof input === "function") {
     return "a function";
   } else {
-    return fail();
+    return fail2();
   }
 }
 function tryGetCustomObjectType(input) {
@@ -30358,6 +30363,14 @@ async function getEventManager(client) {
   eventManager.onLastRemoteStoreUnlisten = triggerRemoteStoreUnlisten.bind(null, onlineComponentProvider.syncEngine);
   return eventManager;
 }
+function firestoreClientGetDocumentViaSnapshotListener(client, key, options = {}) {
+  const deferred = new Deferred2();
+  client.asyncQueue.enqueueAndForget(async () => {
+    const eventManager = await getEventManager(client);
+    return readDocumentViaSnapshotListener(eventManager, client.asyncQueue, key, options, deferred);
+  });
+  return deferred.promise;
+}
 function firestoreClientGetDocumentsViaSnapshotListener(client, query2, options = {}) {
   const deferred = new Deferred2();
   client.asyncQueue.enqueueAndForget(async () => {
@@ -30373,6 +30386,28 @@ function firestoreClientWrite(client, mutations) {
     return syncEngineWrite(syncEngine, mutations, deferred);
   });
   return deferred.promise;
+}
+function readDocumentViaSnapshotListener(eventManager, asyncQueue, key, options, result) {
+  const wrappedObserver = new AsyncObserver({
+    next: (snap) => {
+      wrappedObserver.mute();
+      asyncQueue.enqueueAndForget(() => eventManagerUnlisten(eventManager, listener));
+      const exists = snap.docs.has(key);
+      if (!exists && snap.fromCache) {
+        result.reject(new FirestoreError(Code.UNAVAILABLE, "Failed to get document because the client is offline."));
+      } else if (exists && snap.fromCache && options && options.source === "server") {
+        result.reject(new FirestoreError(Code.UNAVAILABLE, 'Failed to get document from server. (However, this document does exist in the local cache. Run again without setting source to "server" to retrieve the cached document.)'));
+      } else {
+        result.resolve(snap);
+      }
+    },
+    error: (e) => result.reject(e)
+  });
+  const listener = new QueryListener(newQueryForPath(key.path), wrappedObserver, {
+    includeMetadataChanges: true,
+    waitForSyncWhenOnline: true
+  });
+  return eventManagerListen(eventManager, listener);
 }
 function executeQueryViaSnapshotListener(eventManager, asyncQueue, query2, options, result) {
   const wrappedObserver = new AsyncObserver({
@@ -30515,18 +30550,18 @@ function getMessageOrStack(error) {
   return message;
 }
 function getFirestore(appOrDatabaseId, optionalDatabaseId) {
-  const app2 = typeof appOrDatabaseId === "object" ? appOrDatabaseId : getApp();
+  const app = typeof appOrDatabaseId === "object" ? appOrDatabaseId : getApp();
   const databaseId = typeof appOrDatabaseId === "string" ? appOrDatabaseId : optionalDatabaseId || DEFAULT_DATABASE_NAME;
-  const db3 = _getProvider(app2, "firestore").getImmediate({
+  const db2 = _getProvider(app, "firestore").getImmediate({
     identifier: databaseId
   });
-  if (!db3._initialized) {
+  if (!db2._initialized) {
     const emulator = getDefaultEmulatorHostnameAndPort("firestore");
     if (emulator) {
-      connectFirestoreEmulator(db3, ...emulator);
+      connectFirestoreEmulator(db2, ...emulator);
     }
   }
-  return db3;
+  return db2;
 }
 function ensureFirestoreConfigured(firestore) {
   if (firestore._terminated) {
@@ -30561,8 +30596,8 @@ function buildComponentProvider(componentsProvider) {
 function registerFirestore(variant, useFetchStreams = true) {
   setSDKVersion(SDK_VERSION);
   _registerComponent(new Component("firestore", (container, { instanceIdentifier: databaseId, options: settings }) => {
-    const app2 = container.getProvider("app").getImmediate();
-    const firestoreInstance = new Firestore(new FirebaseAuthCredentialsProvider(container.getProvider("auth-internal")), new FirebaseAppCheckTokenProvider(app2, container.getProvider("app-check-internal")), databaseIdFromApp(app2, databaseId), app2);
+    const app = container.getProvider("app").getImmediate();
+    const firestoreInstance = new Firestore(new FirebaseAuthCredentialsProvider(container.getProvider("auth-internal")), new FirebaseAppCheckTokenProvider(app, container.getProvider("app-check-internal")), databaseIdFromApp(app, databaseId), app);
     settings = Object.assign({ useFetchStreams }, settings);
     firestoreInstance._setSettings(settings);
     return firestoreInstance;
@@ -30580,7 +30615,7 @@ function isWrite(dataSource) {
     case 4:
       return false;
     default:
-      throw fail();
+      throw fail2();
   }
 }
 function newUserDataReader(firestore) {
@@ -30615,6 +30650,61 @@ function parseSetData(userDataReader, methodName, targetDoc, input, hasConverter
     fieldTransforms = context.fieldTransforms;
   }
   return new ParsedSetData(new ObjectValue(updateData), fieldMask, fieldTransforms);
+}
+function parseUpdateData(userDataReader, methodName, targetDoc, input) {
+  const context = userDataReader.createContext(1, methodName, targetDoc);
+  validatePlainObject("Data must be an object, but it was:", context, input);
+  const fieldMaskPaths = [];
+  const updateData = ObjectValue.empty();
+  forEach(input, (key, value) => {
+    const path = fieldPathFromDotSeparatedString(methodName, key, targetDoc);
+    value = getModularInstance(value);
+    const childContext = context.childContextForFieldPath(path);
+    if (value instanceof DeleteFieldValueImpl) {
+      fieldMaskPaths.push(path);
+    } else {
+      const parsedValue = parseData(value, childContext);
+      if (parsedValue != null) {
+        fieldMaskPaths.push(path);
+        updateData.set(path, parsedValue);
+      }
+    }
+  });
+  const mask = new FieldMask(fieldMaskPaths);
+  return new ParsedUpdateData(updateData, mask, context.fieldTransforms);
+}
+function parseUpdateVarargs(userDataReader, methodName, targetDoc, field, value, moreFieldsAndValues) {
+  const context = userDataReader.createContext(1, methodName, targetDoc);
+  const keys = [fieldPathFromArgument$1(methodName, field, targetDoc)];
+  const values = [value];
+  if (moreFieldsAndValues.length % 2 !== 0) {
+    throw new FirestoreError(Code.INVALID_ARGUMENT, `Function ${methodName}() needs to be called with an even number of arguments that alternate between field names and values.`);
+  }
+  for (let i = 0; i < moreFieldsAndValues.length; i += 2) {
+    keys.push(fieldPathFromArgument$1(methodName, moreFieldsAndValues[i]));
+    values.push(moreFieldsAndValues[i + 1]);
+  }
+  const fieldMaskPaths = [];
+  const updateData = ObjectValue.empty();
+  for (let i = keys.length - 1; i >= 0; --i) {
+    if (!fieldMaskContains(fieldMaskPaths, keys[i])) {
+      const path = keys[i];
+      let value2 = values[i];
+      value2 = getModularInstance(value2);
+      const childContext = context.childContextForFieldPath(path);
+      if (value2 instanceof DeleteFieldValueImpl) {
+        fieldMaskPaths.push(path);
+      } else {
+        const parsedValue = parseData(value2, childContext);
+        if (parsedValue != null) {
+          fieldMaskPaths.push(path);
+          updateData.set(path, parsedValue);
+        }
+      }
+    }
+  }
+  const mask = new FieldMask(fieldMaskPaths);
+  return new ParsedUpdateData(updateData, mask, context.fieldTransforms);
 }
 function parseQueryValue(userDataReader, methodName, input, allowArrays = false) {
   const context = userDataReader.createContext(allowArrays ? 4 : 3, methodName);
@@ -30859,11 +30949,6 @@ function query(query2, queryConstraint, ...additionalQueryConstraints) {
   }
   return query2;
 }
-function where(fieldPath, opStr, value) {
-  const op = opStr;
-  const field = fieldPathFromArgument("where", fieldPath);
-  return QueryFieldFilterConstraint._create(field, op, value);
-}
 function newQueryFilter(query2, methodName, dataReader, databaseId, fieldPath, op, value) {
   let fieldValue;
   if (fieldPath.isKeyField()) {
@@ -30998,11 +31083,11 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
   if (querySnapshot._snapshot.oldDocs.isEmpty()) {
     let index = 0;
     return querySnapshot._snapshot.docChanges.map((change) => {
-      const doc3 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
+      const doc2 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
       change.doc;
       return {
         type: "added",
-        doc: doc3,
+        doc: doc2,
         oldIndex: -1,
         newIndex: index++
       };
@@ -31013,7 +31098,7 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
       (change) => includeMetadataChanges || change.type !== 3
       /* ChangeType.Metadata */
     ).map((change) => {
-      const doc3 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
+      const doc2 = new QueryDocumentSnapshot(querySnapshot._firestore, querySnapshot._userDataWriter, change.doc.key, change.doc, new SnapshotMetadata(querySnapshot._snapshot.mutatedKeys.has(change.doc.key), querySnapshot._snapshot.fromCache), querySnapshot.query.converter);
       let oldIndex = -1;
       let newIndex = -1;
       if (change.type !== 0) {
@@ -31026,7 +31111,7 @@ function changesFromSnapshot(querySnapshot, includeMetadataChanges) {
       }
       return {
         type: resultChangeType(change.type),
-        doc: doc3,
+        doc: doc2,
         oldIndex,
         newIndex
       };
@@ -31043,8 +31128,14 @@ function resultChangeType(type) {
     case 1:
       return "removed";
     default:
-      return fail();
+      return fail2();
   }
+}
+function getDoc(reference) {
+  reference = cast(reference, DocumentReference);
+  const firestore = cast(reference.firestore, Firestore);
+  const client = ensureFirestoreConfigured(firestore);
+  return firestoreClientGetDocumentViaSnapshotListener(client, reference._key).then((snapshot) => convertToDocSnapshot(firestore, reference, snapshot));
 }
 function getDocs(query2) {
   query2 = cast(query2, Query);
@@ -31054,20 +31145,38 @@ function getDocs(query2) {
   validateHasExplicitOrderByForLimitToLast(query2._query);
   return firestoreClientGetDocumentsViaSnapshotListener(client, query2._query).then((snapshot) => new QuerySnapshot(firestore, userDataWriter, query2, snapshot));
 }
-function addDoc(reference, data) {
+function setDoc(reference, data, options) {
+  reference = cast(reference, DocumentReference);
   const firestore = cast(reference.firestore, Firestore);
-  const docRef = doc(reference);
-  const convertedValue = applyFirestoreDataConverter(reference.converter, data);
-  const dataReader = newUserDataReader(reference.firestore);
-  const parsed = parseSetData(dataReader, "addDoc", docRef._key, convertedValue, reference.converter !== null, {});
-  const mutation = parsed.toMutation(docRef._key, Precondition.exists(false));
-  return executeWrite(firestore, [mutation]).then(() => docRef);
+  const convertedValue = applyFirestoreDataConverter(reference.converter, data, options);
+  const dataReader = newUserDataReader(firestore);
+  const parsed = parseSetData(dataReader, "setDoc", reference._key, convertedValue, reference.converter !== null, options);
+  const mutation = parsed.toMutation(reference._key, Precondition.none());
+  return executeWrite(firestore, [mutation]);
 }
 function executeWrite(firestore, mutations) {
   const client = ensureFirestoreConfigured(firestore);
   return firestoreClientWrite(client, mutations);
 }
-var import_util6, import_crypto, grpc, protoLoader, name4, version$12, User, version4, SDK_VERSION2, logClient2, Code, FirestoreError, Deferred2, OAuthToken, EmptyAuthCredentialsProvider, EmulatorAuthCredentialsProvider, FirebaseAuthCredentialsProvider, FirstPartyToken, FirstPartyAuthCredentialsProvider, AppCheckToken, FirebaseAppCheckTokenProvider, AutoId, MIN_SECONDS, MS_TO_NANOS, Timestamp, SnapshotVersion, DOCUMENT_KEY_NAME, BasePath, ResourcePath, identifierRegExp, FieldPath$1, DocumentKey, INITIAL_LARGEST_BATCH_ID, FieldIndex, IndexOffset, PRIMARY_LEASE_LOST_ERROR_MSG, PersistenceTransaction, PersistencePromise, INITIAL_BACKFILL_DELAY_MS, REGULAR_BACKFILL_DELAY_MS, ListenSequence, escapeChar, encodedSeparatorChar, encodedNul, encodedEscape, DbRemoteDocumentStore$1, DbPrimaryClientStore, DbMutationQueueStore, DbMutationBatchStore, DbDocumentMutationStore, DbRemoteDocumentStore, DbRemoteDocumentGlobalStore, DbTargetStore, DbTargetDocumentStore, DbTargetGlobalStore, DbCollectionParentStore, DbClientMetadataStore, DbBundleStore, DbNamedQueryStore, DbIndexConfigurationStore, DbIndexStateStore, DbIndexEntryStore, DbDocumentOverlayStore, DbGlobalsStore, V1_STORES, V3_STORES, V4_STORES, V6_STORES, V8_STORES, V11_STORES, V12_STORES, V13_STORES, V14_STORES, V15_STORES, V17_STORES, SortedMap, SortedMapIterator, LLRBNode, LLRBEmptyNode, SortedSet, SortedSetIterator, FieldMask, ByteString, ISO_TIMESTAMP_REG_EXP, SERVER_TIMESTAMP_SENTINEL, TYPE_KEY$1, PREVIOUS_VALUE_KEY, LOCAL_WRITE_TIME_KEY, DatabaseInfo, DEFAULT_DATABASE_NAME, DatabaseId, BATCHID_UNKNOWN, TYPE_KEY, MAX_VALUE_TYPE, MAX_VALUE, VECTOR_VALUE_SENTINEL, VECTOR_MAP_VECTORS_KEY, MIN_VECTOR_VALUE, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, KeyFieldFilter, KeyFieldInFilter, KeyFieldNotInFilter, ArrayContainsFilter, InFilter, NotInFilter, ArrayContainsAnyFilter, TargetImpl, QueryImpl, ObjectMap, EMPTY_MUTABLE_DOCUMENT_MAP, EMPTY_DOCUMENT_MAP, EMPTY_DOCUMENT_VERSION_MAP, EMPTY_DOCUMENT_KEY_SET, EMPTY_TARGET_ID_SET, TransformOperation, ServerTimestampTransform, ArrayUnionTransformOperation, ArrayRemoveTransformOperation, NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, SetMutation, PatchMutation, DeleteMutation, VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, RpcCode, Base64DecodeError, testingHooksSpi, MAX_64_BIT_UNSIGNED_INTEGER, BloomFilter, BloomFilterError, RemoteEvent, TargetChange, DocumentWatchChange, ExistenceFilterChange, WatchTargetChange, TargetState, LOG_TAG$g, WatchChangeAggregator, DIRECTIONS, OPERATORS, COMPOSITE_OPERATORS, JsonProtoSerializer, TargetData, LocalSerializer, INDEX_TYPE_NULL, INDEX_TYPE_BOOLEAN, INDEX_TYPE_NAN, INDEX_TYPE_NUMBER, INDEX_TYPE_TIMESTAMP, INDEX_TYPE_STRING, INDEX_TYPE_BLOB, INDEX_TYPE_REFERENCE, INDEX_TYPE_GEOPOINT, INDEX_TYPE_ARRAY, INDEX_TYPE_VECTOR, INDEX_TYPE_MAP, INDEX_TYPE_REFERENCE_SEGMENT, NOT_TRUNCATED, FirestoreIndexValueWriter, MemoryIndexManager, MemoryCollectionParentIndex, EMPTY_VALUE, OFFSET, TargetIdGenerator, GC_DID_NOT_RUN, LRU_COLLECTION_DISABLED, LRU_DEFAULT_CACHE_SIZE_BYTES, LruParams, LOG_TAG$e, LRU_MINIMUM_CACHE_SIZE_BYTES, INITIAL_GC_DELAY_MS, REGULAR_GC_DELAY_MS, RollingSequenceNumberBuffer, LruScheduler, LruGarbageCollectorImpl, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, MemoryBundleCache, MemoryDocumentOverlayCache, MemoryGlobalsCache, ReferenceSet, DocReference, MemoryMutationQueue, MIN_LONG_VALUE, MemoryRemoteDocumentCacheImpl, MemoryRemoteDocumentChangeBuffer, MemoryTargetCache, LOG_TAG$d, MemoryPersistence, MemoryTransaction, MemoryEagerDelegate, MemoryLruDelegate, MAX_CLIENT_AGE_MS, LOG_TAG$b, RESUME_TOKEN_MAX_AGE_MICROS, LocalStoreImpl, QueryContext, DEFAULT_INDEX_AUTO_CREATION_MIN_COLLECTION_SIZE, QueryEngine, LocalClientState, MemorySharedClientState, NoopConnectivityMonitor, StreamBridge, lastUniqueDebugId, grpcVersion, LOG_TAG$9, X_GOOG_API_CLIENT_VALUE, GrpcConnection, nested, protos, protos$1, protoLoaderOptions, LOG_TAG$8, DEFAULT_BACKOFF_INITIAL_DELAY_MS, DEFAULT_BACKOFF_FACTOR, DEFAULT_BACKOFF_MAX_DELAY_MS, ExponentialBackoff, LOG_TAG$7, IDLE_TIMEOUT_MS, HEALTHY_TIMEOUT_MS, PersistentStream, PersistentListenStream, PersistentWriteStream, Datastore, DatastoreImpl, LOG_TAG$6, MAX_WATCH_STREAM_FAILURES, ONLINE_STATE_TIMEOUT_MS, OnlineStateTracker, LOG_TAG$5, MAX_PENDING_WRITES, RemoteStoreImpl, LOG_TAG$4, DelayedOperation, DocumentSet, DocumentChangeSet, ViewSnapshot, QueryListenersInfo, EventManagerImpl, ListenerDataSource, QueryListener, LocalViewChanges, AddedLimboDocument, RemovedLimboDocument, View, LOG_TAG$3, QueryView, LimboResolution, SyncEngineImpl, MemoryOfflineComponentProvider, LruGcMemoryOfflineComponentProvider, OnlineComponentProvider, AsyncObserver, LOG_TAG$2, MAX_CONCURRENT_LIMBO_RESOLUTIONS, DOM_EXCEPTION_INVALID_STATE, DOM_EXCEPTION_ABORTED, DOM_EXCEPTION_QUOTA_EXCEEDED, FirestoreClient, LOG_TAG$1, datastoreInstances, DEFAULT_HOST, DEFAULT_SSL, MIN_LONG_POLLING_TIMEOUT_SECONDS, MAX_LONG_POLLING_TIMEOUT_SECONDS, DEFAULT_AUTO_DETECT_LONG_POLLING, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, LOG_TAG, AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, VectorValue, RESERVED_FIELD_REGEX, ParsedSetData, ParseContextImpl, UserDataReader, FIELD_PATH_RESERVED, DocumentSnapshot$1, QueryDocumentSnapshot$1, AppliableConstraint, QueryConstraint, QueryFieldFilterConstraint, QueryCompositeFilterConstraint, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot, ExpUserDataWriter;
+function convertToDocSnapshot(firestore, ref, snapshot) {
+  const doc2 = snapshot.docs.get(ref._key);
+  const userDataWriter = new ExpUserDataWriter(firestore);
+  return new DocumentSnapshot(firestore, userDataWriter, ref._key, doc2, new SnapshotMetadata(snapshot.hasPendingWrites, snapshot.fromCache), ref.converter);
+}
+function validateReference(documentRef, firestore) {
+  documentRef = getModularInstance(documentRef);
+  if (documentRef.firestore !== firestore) {
+    throw new FirestoreError(Code.INVALID_ARGUMENT, "Provided document reference is from a different Firestore instance.");
+  } else {
+    return documentRef;
+  }
+}
+function writeBatch(firestore) {
+  firestore = cast(firestore, Firestore);
+  ensureFirestoreConfigured(firestore);
+  return new WriteBatch(firestore, (mutations) => executeWrite(firestore, mutations));
+}
+var import_util6, import_crypto, grpc, protoLoader, name4, version$12, User, version4, SDK_VERSION2, logClient2, Code, FirestoreError, Deferred2, OAuthToken, EmptyAuthCredentialsProvider, EmulatorAuthCredentialsProvider, FirebaseAuthCredentialsProvider, FirstPartyToken, FirstPartyAuthCredentialsProvider, AppCheckToken, FirebaseAppCheckTokenProvider, AutoId, MIN_SECONDS, MS_TO_NANOS, Timestamp, SnapshotVersion, DOCUMENT_KEY_NAME, BasePath, ResourcePath, identifierRegExp, FieldPath$1, DocumentKey, INITIAL_LARGEST_BATCH_ID, FieldIndex, IndexOffset, PRIMARY_LEASE_LOST_ERROR_MSG, PersistenceTransaction, PersistencePromise, INITIAL_BACKFILL_DELAY_MS, REGULAR_BACKFILL_DELAY_MS, ListenSequence, escapeChar, encodedSeparatorChar, encodedNul, encodedEscape, DbRemoteDocumentStore$1, DbPrimaryClientStore, DbMutationQueueStore, DbMutationBatchStore, DbDocumentMutationStore, DbRemoteDocumentStore, DbRemoteDocumentGlobalStore, DbTargetStore, DbTargetDocumentStore, DbTargetGlobalStore, DbCollectionParentStore, DbClientMetadataStore, DbBundleStore, DbNamedQueryStore, DbIndexConfigurationStore, DbIndexStateStore, DbIndexEntryStore, DbDocumentOverlayStore, DbGlobalsStore, V1_STORES, V3_STORES, V4_STORES, V6_STORES, V8_STORES, V11_STORES, V12_STORES, V13_STORES, V14_STORES, V15_STORES, V17_STORES, SortedMap, SortedMapIterator, LLRBNode, LLRBEmptyNode, SortedSet, SortedSetIterator, FieldMask, ByteString, ISO_TIMESTAMP_REG_EXP, SERVER_TIMESTAMP_SENTINEL, TYPE_KEY$1, PREVIOUS_VALUE_KEY, LOCAL_WRITE_TIME_KEY, DatabaseInfo, DEFAULT_DATABASE_NAME, DatabaseId, BATCHID_UNKNOWN, TYPE_KEY, MAX_VALUE_TYPE, MAX_VALUE, VECTOR_VALUE_SENTINEL, VECTOR_MAP_VECTORS_KEY, MIN_VECTOR_VALUE, ObjectValue, MutableDocument, Bound, OrderBy, Filter, FieldFilter, CompositeFilter, KeyFieldFilter, KeyFieldInFilter, KeyFieldNotInFilter, ArrayContainsFilter, InFilter, NotInFilter, ArrayContainsAnyFilter, TargetImpl, QueryImpl, ObjectMap, EMPTY_MUTABLE_DOCUMENT_MAP, EMPTY_DOCUMENT_MAP, EMPTY_DOCUMENT_VERSION_MAP, EMPTY_DOCUMENT_KEY_SET, EMPTY_TARGET_ID_SET, TransformOperation, ServerTimestampTransform, ArrayUnionTransformOperation, ArrayRemoveTransformOperation, NumericIncrementTransformOperation, MutationResult, Precondition, Mutation, SetMutation, PatchMutation, DeleteMutation, VerifyMutation, MutationBatch, MutationBatchResult, Overlay, ExistenceFilter, RpcCode, Base64DecodeError, testingHooksSpi, MAX_64_BIT_UNSIGNED_INTEGER, BloomFilter, BloomFilterError, RemoteEvent, TargetChange, DocumentWatchChange, ExistenceFilterChange, WatchTargetChange, TargetState, LOG_TAG$g, WatchChangeAggregator, DIRECTIONS, OPERATORS, COMPOSITE_OPERATORS, JsonProtoSerializer, TargetData, LocalSerializer, INDEX_TYPE_NULL, INDEX_TYPE_BOOLEAN, INDEX_TYPE_NAN, INDEX_TYPE_NUMBER, INDEX_TYPE_TIMESTAMP, INDEX_TYPE_STRING, INDEX_TYPE_BLOB, INDEX_TYPE_REFERENCE, INDEX_TYPE_GEOPOINT, INDEX_TYPE_ARRAY, INDEX_TYPE_VECTOR, INDEX_TYPE_MAP, INDEX_TYPE_REFERENCE_SEGMENT, NOT_TRUNCATED, FirestoreIndexValueWriter, MemoryIndexManager, MemoryCollectionParentIndex, EMPTY_VALUE, OFFSET, TargetIdGenerator, GC_DID_NOT_RUN, LRU_COLLECTION_DISABLED, LRU_DEFAULT_CACHE_SIZE_BYTES, LruParams, LOG_TAG$e, LRU_MINIMUM_CACHE_SIZE_BYTES, INITIAL_GC_DELAY_MS, REGULAR_GC_DELAY_MS, RollingSequenceNumberBuffer, LruScheduler, LruGarbageCollectorImpl, RemoteDocumentChangeBuffer, OverlayedDocument, LocalDocumentsView, MemoryBundleCache, MemoryDocumentOverlayCache, MemoryGlobalsCache, ReferenceSet, DocReference, MemoryMutationQueue, MIN_LONG_VALUE, MemoryRemoteDocumentCacheImpl, MemoryRemoteDocumentChangeBuffer, MemoryTargetCache, LOG_TAG$d, MemoryPersistence, MemoryTransaction, MemoryEagerDelegate, MemoryLruDelegate, MAX_CLIENT_AGE_MS, LOG_TAG$b, RESUME_TOKEN_MAX_AGE_MICROS, LocalStoreImpl, QueryContext, DEFAULT_INDEX_AUTO_CREATION_MIN_COLLECTION_SIZE, QueryEngine, LocalClientState, MemorySharedClientState, NoopConnectivityMonitor, StreamBridge, lastUniqueDebugId, grpcVersion, LOG_TAG$9, X_GOOG_API_CLIENT_VALUE, GrpcConnection, nested, protos, protos$1, protoLoaderOptions, LOG_TAG$8, DEFAULT_BACKOFF_INITIAL_DELAY_MS, DEFAULT_BACKOFF_FACTOR, DEFAULT_BACKOFF_MAX_DELAY_MS, ExponentialBackoff, LOG_TAG$7, IDLE_TIMEOUT_MS, HEALTHY_TIMEOUT_MS, PersistentStream, PersistentListenStream, PersistentWriteStream, Datastore, DatastoreImpl, LOG_TAG$6, MAX_WATCH_STREAM_FAILURES, ONLINE_STATE_TIMEOUT_MS, OnlineStateTracker, LOG_TAG$5, MAX_PENDING_WRITES, RemoteStoreImpl, LOG_TAG$4, DelayedOperation, DocumentSet, DocumentChangeSet, ViewSnapshot, QueryListenersInfo, EventManagerImpl, ListenerDataSource, QueryListener, LocalViewChanges, AddedLimboDocument, RemovedLimboDocument, View, LOG_TAG$3, QueryView, LimboResolution, SyncEngineImpl, MemoryOfflineComponentProvider, LruGcMemoryOfflineComponentProvider, OnlineComponentProvider, AsyncObserver, LOG_TAG$2, MAX_CONCURRENT_LIMBO_RESOLUTIONS, DOM_EXCEPTION_INVALID_STATE, DOM_EXCEPTION_ABORTED, DOM_EXCEPTION_QUOTA_EXCEEDED, FirestoreClient, LOG_TAG$1, datastoreInstances, DEFAULT_HOST, DEFAULT_SSL, MIN_LONG_POLLING_TIMEOUT_SECONDS, MAX_LONG_POLLING_TIMEOUT_SECONDS, DEFAULT_AUTO_DETECT_LONG_POLLING, FirestoreSettingsImpl, Firestore$1, Query, DocumentReference, CollectionReference, LOG_TAG, AsyncQueueImpl, Firestore, Bytes, FieldPath, FieldValue, GeoPoint, VectorValue, RESERVED_FIELD_REGEX, ParsedSetData, ParsedUpdateData, ParseContextImpl, UserDataReader, DeleteFieldValueImpl, FIELD_PATH_RESERVED, DocumentSnapshot$1, QueryDocumentSnapshot$1, AppliableConstraint, QueryConstraint, QueryFieldFilterConstraint, QueryCompositeFilterConstraint, AbstractUserDataWriter, SnapshotMetadata, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot, ExpUserDataWriter, WriteBatch;
 var init_index_node = __esm({
   "node_modules/@firebase/firestore/dist/index.node.mjs"() {
     init_index_esm20173();
@@ -31434,14 +31543,14 @@ var init_index_node = __esm({
       }
     };
     FirebaseAppCheckTokenProvider = class {
-      constructor(app2, appCheckProvider) {
+      constructor(app, appCheckProvider) {
         this.appCheckProvider = appCheckProvider;
         this.forceRefresh = false;
         this.appCheck = null;
         this.latestAppCheckToken = null;
         this.serverAppAppCheckToken = null;
-        if (_isFirebaseServerApp(app2) && app2.settings.appCheckToken) {
-          this.serverAppAppCheckToken = app2.settings.appCheckToken;
+        if (_isFirebaseServerApp(app) && app.settings.appCheckToken) {
+          this.serverAppAppCheckToken = app.settings.appCheckToken;
         }
       }
       start(asyncQueue, changeListener) {
@@ -31675,12 +31784,12 @@ var init_index_node = __esm({
         if (offset === void 0) {
           offset = 0;
         } else if (offset > segments.length) {
-          fail();
+          fail2();
         }
         if (length === void 0) {
           length = segments.length - offset;
         } else if (length > segments.length - offset) {
-          fail();
+          fail2();
         }
         this.segments = segments;
         this.offset = offset;
@@ -32040,7 +32149,7 @@ var init_index_node = __esm({
       }
       next(nextFn, catchFn) {
         if (this.callbackAttached) {
-          fail();
+          fail2();
         }
         this.callbackAttached = true;
         if (this.isDone) {
@@ -32140,9 +32249,9 @@ var init_index_node = __esm({
         }
         return p;
       }
-      static forEach(collection3, f) {
+      static forEach(collection2, f) {
         const promises = [];
-        collection3.forEach((r, s) => {
+        collection2.forEach((r, s) => {
           promises.push(f.call(this, r, s));
         });
         return this.waitFor(promises);
@@ -32598,14 +32707,14 @@ var init_index_node = __esm({
       // leaves is equal on both sides.  This function verifies that or asserts.
       check() {
         if (this.isRed() && this.left.isRed()) {
-          throw fail();
+          throw fail2();
         }
         if (this.right.isRed()) {
-          throw fail();
+          throw fail2();
         }
         const blackDepth = this.left.check();
         if (blackDepth !== this.right.check()) {
-          throw fail();
+          throw fail2();
         } else {
           return blackDepth + (this.isRed() ? 0 : 1);
         }
@@ -32619,19 +32728,19 @@ var init_index_node = __esm({
         this.size = 0;
       }
       get key() {
-        throw fail();
+        throw fail2();
       }
       get value() {
-        throw fail();
+        throw fail2();
       }
       get color() {
-        throw fail();
+        throw fail2();
       }
       get left() {
-        throw fail();
+        throw fail2();
       }
       get right() {
-        throw fail();
+        throw fail2();
       }
       // Returns a copy of the current node.
       copy(key, value, color, left, right) {
@@ -33289,8 +33398,8 @@ var init_index_node = __esm({
       static createKeyFieldInFilter(field, op, value) {
         return op === "in" ? new KeyFieldInFilter(field, value) : new KeyFieldNotInFilter(field, value);
       }
-      matches(doc3) {
-        const other = doc3.data.field(this.field);
+      matches(doc2) {
+        const other = doc2.data.field(this.field);
         if (this.op === "!=") {
           return other !== null && this.matchesComparison(valueCompare(other, this.value));
         }
@@ -33311,7 +33420,7 @@ var init_index_node = __esm({
           case ">=":
             return comparison >= 0;
           default:
-            return fail();
+            return fail2();
         }
       }
       isInequality() {
@@ -33345,11 +33454,11 @@ var init_index_node = __esm({
       static create(filters, op) {
         return new _CompositeFilter(filters, op);
       }
-      matches(doc3) {
+      matches(doc2) {
         if (compositeFilterIsConjunction(this)) {
-          return this.filters.find((filter) => !filter.matches(doc3)) === void 0;
+          return this.filters.find((filter) => !filter.matches(doc2)) === void 0;
         } else {
-          return this.filters.find((filter) => filter.matches(doc3)) !== void 0;
+          return this.filters.find((filter) => filter.matches(doc2)) !== void 0;
         }
       }
       getFlattenedFilters() {
@@ -33371,8 +33480,8 @@ var init_index_node = __esm({
         super(field, op, value);
         this.key = DocumentKey.fromName(value.referenceValue);
       }
-      matches(doc3) {
-        const comparison = DocumentKey.comparator(doc3.key, this.key);
+      matches(doc2) {
+        const comparison = DocumentKey.comparator(doc2.key, this.key);
         return this.matchesComparison(comparison);
       }
     };
@@ -33381,8 +33490,8 @@ var init_index_node = __esm({
         super(field, "in", value);
         this.keys = extractDocumentKeysFromArrayValue("in", value);
       }
-      matches(doc3) {
-        return this.keys.some((key) => key.isEqual(doc3.key));
+      matches(doc2) {
+        return this.keys.some((key) => key.isEqual(doc2.key));
       }
     };
     KeyFieldNotInFilter = class extends FieldFilter {
@@ -33390,16 +33499,16 @@ var init_index_node = __esm({
         super(field, "not-in", value);
         this.keys = extractDocumentKeysFromArrayValue("not-in", value);
       }
-      matches(doc3) {
-        return !this.keys.some((key) => key.isEqual(doc3.key));
+      matches(doc2) {
+        return !this.keys.some((key) => key.isEqual(doc2.key));
       }
     };
     ArrayContainsFilter = class extends FieldFilter {
       constructor(field, value) {
         super(field, "array-contains", value);
       }
-      matches(doc3) {
-        const other = doc3.data.field(this.field);
+      matches(doc2) {
+        const other = doc2.data.field(this.field);
         return isArray(other) && arrayValueContains(other.arrayValue, this.value);
       }
     };
@@ -33407,8 +33516,8 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "in", value);
       }
-      matches(doc3) {
-        const other = doc3.data.field(this.field);
+      matches(doc2) {
+        const other = doc2.data.field(this.field);
         return other !== null && arrayValueContains(this.value.arrayValue, other);
       }
     };
@@ -33416,11 +33525,11 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "not-in", value);
       }
-      matches(doc3) {
+      matches(doc2) {
         if (arrayValueContains(this.value.arrayValue, { nullValue: "NULL_VALUE" })) {
           return false;
         }
-        const other = doc3.data.field(this.field);
+        const other = doc2.data.field(this.field);
         return other !== null && !arrayValueContains(this.value.arrayValue, other);
       }
     };
@@ -33428,8 +33537,8 @@ var init_index_node = __esm({
       constructor(field, value) {
         super(field, "array-contains-any", value);
       }
-      matches(doc3) {
-        const other = doc3.data.field(this.field);
+      matches(doc2) {
+        const other = doc2.data.field(this.field);
         if (!isArray(other) || !other.arrayValue.values) {
           return false;
         }
@@ -34026,7 +34135,7 @@ var init_index_node = __esm({
               removedDocuments = removedDocuments.add(key);
               break;
             default:
-              fail();
+              fail2();
           }
         });
         return new TargetChange(this._resumeToken, this._current, addedDocuments, modifiedDocuments, removedDocuments);
@@ -34119,7 +34228,7 @@ var init_index_node = __esm({
               }
               break;
             default:
-              fail();
+              fail2();
           }
         });
       }
@@ -34276,7 +34385,7 @@ var init_index_node = __esm({
             resolvedLimboDocuments = resolvedLimboDocuments.add(key);
           }
         });
-        this.pendingDocumentUpdates.forEach((_, doc3) => doc3.setReadTime(snapshotVersion));
+        this.pendingDocumentUpdates.forEach((_, doc2) => doc2.setReadTime(snapshotVersion));
         const remoteEvent = new RemoteEvent(snapshotVersion, targetChanges, this.pendingTargetResets, this.pendingDocumentUpdates, resolvedLimboDocuments);
         this.pendingDocumentUpdates = mutableDocumentMap();
         this.pendingDocumentUpdatesByTarget = documentTargetMap();
@@ -34630,7 +34739,7 @@ var init_index_node = __esm({
           this.writeIndexArray(indexValue.arrayValue, encoder);
           this.writeTruncationMarker(encoder);
         } else {
-          fail();
+          fail2();
         }
       }
       writeIndexString(stringIndexValue, encoder) {
@@ -35121,15 +35230,15 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         let recalculateDocuments = mutableDocumentMap();
         const mutatedFields = newDocumentKeyMap();
         const results = newOverlayedDocumentMap();
-        docs.forEach((_, doc3) => {
-          const overlay = overlays.get(doc3.key);
-          if (existenceStateChanged.has(doc3.key) && (overlay === void 0 || overlay.mutation instanceof PatchMutation)) {
-            recalculateDocuments = recalculateDocuments.insert(doc3.key, doc3);
+        docs.forEach((_, doc2) => {
+          const overlay = overlays.get(doc2.key);
+          if (existenceStateChanged.has(doc2.key) && (overlay === void 0 || overlay.mutation instanceof PatchMutation)) {
+            recalculateDocuments = recalculateDocuments.insert(doc2.key, doc2);
           } else if (overlay !== void 0) {
-            mutatedFields.set(doc3.key, overlay.mutation.getFieldMask());
-            mutationApplyToLocalView(overlay.mutation, doc3, overlay.mutation.getFieldMask(), Timestamp.now());
+            mutatedFields.set(doc2.key, overlay.mutation.getFieldMask());
+            mutationApplyToLocalView(overlay.mutation, doc2, overlay.mutation.getFieldMask(), Timestamp.now());
           } else {
-            mutatedFields.set(doc3.key, FieldMask.empty());
+            mutatedFields.set(doc2.key, FieldMask.empty());
           }
         });
         return this.recalculateAndSaveOverlays(transaction, recalculateDocuments).next((recalculatedFields) => {
@@ -35234,8 +35343,8 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
               if (originalDocs.get(key)) {
                 return PersistencePromise.resolve();
               }
-              return this.remoteDocumentCache.getEntry(transaction, key).next((doc3) => {
-                modifiedDocs = modifiedDocs.insert(key, doc3);
+              return this.remoteDocumentCache.getEntry(transaction, key).next((doc2) => {
+                modifiedDocs = modifiedDocs.insert(key, doc2);
               });
             }).next(() => this.populateOverlays(transaction, overlays, originalDocs)).next(() => this.computeViews(transaction, modifiedDocs, overlays, documentKeySet())).next((localDocs) => ({
               batchId: largestBatchId,
@@ -35260,8 +35369,8 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
           return PersistencePromise.forEach(parents, (parent) => {
             const collectionQuery = asCollectionQueryAtPath(query2, parent.child(collectionId));
             return this.getDocumentsMatchingCollectionQuery(transaction, collectionQuery, offset, context).next((r) => {
-              r.forEach((key, doc3) => {
-                results = results.insert(key, doc3);
+              r.forEach((key, doc2) => {
+                results = results.insert(key, doc2);
               });
             });
           }).next(() => results);
@@ -35346,16 +35455,16 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         }
         return PersistencePromise.resolve();
       }
-      getOverlaysForCollection(transaction, collection3, sinceBatchId) {
+      getOverlaysForCollection(transaction, collection2, sinceBatchId) {
         const result = newOverlayMap();
-        const immediateChildrenPathLength = collection3.length + 1;
-        const prefix = new DocumentKey(collection3.child(""));
+        const immediateChildrenPathLength = collection2.length + 1;
+        const prefix = new DocumentKey(collection2.child(""));
         const iter = this.overlays.getIteratorFrom(prefix);
         while (iter.hasNext()) {
           const entry = iter.getNext();
           const overlay = entry.value;
           const key = overlay.getKey();
-          if (!collection3.isPrefixOf(key.path)) {
+          if (!collection2.isPrefixOf(key.path)) {
             break;
           }
           if (key.path.length !== immediateChildrenPathLength) {
@@ -35686,13 +35795,13 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
        * All calls of `addEntry`  are required to go through the RemoteDocumentChangeBuffer
        * returned by `newChangeBuffer()`.
        */
-      addEntry(transaction, doc3) {
-        const key = doc3.key;
+      addEntry(transaction, doc2) {
+        const key = doc2.key;
         const entry = this.docs.get(key);
         const previousSize = entry ? entry.size : 0;
-        const currentSize = this.sizer(doc3);
+        const currentSize = this.sizer(doc2);
         this.docs = this.docs.insert(key, {
-          document: doc3.mutableCopy(),
+          document: doc2.mutableCopy(),
           size: currentSize
         });
         this.size += currentSize - previousSize;
@@ -35747,7 +35856,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         return PersistencePromise.resolve(results);
       }
       getAllFromCollectionGroup(transaction, collectionGroup, offset, limit) {
-        fail();
+        fail2();
       }
       forEachDocumentKey(transaction, f) {
         return PersistencePromise.forEach(this.docs, (key) => f(key));
@@ -35766,9 +35875,9 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
       }
       applyChanges(transaction) {
         const promises = [];
-        this.changes.forEach((key, doc3) => {
-          if (doc3.isValidDocument()) {
-            promises.push(this.documentCache.addEntry(transaction, doc3));
+        this.changes.forEach((key, doc2) => {
+          if (doc2.isValidDocument()) {
+            promises.push(this.documentCache.addEntry(transaction, doc2));
           } else {
             this.documentCache.removeEntry(key);
           }
@@ -35905,7 +36014,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
         this.globalsCache = new MemoryGlobalsCache();
         this.referenceDelegate = referenceDelegateFactory(this);
         this.targetCache = new MemoryTargetCache(this);
-        const sizer = (doc3) => this.referenceDelegate.documentSize(doc3);
+        const sizer = (doc2) => this.referenceDelegate.documentSize(doc2);
         this.indexManager = new MemoryIndexManager();
         this.remoteDocumentCache = newMemoryRemoteDocumentCache(sizer);
         this.serializer = new LocalSerializer(serializer);
@@ -35988,7 +36097,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
       }
       get orphanedDocuments() {
         if (!this._orphanedDocuments) {
-          throw fail();
+          throw fail2();
         } else {
           return this._orphanedDocuments;
         }
@@ -36042,7 +36151,7 @@ Total Duration: ${removedDocumentsTs - startTs}ms`;
           }
         });
       }
-      documentSize(doc3) {
+      documentSize(doc2) {
         return 0;
       }
       isReferenced(txn, key) {
@@ -40249,8 +40358,8 @@ This typically indicates that your device does not have a healthy Internet conne
        * document key is not present in the set;
        */
       indexOf(key) {
-        const doc3 = this.keyedMap.get(key);
-        return doc3 ? this.sortedSet.indexOf(doc3) : -1;
+        const doc2 = this.keyedMap.get(key);
+        return doc2 ? this.sortedSet.indexOf(doc2) : -1;
       }
       get size() {
         return this.sortedSet.size;
@@ -40263,17 +40372,17 @@ This typically indicates that your device does not have a healthy Internet conne
         });
       }
       /** Inserts or updates a document with the same key */
-      add(doc3) {
-        const set = this.delete(doc3.key);
-        return set.copy(set.keyedMap.insert(doc3.key, doc3), set.sortedSet.insert(doc3, null));
+      add(doc2) {
+        const set = this.delete(doc2.key);
+        return set.copy(set.keyedMap.insert(doc2.key, doc2), set.sortedSet.insert(doc2, null));
       }
       /** Deletes a document with a given key */
       delete(key) {
-        const doc3 = this.get(key);
-        if (!doc3) {
+        const doc2 = this.get(key);
+        if (!doc2) {
           return this;
         }
-        return this.copy(this.keyedMap.remove(key), this.sortedSet.remove(doc3));
+        return this.copy(this.keyedMap.remove(key), this.sortedSet.remove(doc2));
       }
       isEqual(other) {
         if (!(other instanceof _DocumentSet)) {
@@ -40295,8 +40404,8 @@ This typically indicates that your device does not have a healthy Internet conne
       }
       toString() {
         const docStrings = [];
-        this.forEach((doc3) => {
-          docStrings.push(doc3.toString());
+        this.forEach((doc2) => {
+          docStrings.push(doc2.toString());
         });
         if (docStrings.length === 0) {
           return "DocumentSet ()";
@@ -40353,7 +40462,7 @@ This typically indicates that your device does not have a healthy Internet conne
             doc: change.doc
           });
         } else {
-          fail();
+          fail2();
         }
       }
       getChanges() {
@@ -40379,8 +40488,8 @@ This typically indicates that your device does not have a healthy Internet conne
       /** Returns a view snapshot as if all documents in the snapshot were added. */
       static fromInitialDocuments(query2, documents, mutatedKeys, fromCache, hasCachedResults) {
         const changes = [];
-        documents.forEach((doc3) => {
-          changes.push({ type: 0, doc: doc3 });
+        documents.forEach((doc2) => {
+          changes.push({ type: 0, doc: doc2 });
         });
         return new _ViewSnapshot(
           query2,
@@ -40776,9 +40885,9 @@ This typically indicates that your device does not have a healthy Internet conne
         }
         const oldLimboDocuments = this.limboDocuments;
         this.limboDocuments = documentKeySet();
-        this.documentSet.forEach((doc3) => {
-          if (this.shouldBeInLimbo(doc3.key)) {
-            this.limboDocuments = this.limboDocuments.add(doc3.key);
+        this.documentSet.forEach((doc2) => {
+          if (this.shouldBeInLimbo(doc2.key)) {
+            this.limboDocuments = this.limboDocuments.add(doc2.key);
           }
         });
         const changes = [];
@@ -41405,7 +41514,7 @@ This typically indicates that your device does not have a healthy Internet conne
       }
       verifyNotFailed() {
         if (this.failure) {
-          fail();
+          fail2();
         }
       }
       verifyOperationInProgress() {
@@ -41466,11 +41575,11 @@ This typically indicates that your device does not have a healthy Internet conne
     };
     Firestore = class extends Firestore$1 {
       /** @hideconstructor */
-      constructor(authCredentialsProvider, appCheckCredentialsProvider, databaseId, app2) {
-        super(authCredentialsProvider, appCheckCredentialsProvider, databaseId, app2);
+      constructor(authCredentialsProvider, appCheckCredentialsProvider, databaseId, app) {
+        super(authCredentialsProvider, appCheckCredentialsProvider, databaseId, app);
         this.type = "firestore";
         this._queue = new AsyncQueueImpl();
-        this._persistenceKey = (app2 === null || app2 === void 0 ? void 0 : app2.name) || "[DEFAULT]";
+        this._persistenceKey = (app === null || app === void 0 ? void 0 : app.name) || "[DEFAULT]";
       }
       async _terminate() {
         if (this._firestoreClient) {
@@ -41661,6 +41770,16 @@ This typically indicates that your device does not have a healthy Internet conne
         }
       }
     };
+    ParsedUpdateData = class {
+      constructor(data, fieldMask, fieldTransforms) {
+        this.data = data;
+        this.fieldMask = fieldMask;
+        this.fieldTransforms = fieldTransforms;
+      }
+      toMutation(key, precondition) {
+        return new PatchMutation(key, this.data, this.fieldMask, precondition, this.fieldTransforms);
+      }
+    };
     ParseContextImpl = class _ParseContextImpl {
       /**
        * Initializes a ParseContext with the given source and path.
@@ -41758,6 +41877,21 @@ This typically indicates that your device does not have a healthy Internet conne
           arrayElement: false,
           hasConverter
         }, this.databaseId, this.serializer, this.ignoreUndefinedProperties);
+      }
+    };
+    DeleteFieldValueImpl = class _DeleteFieldValueImpl extends FieldValue {
+      _toFieldTransform(context) {
+        if (context.dataSource === 2) {
+          context.fieldMask.push(context.path);
+        } else if (context.dataSource === 1) {
+          throw context.createError(`${this._methodName}() can only appear at the top level of your update data`);
+        } else {
+          throw context.createError(`${this._methodName}() cannot be used with set() unless you pass {merge:true}`);
+        }
+        return null;
+      }
+      isEqual(other) {
+        return other instanceof _DeleteFieldValueImpl;
       }
     };
     FIELD_PATH_RESERVED = new RegExp("[~\\*/\\[\\]]");
@@ -41941,7 +42075,7 @@ This typically indicates that your device does not have a healthy Internet conne
           case 10:
             return this.convertVectorValue(value.mapValue);
           default:
-            throw fail();
+            throw fail2();
         }
       }
       convertObject(mapValue, serverTimestampBehavior) {
@@ -42122,7 +42256,7 @@ This typically indicates that your device does not have a healthy Internet conne
       /** An array of all the documents in the `QuerySnapshot`. */
       get docs() {
         const result = [];
-        this.forEach((doc3) => result.push(doc3));
+        this.forEach((doc2) => result.push(doc2));
         return result;
       }
       /** The number of documents in the `QuerySnapshot`. */
@@ -42141,8 +42275,8 @@ This typically indicates that your device does not have a healthy Internet conne
        * @param thisArg - The `this` binding for the callback.
        */
       forEach(callback, thisArg) {
-        this._snapshot.docs.forEach((doc3) => {
-          callback.call(thisArg, new QueryDocumentSnapshot(this._firestore, this._userDataWriter, doc3.key, doc3, new SnapshotMetadata(this._snapshot.mutatedKeys.has(doc3.key), this._snapshot.fromCache), this.query.converter));
+        this._snapshot.docs.forEach((doc2) => {
+          callback.call(thisArg, new QueryDocumentSnapshot(this._firestore, this._userDataWriter, doc2.key, doc2, new SnapshotMetadata(this._snapshot.mutatedKeys.has(doc2.key), this._snapshot.fromCache), this.query.converter));
         });
       }
       /**
@@ -42184,6 +42318,74 @@ This typically indicates that your device does not have a healthy Internet conne
         );
       }
     };
+    WriteBatch = class {
+      /** @hideconstructor */
+      constructor(_firestore, _commitHandler) {
+        this._firestore = _firestore;
+        this._commitHandler = _commitHandler;
+        this._mutations = [];
+        this._committed = false;
+        this._dataReader = newUserDataReader(_firestore);
+      }
+      set(documentRef, data, options) {
+        this._verifyNotCommitted();
+        const ref = validateReference(documentRef, this._firestore);
+        const convertedValue = applyFirestoreDataConverter(ref.converter, data, options);
+        const parsed = parseSetData(this._dataReader, "WriteBatch.set", ref._key, convertedValue, ref.converter !== null, options);
+        this._mutations.push(parsed.toMutation(ref._key, Precondition.none()));
+        return this;
+      }
+      update(documentRef, fieldOrUpdateData, value, ...moreFieldsAndValues) {
+        this._verifyNotCommitted();
+        const ref = validateReference(documentRef, this._firestore);
+        fieldOrUpdateData = getModularInstance(fieldOrUpdateData);
+        let parsed;
+        if (typeof fieldOrUpdateData === "string" || fieldOrUpdateData instanceof FieldPath) {
+          parsed = parseUpdateVarargs(this._dataReader, "WriteBatch.update", ref._key, fieldOrUpdateData, value, moreFieldsAndValues);
+        } else {
+          parsed = parseUpdateData(this._dataReader, "WriteBatch.update", ref._key, fieldOrUpdateData);
+        }
+        this._mutations.push(parsed.toMutation(ref._key, Precondition.exists(true)));
+        return this;
+      }
+      /**
+       * Deletes the document referred to by the provided {@link DocumentReference}.
+       *
+       * @param documentRef - A reference to the document to be deleted.
+       * @returns This `WriteBatch` instance. Used for chaining method calls.
+       */
+      delete(documentRef) {
+        this._verifyNotCommitted();
+        const ref = validateReference(documentRef, this._firestore);
+        this._mutations = this._mutations.concat(new DeleteMutation(ref._key, Precondition.none()));
+        return this;
+      }
+      /**
+       * Commits all of the writes in this write batch as a single atomic unit.
+       *
+       * The result of these writes will only be reflected in document reads that
+       * occur after the returned promise resolves. If the client is offline, the
+       * write fails. If you would like to see local modifications or buffer writes
+       * until the client is online, use the full Firestore SDK.
+       *
+       * @returns A `Promise` resolved once all of the writes in the batch have been
+       * successfully written to the backend as an atomic unit (note that it won't
+       * resolve while you're offline).
+       */
+      commit() {
+        this._verifyNotCommitted();
+        this._committed = true;
+        if (this._mutations.length > 0) {
+          return this._commitHandler(this._mutations);
+        }
+        return Promise.resolve();
+      }
+      _verifyNotCommitted() {
+        if (this._committed) {
+          throw new FirestoreError(Code.FAILED_PRECONDITION, "A write batch can no longer be used after commit() has been called.");
+        }
+      }
+    };
     registerFirestore("node");
   }
 });
@@ -42198,19 +42400,19 @@ var init_dist3 = __esm({
 // src/firebase/firebase.js
 var firebase_exports = {};
 __export(firebase_exports, {
-  addDoc: () => addDoc,
+  addCollectionAndDocuments: () => addCollectionAndDocuments,
   auth: () => auth,
-  collection: () => collection,
-  createUserWithEmailAndPassword: () => createUserWithEmailAndPassword,
+  createAuthUserWithEmailAndPassword: () => createAuthUserWithEmailAndPassword,
+  createUserDocumentFromAuth: () => createUserDocumentFromAuth,
   db: () => db,
-  getDocs: () => getDocs,
-  onAuthStateChanged: () => onAuthStateChanged,
-  query: () => query,
-  signInWithEmailAndPassword: () => signInWithEmailAndPassword,
-  signOut: () => signOut,
-  where: () => where
+  getMachineData: () => getMachineData,
+  onAuthStateChangedListener: () => onAuthStateChangedListener,
+  signInAuthUserWithEmailAndPassword: () => signInAuthUserWithEmailAndPassword,
+  signInWithGooglePopup: () => signInWithGooglePopup,
+  signInWithGoogleRedirect: () => signInWithGoogleRedirect,
+  signOutUser: () => signOutUser
 });
-var firebaseConfig, app, auth, db;
+var firebaseConfig, firebaseApp, googleProvider, auth, signInWithGooglePopup, signInWithGoogleRedirect, db, addCollectionAndDocuments, getMachineData, createUserDocumentFromAuth, createAuthUserWithEmailAndPassword, signInAuthUserWithEmailAndPassword, signOutUser, onAuthStateChangedListener;
 var init_firebase = __esm({
   "src/firebase/firebase.js"() {
     init_dist();
@@ -42224,15 +42426,70 @@ var init_firebase = __esm({
       messagingSenderId: "375230490779",
       appId: "1:375230490779:web:637d2d9205133c270afe3e"
     };
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+    firebaseApp = initializeApp(firebaseConfig);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({
+      prompt: "select_account"
+    });
+    auth = getAuth();
+    signInWithGooglePopup = () => signInWithPopup(auth, googleProvider);
+    signInWithGoogleRedirect = () => signInWithRedirect(auth, googleProvider);
+    db = getFirestore();
+    addCollectionAndDocuments = async (collectionKey, objectsToAdd, field) => {
+      const collectionRef = collection(db, collectionKey);
+      const batch = writeBatch(db);
+      objectsToAdd.forEach((object) => {
+        const docRef = doc(collectionRef, object.date.toString());
+        batch.set(docRef, object);
+      });
+      await batch.commit();
+      console.log("done");
+    };
+    getMachineData = async () => {
+      const collectionRef = collection(db, "categories");
+      const q = query(collectionRef);
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map((docSnapshot) => docSnapshot.data());
+    };
+    createUserDocumentFromAuth = async (userAuth, additionalInformation = {}) => {
+      if (!userAuth)
+        return;
+      const userDocRef = doc(db, "users", userAuth.uid);
+      const userSnapshot = await getDoc(userDocRef);
+      if (!userSnapshot.exists()) {
+        const { displayName, email } = userAuth;
+        const createdAt = /* @__PURE__ */ new Date();
+        try {
+          await setDoc(userDocRef, {
+            displayName,
+            email,
+            createdAt,
+            ...additionalInformation
+          });
+        } catch (error) {
+          console.log("error creating the user", error.message);
+        }
+      }
+      return userDocRef;
+    };
+    createAuthUserWithEmailAndPassword = async (email, password) => {
+      if (!email || !password)
+        return;
+      return await createUserWithEmailAndPassword(auth, email, password);
+    };
+    signInAuthUserWithEmailAndPassword = async (email, password) => {
+      if (!email || !password)
+        return;
+      return await signInWithEmailAndPassword(auth, email, password);
+    };
+    signOutUser = async () => await signOut(auth);
+    onAuthStateChangedListener = (callback) => onAuthStateChanged(auth, callback);
   }
 });
 
 // netlify/functions/upload-attendance-data.js
 var { parse } = require_sync();
-var { db: db2, collection: collection2, doc: doc2, setDoc } = (init_firebase(), __toCommonJS(firebase_exports));
+var { addCollectionAndDocuments: addCollectionAndDocuments2 } = (init_firebase(), __toCommonJS(firebase_exports));
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return {
@@ -42275,6 +42532,8 @@ exports.handler = async (event) => {
       noOfProcessDate++;
     });
     attendanceData.date = /* @__PURE__ */ new Date();
+    attendanceData.date = attendanceData.date.toLocaleString("en-IN", { month: "long", timeZone: "Asia/Kolkata" });
+    await addCollectionAndDocuments2(branchId, [attendanceData]);
     return {
       statusCode: 200,
       body: JSON.stringify({

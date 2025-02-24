@@ -3,9 +3,12 @@ import PayrollDashboard from "./upload-data.component";
 import EmployeeForm from "./addEmployee";
 import ProcessAttendance from "./processAttendance";
 import EmployeeProfile from "./employee-profile";
+import { CardWithForm } from "./card";
+
 function App() {
 	return (
 		<>
+			<CardWithForm />
 			<EmployeeForm
 				branches={{
 					branch: { id: 1, name: "Scottish 16 & 17" },
@@ -14,7 +17,7 @@ function App() {
 			/>
 			<PayrollDashboard />
 			<ProcessAttendance />
-			<EmployeeProfile branchId={1} employeeId={1}/>
+			<EmployeeProfile branchId={1} employeeId={1} />
 		</>
 	);
 }

@@ -6,6 +6,7 @@ import { useState } from "react";
 // import { Select, SelectItem } from "@/components/ui/select";
 // import { db } from "@/firebase"; // Firebase import
 import { addEmployeeDetails } from "./firebase/firebase";
+import { Button } from "./components/ui/button";
 
 export default function EmployeeForm() {
 	const [branches] = useState([
@@ -29,15 +30,7 @@ export default function EmployeeForm() {
 	};
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		if (
-			!formData.employeeId ||
-			!formData.name ||
-			!formData.position ||
-			!formData.salary ||
-			!formData.department ||
-			!formData.joiningDate ||
-			!formData.branchId
-		) {
+		if (!formData.employeeId || !formData.name || !formData.position || !formData.salary || !formData.department || !formData.joiningDate || !formData.branchId) {
 			alert("Please fill all fields");
 			return;
 		}
@@ -48,18 +41,12 @@ export default function EmployeeForm() {
 	};
 
 	return (
-		<div className="max-w-lg mx-auto mt-10 p-6 shadow-lg rounded-lg">
-			<h2 className="text-xl font-semibold mb-4">Add Employee Details</h2>
-			<form onSubmit={handleSubmit} className="space-y-4">
+		<div >
+			<h2 >Add Employee Details</h2>
+			<form onSubmit={handleSubmit}>
 				<div>
 					<label>Employee ID</label>
-					<input
-						type="text"
-						name="employeeId"
-						value={formData.employeeId}
-						onChange={handleChange}
-						required
-					/>
+					<input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} required />
 				</div>
 				<div>
 					<label>Name</label>
@@ -67,23 +54,11 @@ export default function EmployeeForm() {
 				</div>
 				<div>
 					<label>Position</label>
-					<input
-						type="text"
-						name="position"
-						value={formData.position}
-						onChange={handleChange}
-						required
-					/>
+					<input type="text" name="position" value={formData.position} onChange={handleChange} required />
 				</div>
 				<div>
 					<label>Salary</label>
-					<input
-						type="number"
-						name="salary"
-						value={formData.salary}
-						onChange={handleChange}
-						required
-					/>
+					<input type="number" name="salary" value={formData.salary} onChange={handleChange} required />
 				</div>
 				<div>
 					<label>Department</label>
@@ -96,13 +71,7 @@ export default function EmployeeForm() {
 				</div>
 				<div>
 					<label>Joining Date</label>
-					<input
-						type="date"
-						name="joiningDate"
-						value={formData.joiningDate}
-						onChange={handleChange}
-						required
-					/>
+					<input type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} required />
 				</div>
 				<div>
 					<label>School Branch</label>
@@ -115,9 +84,10 @@ export default function EmployeeForm() {
 						))}
 					</select>
 				</div>
-				<button type="submit" className="w-full" disabled={loading}>
+				<Button variant="ghost">Ghost</Button>
+				<Button variant="destructive" type="submit" disabled={loading}>
 					{loading ? "Submitting..." : "Submit"}
-				</button>
+				</Button>
 				{loading && <div className="text-center mt-2">Loading...</div>}
 			</form>
 		</div>

@@ -108,7 +108,7 @@ export const onAuthStateChangedListener = (callback) => onAuthStateChanged(auth,
 
 export const checkAttendanceExists = async (branchId, yearMonth) => {
 	try {
-		const attendanceRef = doc(db, branchId, "attendanceLogs", yearMonth,"data");
+		const attendanceRef = doc(db, "branches", branchId, "attendanceLogs", yearMonth);
 		const existingDoc = await getDoc(attendanceRef);
 		return existingDoc.exists();
 	} catch (error) {
@@ -119,7 +119,7 @@ export const checkAttendanceExists = async (branchId, yearMonth) => {
 
 export const saveAttendanceData = async (branchId, yearMonth, attendanceData, forceOverwrite) => {
 	try {
-		const attendanceRef = doc(db, branchId, "attendanceLogs", yearMonth,"data");
+		const attendanceRef = doc(db, "branches", branchId, "attendanceLogs", yearMonth);
 		const existingDoc = await getDoc(attendanceRef);
 
 		// If document exists and not forcing overwrite, reject the request
@@ -161,36 +161,65 @@ export const addEmployeeDetails = async (formData) => {
 		return "Failed to add employee";
 	}
 };
-const storeAttendanceData = async (branchId, monthYear, attendanceData) => {
-	if (!branchId || !monthYear || !attendanceData) {
-		console.error("Invalid attendance data");
-		return;
-	}
 
+/**
+ * Fetches attendance logs for a branch & month-year.
+ */
+export const getAttendanceLogs = async (branchId, monthYear) => {
 	try {
-		const attendanceRef = doc(db, `branches/${branchId}/attendance/${monthYear}`);
-
-		// Check if the document already exists
-		const existingDoc = await getDoc(attendanceRef);
-
-		if (existingDoc.exists()) {
-			const userConfirmed = window.confirm(
-				"Attendance data for this month already exists. Do you want to overwrite it?"
-			);
-
-			if (!userConfirmed) {
-				console.log("User canceled overwrite.");
-				return;
-			}
-		}
-
-		// Store or overwrite attendance data
-		await setDoc(attendanceRef, { records: attendanceData });
-
-		console.log("Attendance record added/updated successfully!");
-		alert("Attendance data saved successfully.");
+		const docRef = doc(db, `branches/${branchId}/attendanceLogs/${monthYear}`);
+		const docSnap = await getDoc(docRef);
+		return docSnap.exists() ? docSnap.data() : null;
 	} catch (error) {
-		console.error("Error storing attendance data:", error);
-		alert("Failed to store attendance data.");
+		console.error("Error fetching attendance logs:", error);
+		return null;
 	}
+};
+
+/**
+ * Fetches all employees and their shift timings.
+ */
+export const getEmployees = async (branchId) => {
+	try {
+		const employeesRef = collection(db, `branches/${branchId}/employees`);
+		const snapshot = await getDocs(employeesRef);
+		const employees = {};
+		snapshot.forEach((doc) => {
+			employees[doc.id] = doc.data();
+		});
+		return employees;
+	} catch (error) {
+		console.error("Error fetching employees:", error);
+		return {};
+	}
+};
+
+/**
+ * Stores processed attendance inside each employee's document.
+ */
+export const saveProcessedAttendance = async (branchId, monthYear, processedAttendance) => {
+	try {
+		const updates = Object.entries(processedAttendance).map(async ([employeeId, data]) => {
+			const employeeRef = doc(db, `branches/${branchId}/employees/${employeeId}`);
+			const employeeDoc = await getDoc(employeeRef);
+
+			// Merge existing attendance data with new data
+			const currentAttendance = employeeDoc.exists() ? employeeDoc.data().attendance || {} : {};
+			currentAttendance[monthYear] = data; // Store attendance under month-year
+
+			await setDoc(employeeRef, { attendance: currentAttendance }, { merge: true });
+		});
+
+		await Promise.all(updates);
+		console.log("Attendance saved successfully.");
+	} catch (error) {
+		console.error("Error saving attendance:", error);
+	}
+};
+
+// Fetch Employee Details
+export const getEmployeeDetails = async (branchId, employeeId) => {
+	const employeeRef = doc(db, `branches/${branchId}/employees/${employeeId}`);
+	const employeeDoc = await getDoc(employeeRef);
+	return employeeDoc.exists ? employeeDoc.data() : null;
 };

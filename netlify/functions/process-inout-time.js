@@ -1,1 +1,0 @@
-const { addCollectionAndDocuments } = require("../../src/firebase/firebase");

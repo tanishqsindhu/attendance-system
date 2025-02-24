@@ -85,7 +85,6 @@ exports.handler = async (event) => {
 		const dateTimeNow = new Date();
 		attendanceData.rawData = `${fileContent}`;
 		attendanceData.uploadDate = dateTimeNow;
-		console.log(attendanceData);
 
 		// ✅ Step 4: Save to Firestore using utility function
 		await saveAttendanceData(branchId, monthYear, attendanceData, forceOverwrite);

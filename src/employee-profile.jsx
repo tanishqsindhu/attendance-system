@@ -1,36 +1,13 @@
 import { useState, useEffect } from "react";
-// import { Card, CardContent } from "@/components/ui/card";
-// import { Button } from "@/components/ui/button";
-// import { Select, SelectItem } from "@nextui-org/react";
+
 import { getEmployeeDetails } from "./firebase/firebase"; // Firebase functions
-import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EmployeeProfile = ({ branchId, employeeId }) => {
 	const [employee, setEmployee] = useState(null);
@@ -59,7 +36,7 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 		<Card className="max-w-4xl mx-auto p-6">
 			{/* Employee Details */}
 			<CardHeader>
-				<CardTitle className='text-center text-xl'>Employee Profile</CardTitle>
+				<CardTitle className="text-center text-xl">Employee Profile</CardTitle>
 				{employee ? (
 					<CardDescription>
 						<p>
@@ -84,8 +61,8 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 					{/* Month Selector */}
 					<div>
 						<Label htmlFor="select-month">Select Month:</Label>
-						<Select value={monthYear} onChange={(e) => setMonthYear(e.target.value)}>
-							<SelectTrigger id="select-month">
+						<Select id="select-month" value={monthYear} onValueChange={setMonthYear}>
+							<SelectTrigger>
 								<SelectValue placeholder="Select" />
 							</SelectTrigger>
 							<SelectContent position="popper">
@@ -126,24 +103,23 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 							<TableBody>
 								{Object.entries(attendance).map(([date, log]) => {
 									const logs = log.logs || [];
-									const missingText =
-										logs.length === 0
-											? "Absent"
-											: logs.some((l) => l.inOut === "DutyIn") &&
-											  !logs.some((l) => l.inOut === "DutyOff")
-											? "Out Time Missing"
-											: !logs.some((l) => l.inOut === "DutyIn") &&
-											  logs.some((l) => l.inOut === "DutyOff")
-											? "In Time Missing"
-											: "-";
+									const missingText = logs.length === 0 ? "Absent" : logs.some((l) => l.inOut === "DutyOn") && !logs.some((l) => l.inOut === "DutyOff") ? "Out Time Missing" : !logs.some((l) => l.inOut === "DutyOn") && logs.some((l) => l.inOut === "DutyOff") ? "In Time Missing" : "-";
 
 									return logs.length > 0 ? (
 										logs.map((logEntry, index) => (
 											<TableRow key={`${date}-${index}`} className="text-center">
 												{index === 0 && <TableCell rowSpan={logs.length}>{date}</TableCell>}
-												<TableCell>{logEntry.inOut === "DutyIn" ? "In" : "Out"}</TableCell>
-												<TableCell>{new Date(logEntry.time).toLocaleTimeString()}</TableCell>
+												<TableCell>{logEntry.inOut === "DutyOn" ? "In" : "Out"}</TableCell>
+												<TableCell>
+													{new Date(logEntry.time * 1000).toLocaleTimeString("en-IN", {
+														timeZone: "Asia/Kolkata",
+														hour: "2-digit",
+														minute: "2-digit",
+														hour12: true,
+													})}
+												</TableCell>
 												<TableCell>{logEntry.mode}</TableCell>
+												{/* {console.log(logEntry)} */}
 												{index === 0 && (
 													<>
 														<TableCell rowSpan={logs.length}>{log.status || "-"}</TableCell>

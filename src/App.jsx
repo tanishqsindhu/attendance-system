@@ -11,7 +11,7 @@ function App() {
 	return (
 		<Routes>
 			<Route path="/" element={<Page />}>
-				<Route index element={<EmployeeProfile branchId={1} employeeId={1} />} />
+				<Route index element={<EmployeeProfile branchId={1} employeeId={2} />} />
 				<Route path="upload-data/*" element={<AttendanceUpload />} />
 				<Route
 					path="add-employee"

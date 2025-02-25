@@ -54,16 +54,20 @@ const data = {
 			isActive: true,
 			items: [
 				{
-					title: "All Employees",
-					url: "#",
+					title: "Employees List",
+					url: "/",
 				},
 				{
-					title: "Starred",
-					url: "#",
+					title: "Add Employee",
+					url: "/",
 				},
 				{
-					title: "Settings",
-					url: "#",
+					title: "Process Data",
+					url: "attendance-process",
+				},
+				{
+					title: "Upload Attendance",
+					url: "upload-data",
 				},
 			],
 		},

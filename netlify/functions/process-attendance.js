@@ -1,8 +1,4 @@
-const {
-	getAttendanceLogs,
-	getEmployees,
-	saveProcessedAttendance,
-} = require("../../src/firebase/firebase");
+const { getAttendanceLogs, getEmployees, saveProcessedAttendance } = require("../../src/firebase/firebase");
 
 exports.handler = async (event) => {
 	if (event.httpMethod !== "POST") {
@@ -16,10 +12,7 @@ exports.handler = async (event) => {
 		}
 
 		// Fetch attendance logs & employees
-		const [attendanceLogs, employees] = await Promise.all([
-			getAttendanceLogs(branchId, monthYear),
-			getEmployees(branchId),
-		]);
+		const [attendanceLogs, employees] = await Promise.all([getAttendanceLogs(branchId, monthYear), getEmployees(branchId)]);
 		if (!attendanceLogs || Object.keys(attendanceLogs).length === 0) {
 			return { statusCode: 404, body: JSON.stringify({ message: "No attendance logs found" }) };
 		}
@@ -37,13 +30,10 @@ exports.handler = async (event) => {
 
 			// Group logs by month-year derived from `dateTime`
 			const monthlyAttendance = {};
-            
+
 			logs.logs.forEach(({ dateTime, mode, inOut }) => {
 				const timestamp = new Date(dateTime.seconds * 1000);
-				const monthYear = `${String(timestamp.getMonth() + 1).padStart(
-					2,
-					"0"
-				)}-${timestamp.getFullYear()}`;
+				const monthYear = `${String(timestamp.getMonth() + 1).padStart(2, "0")}-${timestamp.getFullYear()}`;
 				const date = timestamp.toISOString().split("T")[0];
 
 				if (!monthlyAttendance[monthYear]) {
@@ -83,7 +73,7 @@ exports.handler = async (event) => {
 						}
 					});
 
-					const workingHours = `${Math.floor(totalWorkMinutes / 60)}h ${totalWorkMinutes % 60}m`;
+					const workingHours = `${Math.round(totalWorkMinutes / 60)}h ${(totalWorkMinutes % 60)}m`;
 
 					// Determine status
 					const shiftStartTime = new Date(`${date}T${shiftStart}:00`);

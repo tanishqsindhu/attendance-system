@@ -1,31 +1,38 @@
-import "./App.css";
-import Page from "./app/dashboard/page";
 import { Routes, Route } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
 
-import EmployeeProfile from "@/employee-profile";
-import ProcessAttendance from "@/processAttendance";
-import EmployeeForm from "@/addEmployee";
+import Page from "./app/dashboard/page";
 import AttendanceUpload from "@/upload-data.component";
-import LoginPage from "./app/login/page";
+import Employees from "./routes/employees/employees.component";
+// import DemoPage from "./app/payments/page";
+import "./App.css";
+
+import { onAuthStateChangedListener, createUserDocumentFromAuth } from "./firebase/firebase";
+import { setCurrentUser } from "./store/user/user.reducer";
+import Users from "./routes/users/users.components";
+
 function App() {
+	const dispatch = useDispatch();
+
+	useEffect(() => {
+		const unsubscribe = onAuthStateChangedListener((user) => {
+			if (user) {
+				createUserDocumentFromAuth(user);
+			}
+			const pickedUser = user && (({ accessToken, email }) => ({ accessToken, email }))(user);
+			dispatch(setCurrentUser(pickedUser));
+		});
+
+		return unsubscribe;
+	}, []);
 	return (
 		<Routes>
 			<Route path="/" element={<Page />}>
-				<Route index element={<EmployeeProfile branchId={1} employeeId={2} />} />
+				<Route path="employees/*" element={<Employees />} />
 				<Route path="upload-data/*" element={<AttendanceUpload />} />
-				<Route
-					path="add-employee"
-					element={
-						<EmployeeForm
-							branches={{
-								branch: { id: 1, name: "Scottish 16 & 17" },
-								branch2: { id: 2, name: "Scottish South Bypass" },
-							}}
-						/>
-					}
-				/>
-				<Route path="attendance-process" element={<ProcessAttendance />} />
-				<Route path="login" element={<LoginPage />} />
+				<Route path="users/*" element={<Users />} />
+				{/* <Route path="payment" element={<DemoPage />} /> */}
 			</Route>
 		</Routes>
 	);

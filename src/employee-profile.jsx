@@ -1,15 +1,36 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 
 import { getEmployeeDetails } from "./firebase/firebase"; // Firebase functions
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import {
+	Table,
+	TableBody,
+	TableCaption,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
-const EmployeeProfile = ({ branchId, employeeId }) => {
+const EmployeeProfile = ({ branchId }) => {
+	const { empId } = useParams();
 	const [employee, setEmployee] = useState(null);
 	const [attendance, setAttendance] = useState({});
 	const [monthYear, setMonthYear] = useState(getCurrentMonthYear()); // Default: Current Month-Year
@@ -23,10 +44,10 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 	}
 	useEffect(() => {
 		if (branchId) fetchEmployeeDetails();
-	}, [branchId, employeeId, monthYear]);
+	}, [branchId, empId, monthYear]);
 
 	const fetchEmployeeDetails = async () => {
-		const data = await getEmployeeDetails(branchId, employeeId);
+		const data = await getEmployeeDetails(branchId, empId);
 		if (!data) alert("No Employee Data Found");
 		setEmployee(data);
 		setAttendance(data?.attendance?.[monthYear] || {}); // Fetch attendance from employee data
@@ -43,7 +64,7 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 							<strong>Name:</strong> {employee.name}
 						</p>
 						<p>
-							<strong>Employee ID:</strong> {employeeId}
+							<strong>Employee ID:</strong> {empId}
 						</p>
 						<p>
 							<strong>Department:</strong> {employee.department}
@@ -103,7 +124,16 @@ const EmployeeProfile = ({ branchId, employeeId }) => {
 							<TableBody>
 								{Object.entries(attendance).map(([date, log]) => {
 									const logs = log.logs || [];
-									const missingText = logs.length === 0 ? "Absent" : logs.some((l) => l.inOut === "DutyOn") && !logs.some((l) => l.inOut === "DutyOff") ? "Out Time Missing" : !logs.some((l) => l.inOut === "DutyOn") && logs.some((l) => l.inOut === "DutyOff") ? "In Time Missing" : "-";
+									const missingText =
+										logs.length === 0
+											? "Absent"
+											: logs.some((l) => l.inOut === "DutyOn") &&
+											  !logs.some((l) => l.inOut === "DutyOff")
+											? "Out Time Missing"
+											: !logs.some((l) => l.inOut === "DutyOn") &&
+											  logs.some((l) => l.inOut === "DutyOff")
+											? "In Time Missing"
+											: "-";
 
 									return logs.length > 0 ? (
 										logs.map((logEntry, index) => (

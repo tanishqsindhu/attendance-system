@@ -11,7 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
-
+import { House } from "lucide-react";
 import { Outlet } from "react-router-dom";
 
 export default function Page() {
@@ -19,7 +19,7 @@ export default function Page() {
 
 	// Convert "/dashboard/settings/profile" → ["dashboard", "settings", "profile"]
 	const pathSegments = location.pathname.split("/").filter(Boolean);
-  
+
 	return (
 		<SidebarProvider>
 			<AppSidebar />
@@ -33,7 +33,9 @@ export default function Page() {
 								{/* Home Link */}
 								<BreadcrumbItem className="hidden md:block">
 									<BreadcrumbLink asChild>
-										<Link to="/">Home</Link>
+										<Link to="/">
+											<House />
+										</Link>
 									</BreadcrumbLink>
 								</BreadcrumbItem>
 

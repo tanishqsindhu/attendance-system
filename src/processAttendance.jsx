@@ -1,10 +1,23 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 export default function ProcessAttendance() {
 	const [branchId, setBranchId] = useState("");
@@ -32,7 +45,7 @@ export default function ProcessAttendance() {
 
 	return (
 		<>
-			<Card className="w-[350px]">
+			<Card className="max-w-4xl mx-auto p-6">
 				<CardHeader>
 					<CardTitle>Process Attendance</CardTitle>
 				</CardHeader>
@@ -56,14 +69,22 @@ export default function ProcessAttendance() {
 							{/* Month-Year Input */}
 							<div className="flex flex-col space-y-1.5">
 								<Label htmlFor="month-year">Month-Year</Label>
-								<Input id="month-year" placeholder="Enter Month-Year for processing" onChange={(e) => setMonthYear(e.target.value)} />
+								<Input
+									id="month-year"
+									placeholder="Enter Month-Year for processing"
+									onChange={(e) => setMonthYear(e.target.value)}
+								/>
 							</div>
 						</div>
 					</form>
 				</CardContent>
 
 				<CardFooter className="flex justify-between">
-					<Button onClick={handleSubmit} disabled={isProcessing} className={isProcessing ? "opacity-50 w-100" : "w-100"}>
+					<Button
+						onClick={handleSubmit}
+						disabled={isProcessing}
+						className={isProcessing ? "opacity-50 w-100" : "w-100"}
+					>
 						{isProcessing ? (
 							<div className="flex items-center gap-2">
 								<Loader2 className="animate-spin" />

@@ -84,8 +84,7 @@ export default function EmployeeForm() {
 						))}
 					</select>
 				</div>
-				<Button variant="ghost">Ghost</Button>
-				<Button variant="destructive" type="submit" disabled={loading}>
+				<Button variant="outline" className='w-100' type="submit" disabled={loading}>
 					{loading ? "Submitting..." : "Submit"}
 				</Button>
 				{loading && <div className="text-center mt-2">Loading...</div>}

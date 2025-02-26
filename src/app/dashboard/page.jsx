@@ -28,39 +28,7 @@ export default function Page() {
 					<div className="flex items-center gap-2 px-4">
 						<SidebarTrigger className="-ml-1" />
 						<Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-						<Breadcrumb>
-							<BreadcrumbList>
-								{/* Home Link */}
-								<BreadcrumbItem className="hidden md:block">
-									<BreadcrumbLink asChild>
-										<Link to="/">
-											<House />
-										</Link>
-									</BreadcrumbLink>
-								</BreadcrumbItem>
 
-								{/* Generate Breadcrumbs Dynamically */}
-								{pathSegments.map((segment, index) => {
-									const href = `/${pathSegments.slice(0, index + 1).join("/")}`;
-									const formattedSegment = segment.charAt(0).toUpperCase() + segment.slice(1);
-
-									return (
-										<>
-											<BreadcrumbSeparator key={index} />
-											<BreadcrumbItem key={href} className="hidden md:block">
-												{index === pathSegments.length - 1 ? (
-													<BreadcrumbPage>{formattedSegment}</BreadcrumbPage>
-												) : (
-													<BreadcrumbLink asChild>
-														<Link to={href}>{formattedSegment}</Link>
-													</BreadcrumbLink>
-												)}
-											</BreadcrumbItem>
-										</>
-									);
-								})}
-							</BreadcrumbList>
-						</Breadcrumb>
 					</div>
 					<div className="ml-auto px-3">
 						<div className="flex items-center gap-2 px-4">

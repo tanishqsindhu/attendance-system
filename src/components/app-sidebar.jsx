@@ -1,20 +1,7 @@
 import * as React from "react";
 import { useSelector } from "react-redux";
 
-import {
-	AudioWaveform,
-	BookOpen,
-	Bot,
-	Command,
-	Frame,
-	GalleryVerticalEnd,
-	Map,
-	PieChart,
-	Users,
-	Settings2,
-	SquareTerminal,
-	LogIn
-} from "lucide-react";
+import { AudioWaveform, BookOpen, Bot, Command, Frame, GalleryVerticalEnd, Map, PieChart, Users, Settings2, SquareTerminal, LogIn } from "lucide-react";
 
 import SisLogo from "../assets/scottish logo.svg?react";
 
@@ -22,26 +9,20 @@ import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
-import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
-	SidebarRail,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
 export function AppSidebar({ ...props }) {
 	const currentUser = useSelector(selectCurrentUser);
-	console.log(currentUser);
 	// This is sample data.
 	const data = {
 		user: {
-			name: `${currentUser ? currentUser.displayName : "Not Signed In"}`,
+			name: `${currentUser ? currentUser.fullName : "Not Signed In"}`,
 			email: `${currentUser ? currentUser.email : "example@email.com"}`,
-			avatar: "/avatars/shadcn.jpg",
+			avatar: `${currentUser ? currentUser.imageUrl : "/avatars/shadcn.jpg"}`,
 		},
 		teams: [
 			{
@@ -175,13 +156,16 @@ export function AppSidebar({ ...props }) {
 				{/* <NavProjects projects={data.projects} /> */}
 			</SidebarContent>
 			<SidebarFooter>
-				{currentUser ? (
+				<SignedIn>
 					<NavUser user={data.user} />
-				) : (
+				</SignedIn>
+				<SignedOut>
 					<Button asChild variant="outline">
-						<Link to="/users/login">Login <LogIn/></Link>
+						<Link to="/users/login">
+							Login <LogIn />
+						</Link>
 					</Button>
-				)}
+				</SignedOut>
 			</SidebarFooter>
 			<SidebarRail />
 		</Sidebar>

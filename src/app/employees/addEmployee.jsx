@@ -2,13 +2,34 @@ import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 
 // Zod Schema Definitions
 const personalSchema = z.object({
@@ -140,8 +161,8 @@ const EmployeeAddForm = () => {
 
 	return (
 		<div className="w-full max-w-5xl mx-auto p-4">
-			<Card>
-				<CardHeader className="bg-slate-50">
+			<Card className="p-7">
+				<CardHeader>
 					<CardTitle className="text-2xl">Add New Employee</CardTitle>
 					<CardDescription>Enter employee details for the school payroll system</CardDescription>
 				</CardHeader>
@@ -544,6 +565,71 @@ const EmployeeAddForm = () => {
 														<SelectContent>
 															<SelectItem value="savings">Savings</SelectItem>
 															<SelectItem value="current">Current</SelectItem>
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</TabsContent>
+							{/* Tax Tab */}
+							<TabsContent value="tax" className="space-y-4 p-6">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<FormField
+										control={form.control}
+										name="tax.uan"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>UAN</FormLabel>
+												<FormControl>
+													<Input {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="tax.pfNumber"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>PF Number*</FormLabel>
+												<FormControl>
+													<Input {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="tax.esiNumber"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>ESI Number</FormLabel>
+												<FormControl>
+													<Input {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="tax.taxRegime"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Tax Regime*</FormLabel>
+												<FormControl>
+													<Select onValueChange={field.onChange} value={field.value}>
+														<SelectTrigger>
+															<SelectValue placeholder="Select tax regime" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="old">Old Regime</SelectItem>
+															<SelectItem value="new">New Regime</SelectItem>
 														</SelectContent>
 													</Select>
 												</FormControl>

@@ -248,6 +248,24 @@ export default function DemoPage() {
 			},
 		},
 	];
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		if (!Object.values(formData).every((field) => field)) {
+			alert("Please fill all fields");
+			return;
+		}
+		toast("You submitted the following values:", {
+			description: (
+				<pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+					<code className="text-white">{JSON.stringify(data, null, 2)}</code>
+				</pre>
+			),
+		});
+		setLoading(true);
+		const employeeData = await addEmployeeDetails(formData);
+		alert(employeeData);
+		setLoading(false);
+	};
 
 	// Table actions
 	const tableActions = (

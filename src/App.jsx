@@ -45,7 +45,7 @@ function App() {
 				<Route
 					path="upload-data/*"
 					element={
-						<ProtectedRoute allowedRoles={["admin"]}>
+						<ProtectedRoute allowedRoles={["uploadData"]}>
 							<AttendanceUpload />
 						</ProtectedRoute>
 					}
@@ -54,7 +54,6 @@ function App() {
 				<Route path="users/*" element={<Users />} />
 				<Route path="data-table/*" element={<DemoPage />} />
 				<Route path="unauthorized/*" element={<UnauthorizedPage />} />
-				
 			</Route>
 		</Routes>
 	);

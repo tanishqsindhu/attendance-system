@@ -35,7 +35,7 @@ const UnauthorizedPage = () => {
 	};
 
 	return (
-		<div className="flex items-center justify-center min-h-screen bg-gray-50">
+		<div className="flex items-center justify-center min-h-screen">
 			<div className="w-full max-w-md px-4">
 				<Card className="border-destructive/50 shadow-lg">
 					<CardHeader className="space-y-1 text-center">
@@ -46,10 +46,10 @@ const UnauthorizedPage = () => {
 						<CardDescription>You don&apos;t have permission to access this page</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<Alert variant="destructive">
-							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Unauthorized</AlertTitle>
-							<AlertDescription>Your current role doesn&apos;t have the necessary permissions to view this resource.</AlertDescription>
+						<Alert>
+							<AlertCircle className="h-4 w-4 text-destructive" />
+							<AlertTitle className="text-destructive">Unauthorized</AlertTitle>
+							<AlertDescription className="text-destructive">Your current role doesn&apos;t have the necessary permissions to view this resource.</AlertDescription>
 						</Alert>
 
 						<div className="bg-muted/50 p-4 rounded-md text-sm">

@@ -8,16 +8,16 @@ import { useUser } from "@clerk/clerk-react";
 const ProtectedRoute = ({ children, allowedRoles }) => {
 	const { isLoaded } = useUser();
 	if (!isLoaded) return <ProtectedRouteLoading title="Authenticating User" description="Hang tight! We're checking your access level." icon={ShieldCheck} secondaryIcon={Lock} loadingSpeed={250} />;
+	if (isLoaded) {
+		const currentUser = useSelector(selectCurrentUser);
+		if (!currentUser) return <Navigate to="/users/login" />;
 
-	const currentUser = useSelector(selectCurrentUser);
-	if (!currentUser) return <Navigate to="/users/login" />;
+		const hasAccess = currentUser.roles.some((role) => allowedRoles.includes(role));
 
-	const hasAccess = currentUser.roles.some((role) => allowedRoles.includes(role));
-	console.log(currentUser, currentUser.roles, hasAccess, allowedRoles);
+		if (!hasAccess) return <Navigate to="/unauthorized" />;
 
-	if (!hasAccess) return <Navigate to="/unauthorized" />;
-
-	return children;
+		return children;
+	}
 };
 
 export default ProtectedRoute;

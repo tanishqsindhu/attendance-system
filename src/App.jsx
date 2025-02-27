@@ -14,23 +14,25 @@ import DemoPage from "./app/payments/page";
 
 function App() {
 	const dispatch = useDispatch();
-	const { user, isLoaded } = useUser();
+	const { user, isLoaded, isSignedIn } = useUser();
+	if (isLoaded && isSignedIn) {
+		const userRoles = user.publicMetadata?.roles
+			? Array.isArray(user.publicMetadata.roles)
+				? user.publicMetadata.roles
+				: [user.publicMetadata.roles]
+			: ["user"];
 
-	useEffect(() => {
-		if (isLoaded && user) {
-			dispatch(
-				setCurrentUser({
-					id: user.id,
-					username: user.username,
-					email: user.primaryEmailAddress?.emailAddress,
-					fullName: user.fullName,
-					imageUrl: user.imageUrl,
-					roles: user.publicMetadata?.roles || "user",
-				})
-			);
-		}
-	}, [dispatch, isLoaded, user]);
-
+		dispatch(
+			setCurrentUser({
+				id: user.id,
+				username: user.username,
+				email: user.primaryEmailAddress?.emailAddress,
+				fullName: user.fullName,
+				imageUrl: user.imageUrl,
+				roles: userRoles, // Now always an array
+			})
+		);
+	}
 	return (
 		<Routes>
 			<Route path="/" element={<Page />}>
@@ -52,7 +54,6 @@ function App() {
 				/>
 				DemoPage
 				<Route path="users/*" element={<Users />} />
-				<Route path="data-table/*" element={<DemoPage />} />
 				<Route path="unauthorized/*" element={<UnauthorizedPage />} />
 			</Route>
 		</Routes>

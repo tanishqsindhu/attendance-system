@@ -10,6 +10,7 @@ import { store } from "./store/store";
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-react";
 import { rootAuthLoader } from "@clerk/react-router/ssr.server";
 import { dark } from "@clerk/themes";
+
 // Import your Publishable Key
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -23,22 +24,22 @@ if (!PUBLISHABLE_KEY) {
 
 createRoot(document.getElementById("root")).render(
 	<StrictMode>
-		<ClerkProvider
-			appearance={{
-				baseTheme: dark,
-			}}
-			publishableKey={PUBLISHABLE_KEY}
-			afterSignOutUrl="/users/login"
-		>
-			<Provider store={store}>
-				{/* <PersistGate loading={null} persistor={persistor}> */}
-				<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+			<ClerkProvider
+				appearance={{
+					baseTheme: dark,
+				}}
+				publishableKey={PUBLISHABLE_KEY}
+				afterSignOutUrl="/users/login"
+			>
+				<Provider store={store}>
+					{/* <PersistGate loading={null} persistor={persistor}> */}
 					<BrowserRouter>
 						<App />
 					</BrowserRouter>
-				</ThemeProvider>
-				{/* </PersistGate> */}
-			</Provider>
-		</ClerkProvider>
+					{/* </PersistGate> */}
+				</Provider>
+			</ClerkProvider>
+		</ThemeProvider>
 	</StrictMode>
 );

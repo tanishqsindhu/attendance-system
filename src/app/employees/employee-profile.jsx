@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
-import { getEmployeeDetails } from "./firebase/firebase"; // Firebase functions
+import { getEmployeeDetails } from "../../firebase/firebase"; // Firebase functions
 import {
 	Table,
 	TableBody,

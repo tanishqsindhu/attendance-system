@@ -4,11 +4,12 @@ import { useDispatch } from "react-redux";
 
 // import { getCategoriesAndDocuments } from "../../firebase/firebase";
 // import { setCategories } from "./store/categories/category.reducer";
-import EmployeeForm from "@/app/employees/addEmployee";
+
 import ProcessAttendance from "@/processAttendance";
-import EmployeeProfile from "@/employee-profile";
+import EmployeeProfile from "@/app/employees/employee-profile";
 import EmployeesList from "@/app/employees/employee-list.component";
 import AttendanceUpload from "@/upload-data.component";
+import EmployeeAdd from "@/app/employees/addEmployee";
 
 const Employees = () => {
 	const dispatch = useDispatch();
@@ -25,17 +26,7 @@ const Employees = () => {
 	return (
 		<Routes>
 			<Route index element={<EmployeesList />} />
-			<Route
-				path="add"
-				element={
-					<EmployeeForm
-						branches={{
-							branch: { id: 1, name: "Scottish 16 & 17" },
-							branch2: { id: 2, name: "Scottish South Bypass" },
-						}}
-					/>
-				}
-			/>
+			<Route path="add" element={<EmployeeAdd />} />
 			<Route path="attendance-process" element={<ProcessAttendance />} />
 			<Route path="upload-data" element={<AttendanceUpload />} />
 			<Route path="view/:empId" element={<EmployeeProfile />} />

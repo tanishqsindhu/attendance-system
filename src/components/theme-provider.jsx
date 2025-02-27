@@ -22,7 +22,7 @@ export function ThemeProvider({
 			const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
 				? "dark"
 				: "light";
-
+			console.log(systemTheme)
 			root.classList.add(systemTheme);
 			return;
 		}

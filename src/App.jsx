@@ -8,15 +8,16 @@ import "./App.css";
 import { setCurrentUser } from "./store/user/user.reducer";
 import Users from "./routes/users/users.components";
 import { useUser } from "@clerk/clerk-react";
-import UnauthorizedPage from "./app/authentication/unauthorized/unauthorized.component"; 
-import  ProtectedRoute  from "./components/protected-routes"; // Import your RBAC route component
+import UnauthorizedPage from "./app/authentication/unauthorized/unauthorized.component";
+import ProtectedRoute from "./components/protected-routes"; // Import your RBAC route component
+import DemoPage from "./app/payments/page";
 
 function App() {
 	const dispatch = useDispatch();
 	const { user, isLoaded } = useUser();
 
 	useEffect(() => {
-		if (isLoaded &&user) {
+		if (isLoaded && user) {
 			dispatch(
 				setCurrentUser({
 					id: user.id,
@@ -28,38 +29,34 @@ function App() {
 				})
 			);
 		}
-	}, [dispatch,isLoaded, user]);
+	}, [dispatch, isLoaded, user]);
 
 	return (
-			<Routes>
-				<Route path="/" element={<Page />}>
-					<Route
-						path="employees/*"
-						element={
-							<ProtectedRoute allowedRoles={["admin"]}>
-								<Employees />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="upload-data/*"
-						element={
-							<ProtectedRoute allowedRoles={["admin"]}>
-								<AttendanceUpload />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="users/*"
-						element={
-							<ProtectedRoute allowedRoles={["admin"]}>
-								<Users />
-							</ProtectedRoute>
-						}
-					/>
-					<Route path="unauthorized/*" element={<UnauthorizedPage />} />
-				</Route>
-			</Routes>
+		<Routes>
+			<Route path="/" element={<Page />}>
+				<Route
+					path="employees/*"
+					element={
+						<ProtectedRoute allowedRoles={["admin"]}>
+							<Employees />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="upload-data/*"
+					element={
+						<ProtectedRoute allowedRoles={["admin"]}>
+							<AttendanceUpload />
+						</ProtectedRoute>
+					}
+				/>
+				DemoPage
+				<Route path="users/*" element={<Users />} />
+				<Route path="data-table/*" element={<DemoPage />} />
+				<Route path="unauthorized/*" element={<UnauthorizedPage />} />
+				
+			</Route>
+		</Routes>
 	);
 }
 

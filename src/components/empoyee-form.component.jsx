@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,7 +30,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 
-// Zod Schema Definitions (same as before)
+// Zod Schema Definitions
 const personalSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
 	lastName: z.string(),
@@ -38,7 +38,6 @@ const personalSchema = z.object({
 	phone: z.string().regex(/^\d{10}$/, "Phone must be 10 digits"),
 	dob: z.string().min(1, "Date of birth is required"),
 	aadhar: z.string().regex(/^\d{12}$/, "Aadhar must be 12 digits"),
-	pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format (e.g., ABCDE1234F)"),
 	address: z.string().min(1, "Address is required"),
 	city: z.string().min(1, "City is required"),
 	state: z.string().min(1, "State is required"),
@@ -64,16 +63,7 @@ const bankingSchema = z.object({
 	ifscCode: z.string().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC format (e.g., SBIN0123456)"),
 	accountNumber: z.string().min(1, "Account number is required"),
 	accountType: z.string().min(1, "Account type is required"),
-});
-
-const taxSchema = z.object({
-	uan: z
-		.string()
-		.regex(/^\d{12}$/, "UAN must be 12 digits")
-		.optional(),
-	pfNumber: z.string().min(1, "PF number is required"),
-	esiNumber: z.string().optional(),
-	taxRegime: z.string().min(1, "Tax regime is required"),
+	pan: z.string(),
 });
 
 // Combined Schema
@@ -81,61 +71,237 @@ const formSchema = z.object({
 	personal: personalSchema,
 	employment: employmentSchema,
 	banking: bankingSchema,
-	tax: taxSchema,
 });
 
-const EmployeeAddForm = ({ mode = "add", initialValues }) => {
+// Default Values
+const getDefaultValues = () => ({
+	personal: {
+		firstName: "",
+		lastName: "",
+		email: "",
+		phone: "",
+		dob: "",
+		aadhar: "",
+		address: "",
+		city: "",
+		state: "",
+		pincode: "",
+	},
+	employment: {
+		employeeId: "",
+		joiningDate: "",
+		department: "",
+		position: "",
+		employmentType: "",
+		scheduleType: "",
+		supervisor: "",
+		workLocation: "",
+		salaryAmount: "",
+		payType: "",
+		paySchedule: "",
+	},
+	banking: {
+		bankName: "",
+		ifscCode: "",
+		accountNumber: "",
+		accountType: "",
+		pan: "",
+	},
+});
+
+// FormField Component
+const FormFieldWrapper = ({
+	control,
+	name,
+	label,
+	type = "text",
+	options = [],
+	onChange,
+	required = false,
+}) => (
+	<FormField
+		control={control}
+		name={name}
+		render={({ field, fieldState }) => (
+			<FormItem>
+				<FormLabel
+					className={`text-gray-700 dark:text-gray-300 ${
+						fieldState.error ? "text-red-600 dark:text-red-500 !important" : ""
+					}`}
+				>
+					{label}
+					{required && <span className="text-red-600 ml-1">*</span>}
+				</FormLabel>
+				<FormControl>
+					{options.length > 0 ? (
+						<Select
+							onValueChange={(value) => {
+								field.onChange(value);
+								onChange && onChange(name);
+							}}
+							defaultValue={field.value}
+						>
+							<SelectTrigger className={fieldState.error ? "border-red-500" : ""}>
+								<SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+							</SelectTrigger>
+							<SelectContent>
+								{options.map((opt) => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					) : (
+						<Input
+							type={type}
+							{...field}
+							className={fieldState.error ? "border-red-500" : ""}
+							onChange={(e) => {
+								field.onChange(e);
+								onChange && onChange(name);
+							}}
+						/>
+					)}
+				</FormControl>
+				<FormMessage
+					className="!text-red-600 !dark:text-red-500 font-medium"
+					style={{ color: "var(--destructive)" }}
+				/>
+			</FormItem>
+		)}
+	/>
+);
+
+const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	const [loading, setLoading] = useState(false);
 	const [activeTab, setActiveTab] = useState("personal");
 
+	// Form setup with memoized defaultValues
+	const defaultValues = useMemo(() => initialValues || getDefaultValues(), [initialValues]);
+
 	const form = useForm({
+		defaultValues,
 		resolver: zodResolver(formSchema),
-		defaultValues: initialValues || {
-			personal: {
-				firstName: "",
-				lastName: "",
-				email: "",
-				phone: "",
-				dob: "",
-				aadhar: "",
-				pan: "",
-				address: "",
-				city: "",
-				state: "",
-				pincode: "",
-			},
-			employment: {
-				employeeId: "",
-				joiningDate: "",
-				department: "",
-				position: "",
-				employmentType: "",
-				scheduleType: "",
-				supervisor: "",
-				workLocation: "",
-				salaryAmount: "",
-				payType: "",
-				paySchedule: "",
-			},
-			banking: {
-				bankName: "",
-				ifscCode: "",
-				accountNumber: "",
-				accountType: "",
-			},
-			tax: {
-				uan: "",
-				pfNumber: "",
-				esiNumber: "",
-				taxRegime: "",
-			},
-		},
+		mode: "onChange",
 	});
 
-	const { handleSubmit, trigger, watch } = form;
+	const {
+		handleSubmit,
+		trigger,
+		formState: { errors },
+	} = form;
 
+	// Schema field configuration for each tab
+	const formConfig = useMemo(
+		() => ({
+			personal: [
+				{ name: "personal.firstName", label: "First Name", required: true },
+				{ name: "personal.lastName", label: "Last Name" },
+				{ name: "personal.email", label: "Email", type: "email", required: true },
+				{ name: "personal.phone", label: "Phone Number", type: "tel", required: true },
+				{ name: "personal.dob", label: "Date of Birth", type: "date", required: true },
+				{ name: "personal.aadhar", label: "Aadhar Number", required: true },
+				{ name: "personal.address", label: "Address", required: true },
+				{ name: "personal.city", label: "City", required: true },
+				{ name: "personal.state", label: "State", required: true },
+				{ name: "personal.pincode", label: "PIN Code", required: true },
+			],
+			employment: [
+				{ name: "employment.employeeId", label: "Employee ID", required: true },
+				{ name: "employment.joiningDate", label: "Joining Date", type: "date", required: true },
+				{ name: "employment.department", label: "Department", required: true },
+				{ name: "employment.position", label: "Position", required: true },
+				{
+					name: "employment.employmentType",
+					label: "Employment Type",
+					required: true,
+					options: [
+						{ value: "full-time", label: "Full-time" },
+						{ value: "part-time", label: "Part-time" },
+						{ value: "contract", label: "Contract" },
+						{ value: "internship", label: "Internship" },
+					],
+				},
+				{
+					name: "employment.scheduleType",
+					label: "Schedule Type",
+					required: true,
+					options: [
+						{ value: "fixed", label: "Fixed" },
+						{ value: "flexible", label: "Flexible" },
+						{ value: "shift", label: "Shift" },
+					],
+				},
+				{ name: "employment.supervisor", label: "Reporting Manager", required: true },
+				{ name: "employment.workLocation", label: "Work Location", required: true },
+				{ name: "employment.salaryAmount", label: "Salary Amount", type: "number", required: true },
+				{
+					name: "employment.payType",
+					label: "Pay Type",
+					required: true,
+					options: [
+						{ value: "hourly", label: "Hourly" },
+						{ value: "salary", label: "Salary" },
+						{ value: "commission", label: "Commission" },
+					],
+				},
+				{
+					name: "employment.paySchedule",
+					label: "Pay Schedule",
+					required: true,
+					options: [
+						{ value: "weekly", label: "Weekly" },
+						{ value: "bi-weekly", label: "Bi-weekly" },
+						{ value: "monthly", label: "Monthly" },
+					],
+				},
+			],
+			banking: [
+				{ name: "banking.bankName", label: "Bank Name", required: true },
+				{ name: "banking.ifscCode", label: "IFSC Code", required: true },
+				{ name: "banking.accountNumber", label: "Account Number", required: true },
+				{
+					name: "banking.accountType",
+					label: "Account Type",
+					required: true,
+					options: [
+						{ value: "savings", label: "Savings" },
+						{ value: "current", label: "Current" },
+						{ value: "salary", label: "Salary" },
+					],
+				},
+				{ name: "banking.pan", label: "PAN Number", required: true },
+			],
+		}),
+		[]
+	);
+
+	// Tab navigation with validation
 	const handleTabChange = async (newTab) => {
-		const isCurrentTabValid = await trigger(activeTab);
+		// Only validate the current tab's fields
+		let fieldsToValidate = [];
+
+		if (activeTab === "personal") {
+			fieldsToValidate = formConfig.personal.map((field) => field.name);
+		} else if (activeTab === "employment") {
+			fieldsToValidate = formConfig.employment.map((field) => field.name);
+		} else if (activeTab === "banking") {
+			fieldsToValidate = formConfig.banking.map((field) => field.name);
+		}
+
+		// Filter for only required fields
+		const requiredFields = fieldsToValidate.filter((name) => {
+			const category = activeTab;
+			const field = formConfig[category].find((f) => f.name === name);
+			return field && field.required;
+		});
+
+		// Validate only required fields in current tab
+		const results = await Promise.all(requiredFields.map((field) => trigger(field)));
+
+		const isCurrentTabValid = results.every(Boolean);
+
 		if (isCurrentTabValid) {
 			setActiveTab(newTab);
 		} else {
@@ -146,17 +312,54 @@ const EmployeeAddForm = ({ mode = "add", initialValues }) => {
 		}
 	};
 
+	// Form submission
 	const onSubmit = async (data) => {
-		setLoading(true);
+		try {
+			setLoading(true);
 
-		// Simulate API call
-		setTimeout(() => {
-			setLoading(false);
+			// API call would go here
+			// const response = await api.saveEmployee(data);
+
+			// Simulated API call
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
 			toast("Success", {
 				description: `Employee ${mode === "add" ? "added" : "updated"} successfully`,
 			});
-		}, 1500);
+		} catch (error) {
+			toast("Error", {
+				description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message}`,
+				variant: "destructive",
+			});
+		} finally {
+			setLoading(false);
+		}
 	};
+
+	// Add custom CSS to override the problematic styles
+	React.useEffect(() => {
+		// Create a style element
+		const style = document.createElement("style");
+		// Add the CSS to override the data-error styles
+		style.innerHTML = `
+      [data-error="true"] {
+        color: var(--destructive) !important;
+      }
+      .form-message {
+        color: var(--destructive) !important;
+      }
+    `;
+		// Append the style element to the head
+		document.head.appendChild(style);
+
+		// Clean up on component unmount
+		return () => {
+			document.head.removeChild(style);
+		};
+	}, []);
+
+	// Tab ordering for navigation
+	const tabOrder = ["personal", "employment", "banking"];
 
 	return (
 		<div className="w-full max-w-5xl mx-auto p-4">
@@ -175,715 +378,37 @@ const EmployeeAddForm = ({ mode = "add", initialValues }) => {
 				<Form {...form}>
 					<form onSubmit={handleSubmit(onSubmit)}>
 						<Tabs value={activeTab} onValueChange={handleTabChange}>
-							<TabsList className="grid grid-cols-4 w-full">
-								<TabsTrigger value="personal">Personal Details</TabsTrigger>
-								<TabsTrigger value="employment">Employment</TabsTrigger>
-								<TabsTrigger value="banking">Banking</TabsTrigger>
-								<TabsTrigger value="tax">PF & Tax</TabsTrigger>
+							<TabsList className="grid grid-cols-3 w-full">
+								{tabOrder.map((tabId) => (
+									<TabsTrigger key={tabId} value={tabId} className="relative">
+										{tabId.charAt(0).toUpperCase() + tabId.slice(1)} Details
+										{/* Show error indicator if tab has errors */}
+										{Object.keys(errors).some((key) => key.startsWith(tabId)) && (
+											<span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
+										)}
+									</TabsTrigger>
+								))}
 							</TabsList>
 
-							{/* Personal Details Tab */}
-							<TabsContent value="personal" className="space-y-4 p-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									<FormField
-										control={form.control}
-										name="personal.firstName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													First Name*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.firstName");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.lastName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Last Name
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.lastName");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300 ">Email*</FormLabel>
-												<FormControl>
-													<Input
-														type="email"
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.email");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.phone"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Phone Number*
-												</FormLabel>
-												<FormControl>
-													<Input
-														type="tel"
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.phone");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.dob"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Date of Birth*
-												</FormLabel>
-												<FormControl>
-													<Input
-														type="date"
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.dob");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.aadhar"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Aadhar Number*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.aadhar");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.pan"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													PAN Number*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.pan");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.address"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">Address*</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.address");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.city"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">City*</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.city");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.state"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">State*</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.state");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="personal.pincode"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													PIN Code*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("personal.pincode");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</TabsContent>
-
-							{/* Employment Details Tab */}
-							<TabsContent value="employment" className="space-y-4 p-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									<FormField
-										control={form.control}
-										name="employment.employeeId"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Employee ID*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.employeeId");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.joiningDate"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Joining Date*
-												</FormLabel>
-												<FormControl>
-													<Input
-														type="date"
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.joiningDate");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.department"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Department*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.department");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.position"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Position*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.position");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.employmentType"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Employment Type*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("employment.employmentType");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select employment type" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="full-time">Full-time</SelectItem>
-															<SelectItem value="part-time">Part-time</SelectItem>
-															<SelectItem value="contract">Contract</SelectItem>
-															<SelectItem value="internship">Internship</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.scheduleType"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Schedule Type*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("employment.scheduleType");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select schedule type" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="fixed">Fixed</SelectItem>
-															<SelectItem value="flexible">Flexible</SelectItem>
-															<SelectItem value="shift">Shift</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.supervisor"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Reporting Manager*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.supervisor");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.workLocation"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Work Location*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.workLocation");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.salaryAmount"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Salary Amount*
-												</FormLabel>
-												<FormControl>
-													<Input
-														type="number"
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("employment.salaryAmount");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.payType"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Pay Type*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("employment.payType");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select pay type" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="hourly">Hourly</SelectItem>
-															<SelectItem value="salary">Salary</SelectItem>
-															<SelectItem value="commission">Commission</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="employment.paySchedule"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Pay Schedule*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("employment.paySchedule");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select pay schedule" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="weekly">Weekly</SelectItem>
-															<SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-															<SelectItem value="monthly">Monthly</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</TabsContent>
-
-							{/* Banking Details Tab */}
-							<TabsContent value="banking" className="space-y-4 p-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									<FormField
-										control={form.control}
-										name="banking.bankName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Bank Name*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("banking.bankName");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="banking.ifscCode"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													IFSC Code*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("banking.ifscCode");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="banking.accountNumber"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Account Number*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("banking.accountNumber");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="banking.accountType"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Account Type*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("banking.accountType");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select account type" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="savings">Savings</SelectItem>
-															<SelectItem value="current">Current</SelectItem>
-															<SelectItem value="salary">Salary</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</TabsContent>
-
-							{/* Tax & PF Details Tab */}
-							<TabsContent value="tax" className="space-y-4 p-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-									<FormField
-										control={form.control}
-										name="tax.uan"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">UAN</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("tax.uan");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="tax.pfNumber"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													PF Number*
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("tax.pfNumber");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="tax.esiNumber"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													ESI Number
-												</FormLabel>
-												<FormControl>
-													<Input
-														{...field}
-														onChange={(e) => {
-															field.onChange(e);
-															trigger("tax.esiNumber");
-														}}
-													/>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="tax.taxRegime"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="text-gray-700 dark:text-gray-300">
-													Tax Regime*
-												</FormLabel>
-												<FormControl>
-													<Select
-														onValueChange={(value) => {
-															field.onChange(value);
-															trigger("tax.taxRegime");
-														}}
-														defaultValue={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select tax regime" />
-														</SelectTrigger>
-														<SelectContent>
-															<SelectItem value="old">Old Regime</SelectItem>
-															<SelectItem value="new">New Regime</SelectItem>
-														</SelectContent>
-													</Select>
-												</FormControl>
-												<FormMessage className="text-red-600 dark:text-red-400" />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</TabsContent>
+							{/* Render tab content dynamically */}
+							{tabOrder.map((tabId) => (
+								<TabsContent key={tabId} value={tabId} className="space-y-4 p-6">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+										{formConfig[tabId].map((field) => (
+											<FormFieldWrapper
+												key={field.name}
+												control={form.control}
+												name={field.name}
+												label={field.label}
+												type={field.type || "text"}
+												options={field.options || []}
+												onChange={() => {}}
+												required={field.required}
+											/>
+										))}
+									</div>
+								</TabsContent>
+							))}
 
 							{/* Footer Buttons */}
 							<CardFooter className="flex justify-between p-6 border-t">
@@ -891,23 +416,24 @@ const EmployeeAddForm = ({ mode = "add", initialValues }) => {
 									variant="outline"
 									type="button"
 									onClick={() => {
-										if (activeTab === "personal") return;
-										const tabs = ["personal", "employment", "banking", "tax"];
-										const currentIndex = tabs.indexOf(activeTab);
-										setActiveTab(tabs[currentIndex - 1]);
+										const currentIndex = tabOrder.indexOf(activeTab);
+										if (currentIndex > 0) {
+											setActiveTab(tabOrder[currentIndex - 1]);
+										}
 									}}
-									disabled={activeTab === "personal"}
+									disabled={activeTab === tabOrder[0]}
 								>
 									Previous
 								</Button>
-								{activeTab !== "tax" ? (
+
+								{activeTab !== tabOrder[tabOrder.length - 1] ? (
 									<Button
 										type="button"
 										onClick={() => {
-											const tabs = ["personal", "employment", "banking", "tax"];
-											const currentIndex = tabs.indexOf(activeTab);
-											const nextTab = tabs[currentIndex + 1]; // Calculate the next tab
-											handleTabChange(nextTab); // Navigate to the next tab
+											const currentIndex = tabOrder.indexOf(activeTab);
+											if (currentIndex < tabOrder.length - 1) {
+												handleTabChange(tabOrder[currentIndex + 1]);
+											}
 										}}
 									>
 										Next

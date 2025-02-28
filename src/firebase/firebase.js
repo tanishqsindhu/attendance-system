@@ -9,6 +9,7 @@ import {
 	query,
 	getDocs,
 } from "firebase/firestore";
+import { toast } from "sonner";
 
 const firebaseConfig = {
 	apiKey: "AIzaSyCYeIbDzTfZnXjJkfJG6EQynOWkblj4msQ",
@@ -152,4 +153,36 @@ export const getEmployeeDetails = async (branchId, employeeId) => {
 	const employeeRef = doc(db, `branches/${branchId}/employees/${employeeId}`);
 	const employeeDoc = await getDoc(employeeRef);
 	return employeeDoc.exists ? employeeDoc.data() : null;
+};
+
+export const getOrganizationSettings = async () => {
+	const settingsRef = doc(db, "settings", "organizationSettings");
+	try {
+		const docSnap = await getDoc(settingsRef);
+		if (docSnap.exists()) {
+			return docSnap.data();
+		} else {
+			// Initialize with default settings if none exist
+			const defaultSettings = {
+				departments: ["Admin", "Teaching", "Support Staff", "Management"],
+				positions: ["Teacher", "Principal", "Accountant", "Office"],
+				branches: ["Main Campus", "Secondary Campus", "Primary Wing"],
+				shiftSchedules: [
+					{ id: "morning", name: "Morning Shift", startTime: "08:00", endTime: "14:00" },
+					{ id: "afternoon", name: "Afternoon Shift", startTime: "14:00", endTime: "20:00" },
+					{ id: "full-day", name: "Full Day", startTime: "09:00", endTime: "17:00" },
+				],
+			};
+
+			await setDoc(settingsRef, defaultSettings);
+			return defaultSettings;
+		}
+	} catch (error) {
+		console.error("Error fetching organization settings:", error);
+		toast("Error", {
+			description: "Failed to load organization settings",
+			variant: "destructive",
+		});
+		return null;
+	}
 };

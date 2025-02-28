@@ -10,7 +10,6 @@ import Users from "./routes/users/users.components";
 import { useUser } from "@clerk/clerk-react";
 import UnauthorizedPage from "./app/authentication/unauthorized/unauthorized.component";
 import ProtectedRoute from "./components/protected-routes"; // Import your RBAC route component
-import DemoPage from "./app/payments/page";
 
 function App() {
 	const dispatch = useDispatch();
@@ -52,7 +51,6 @@ function App() {
 						</ProtectedRoute>
 					}
 				/>
-				DemoPage
 				<Route path="users/*" element={<Users />} />
 				<Route path="unauthorized/*" element={<UnauthorizedPage />} />
 			</Route>

@@ -1,13 +1,8 @@
-import { createSelector } from "reselect";
-
-const selectEmployeesReducer = (state) => state.employees;
-
-export const selectEmployees = createSelector([selectEmployeesReducer], (employeesSlice) => employeesSlice.employees);
-
-export const selectemployeesMap = createSelector([selectEmployees], (employees) =>
-	employees.reduce((acc, employees) => {
-		const { title, items } = employees;
-		acc[title.toLowerCase()] = items;
-		return acc;
-	}, {})
-);
+// Selectors
+export const selectEmployeesByBranch = (state, branchId) =>
+	state.employees.byBranch[branchId] || [];
+export const selectAllEmployees = (state) => state.employees.allEmployees;
+export const selectEmployeesStatus = (state) => state.employees.status;
+export const selectEmployeesError = (state) => state.employees.error;
+export const selectEmployeesErrorCode = (state) => state.employees.lastErrorCode;
+export const selectIsEmployeeLoading = (state) => state.employees.loading;

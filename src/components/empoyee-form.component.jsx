@@ -1,7 +1,10 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { addOrganizationItem } from "../store/orgaznization-settings/organization-settings.reducer";
+import { toast } from "sonner";
 import {
 	Card,
 	CardContent,
@@ -20,7 +23,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import {
 	Form,
 	FormControl,
@@ -29,7 +31,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { FileWarning, Info, Plus, Clock } from "lucide-react";
+import { Info, Plus, Clock } from "lucide-react";
 import {
 	Dialog,
 	DialogContent,
@@ -39,22 +41,36 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { addEmployeeToBranch } from "../store/employees/employees.reducer";
 
-// Validation schemas
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+// Validation schemas (same as before)
 const personalSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
-	lastName: z.string().min(1, "Last name is required"),
-	gender: z.enum(["male", "female"]),
-	bloodGroup: z.enum(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]).optional(),
+	lastName: z.string().optional(),
+	gender: z.enum(["male", "female"]).transform((val) => val.toLowerCase()), // Normalize input
+	bloodGroup: z.string().optional(), //z.enum(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"])
 	email: z.string().email("Invalid email format"),
 	phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits"),
-	dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
-	aadhar: z.string().optional(),
+	dob: z.coerce.date().refine((date) => date <= new Date(), {
+		message: "Date of birth must be a valid past date",
+	}),
+	aadhar: z.string().optional(), //z.regex(/^\d{12}$/, "Aadhaar must be exactly 12 digits")
 	address: z.string().optional(),
 	city: z.string().optional(),
 	state: z.string().optional(),
-	pincode: z.string().optional(),
+	pincode: z.string().optional(), //z.regex(/^\d{6}$/, "Pincode must be exactly 6 digits")
 });
 
 const employmentSchema = z.object({
@@ -62,10 +78,11 @@ const employmentSchema = z.object({
 	joiningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Joining date must be in YYYY-MM-DD format"),
 	department: z.string().min(1, "Department is required"),
 	position: z.string().min(1, "Position is required"),
+	employmentStatus: z.enum(["active", "non-active", "terminated", "resigned"]),
 	employmentType: z.enum(["full-time", "part-time", "contract", "internship"]),
 	shiftId: z.string().min(1, "Shift is required"),
 	supervisor: z.string().optional(),
-	branch: z.string().min(1, "Branch is required"),
+	branchId: z.string().min(1, "Branch is required"),
 	salaryAmount: z.number().min(1, "Salary amount must be a positive number"),
 	paySchedule: z.enum(["weekly", "bi-weekly", "monthly"]),
 });
@@ -77,12 +94,17 @@ const bankingSchema = z.object({
 	accountType: z.string().min(1, "Account type is required"),
 	pan: z.string().optional(),
 });
+const advanceSettingsSchema = z.object({
+	skipLateFines: z.boolean().default(false),
+	skipLeaveFines: z.boolean().default(false),
+});
 
 // Combined schema
 const formSchema = z.object({
 	personal: personalSchema,
 	employment: employmentSchema,
 	banking: bankingSchema,
+	advanceSettings: advanceSettingsSchema,
 });
 
 // Get default form values
@@ -107,9 +129,10 @@ const getDefaultValues = () => ({
 		department: "",
 		position: "",
 		employmentType: "",
+		employmentStatus: "",
 		shiftId: "",
 		supervisor: "",
-		branch: "",
+		branchId: "",
 		salaryAmount: 0,
 		paySchedule: "",
 	},
@@ -120,89 +143,19 @@ const getDefaultValues = () => ({
 		accountType: "",
 		pan: "",
 	},
+	advanceSettings: {
+		skipLateFines: false,
+		skipLeaveFines: false,
+	},
 });
 
-// Firebase service
-const OrganizationSettingsService = {
-	async getSettings() {
-		try {
-			const db = getFirestore();
-			const settingsRef = doc(db, "settings", "organizationSettings");
-			const docSnap = await getDoc(settingsRef);
-
-			if (docSnap.exists()) {
-				return docSnap.data();
-			}
-
-			return {
-				departments: [],
-				positions: [],
-				branches: [],
-				shiftSchedules: [],
-			};
-		} catch (error) {
-			console.error("Error fetching organization settings:", error);
-			toast("Error", {
-				description: "Failed to load organization settings",
-				variant: "destructive",
-			});
-			return {
-				departments: [],
-				positions: [],
-				branches: [],
-				shiftSchedules: [],
-			};
-		}
-	},
-
-	async addItem(itemType, newItem) {
-		const db = getFirestore();
-		const settingsRef = doc(db, "settings", "organizationSettings");
-
-		try {
-			const docSnap = await getDoc(settingsRef);
-			if (docSnap.exists()) {
-				const settings = docSnap.data();
-				const updatedItems = [...(settings[itemType] || [])];
-
-				// Handle shift schedules differently
-				if (itemType === "shiftSchedules") {
-					updatedItems.push(newItem);
-				} else {
-					// For simple string arrays
-					updatedItems.push(newItem);
-				}
-
-				await setDoc(
-					settingsRef,
-					{
-						...settings,
-						[itemType]: updatedItems,
-					},
-					{ merge: true }
-				);
-
-				return updatedItems;
-			}
-			return [];
-		} catch (error) {
-			console.error(`Error adding ${itemType}:`, error);
-			toast("Error", {
-				description: `Failed to add new ${itemType.slice(0, -1)}`,
-				variant: "destructive",
-			});
-			return null;
-		}
-	},
-};
-
-// Simple Modal Component
-const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder }) => {
+// Simple Modal Component (same as before)
+const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemType }) => {
 	const [value, setValue] = useState("");
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		if (!value) {
+		if (!value.trim()) {
 			toast("Validation Error", {
 				description: `Please enter a ${label.toLowerCase()}`,
 				variant: "destructive",
@@ -210,6 +163,7 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder }) => 
 			return;
 		}
 
+		// Pass only the name; ID will be generated in the service
 		onSave(value);
 		setValue("");
 		onClose();
@@ -221,7 +175,8 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder }) => 
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>
-						Create a new {label.toLowerCase()} that will be available for all employees.
+						Create a new {itemType.slice(0, -1)} that will be available for all employees. A unique
+						ID will be automatically assigned.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -233,7 +188,6 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder }) => 
 						</Label>
 						<Input
 							id="value"
-							name="value"
 							value={value}
 							onChange={(e) => setValue(e.target.value)}
 							placeholder={placeholder}
@@ -253,42 +207,123 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder }) => 
 	);
 };
 
-// Shift Schedule Modal
-const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
-	const [newShift, setNewShift] = useState({
-		id: "",
-		name: "",
-		startTime: "",
-		endTime: "",
-	});
-
-	const generateId = (name) => {
-		return name.toLowerCase().replace(/\s+/g, "-");
-	};
-
-	const handleInputChange = (e) => {
-		const { name, value } = e.target;
-		setNewShift((prev) => {
-			const updated = { ...prev, [name]: value };
-			if (name === "name") {
-				updated.id = generateId(value);
-			}
-			return updated;
-		});
-	};
+// Branch Modal Component
+const BranchModal = ({ isOpen, onClose, onSave }) => {
+	const [branch, setBranch] = useState({ name: "" });
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		if (!newShift.name || !newShift.startTime || !newShift.endTime) {
+		if (!branch.name) {
 			toast("Validation Error", {
-				description: "Please fill in all required fields",
+				description: "Please enter a branch name",
 				variant: "destructive",
 			});
 			return;
 		}
 
-		onSave(newShift);
-		setNewShift({ id: "", name: "", startTime: "", endTime: "" });
+		// Pass only the branch name; ID will be generated in the service
+		onSave({ name: branch.name });
+		setBranch({ name: "" });
+		onClose();
+	};
+
+	return (
+		<Dialog open={isOpen} onOpenChange={onClose}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>Add New Branch</DialogTitle>
+					<DialogDescription>
+						Create a new branch that will be available for all employees. A unique ID will be
+						automatically assigned.
+					</DialogDescription>
+				</DialogHeader>
+
+				<form onSubmit={handleSubmit} className="space-y-4 py-4">
+					<div className="grid gap-2">
+						<Label htmlFor="name">
+							Branch Name<span className="text-red-600 ml-1">*</span>
+						</Label>
+						<Input
+							id="name"
+							name="name"
+							value={branch.name}
+							onChange={(e) => setBranch({ name: e.target.value })}
+							placeholder="e.g., Main Campus"
+							required
+						/>
+					</div>
+
+					<DialogFooter className="pt-4">
+						<Button variant="outline" type="button" onClick={onClose}>
+							Cancel
+						</Button>
+						<Button type="submit">Save Branch</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+};
+
+// Shift Schedule Modal (same as before)
+const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
+	const [shift, setShift] = useState({
+		name: "",
+		startTime: "08:00",
+		endTime: "17:00",
+		days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+	});
+
+	const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+	const handleChange = (e) => {
+		const { name, value } = e.target;
+		setShift((prev) => ({ ...prev, [name]: value }));
+	};
+
+	const handleDayToggle = (day) => {
+		setShift((prev) => {
+			const days = [...prev.days];
+			if (days.includes(day)) {
+				return { ...prev, days: days.filter((d) => d !== day) };
+			} else {
+				return { ...prev, days: [...days, day] };
+			}
+		});
+	};
+
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		if (!shift.name) {
+			toast("Validation Error", {
+				description: "Please enter a shift name",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		if (shift.days.length === 0) {
+			toast("Validation Error", {
+				description: "Please select at least one day",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		// Pass only necessary data; ID will be generated in the service
+		onSave({
+			name: shift.name,
+			startTime: shift.startTime,
+			endTime: shift.endTime,
+			days: [...shift.days].sort((a, b) => daysOfWeek.indexOf(a) - daysOfWeek.indexOf(b)),
+		});
+
+		setShift({
+			name: "",
+			startTime: "08:00",
+			endTime: "17:00",
+			days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+		});
 		onClose();
 	};
 
@@ -298,53 +333,72 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 				<DialogHeader>
 					<DialogTitle>Add New Shift Schedule</DialogTitle>
 					<DialogDescription>
-						Create a new shift schedule that will be available for all employees.
+						Create a new shift schedule that will be available for all employees. A unique ID will
+						be automatically assigned.
 					</DialogDescription>
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
-					<div className="grid gap-4">
+					<div className="grid gap-2">
+						<Label htmlFor="name">
+							Shift Name<span className="text-red-600 ml-1">*</span>
+						</Label>
+						<Input
+							id="name"
+							name="name"
+							value={shift.name}
+							onChange={handleChange}
+							placeholder="e.g., Morning Shift"
+							required
+						/>
+					</div>
+
+					<div className="grid grid-cols-2 gap-4">
 						<div className="grid gap-2">
-							<Label htmlFor="name">
-								Shift Name<span className="text-red-600 ml-1">*</span>
+							<Label htmlFor="startTime">
+								Start Time<span className="text-red-600 ml-1">*</span>
 							</Label>
 							<Input
-								id="name"
-								name="name"
-								value={newShift.name}
-								onChange={handleInputChange}
-								placeholder="e.g., Evening Shift"
+								id="startTime"
+								name="startTime"
+								type="time"
+								value={shift.startTime}
+								onChange={handleChange}
 								required
 							/>
 						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="endTime">
+								End Time<span className="text-red-600 ml-1">*</span>
+							</Label>
+							<Input
+								id="endTime"
+								name="endTime"
+								type="time"
+								value={shift.endTime}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+					</div>
 
-						<div className="grid grid-cols-2 gap-4">
-							<div className="grid gap-2">
-								<Label htmlFor="startTime">
-									Start Time<span className="text-red-600 ml-1">*</span>
-								</Label>
-								<Input
-									id="startTime"
-									name="startTime"
-									type="time"
-									value={newShift.startTime}
-									onChange={handleInputChange}
-									required
-								/>
-							</div>
-							<div className="grid gap-2">
-								<Label htmlFor="endTime">
-									End Time<span className="text-red-600 ml-1">*</span>
-								</Label>
-								<Input
-									id="endTime"
-									name="endTime"
-									type="time"
-									value={newShift.endTime}
-									onChange={handleInputChange}
-									required
-								/>
-							</div>
+					<div className="grid gap-2">
+						<Label>
+							Days<span className="text-red-600 ml-1">*</span>
+						</Label>
+						<div className="flex flex-wrap gap-2">
+							{daysOfWeek.map((day) => (
+								<Button
+									key={day}
+									type="button"
+									variant={shift.days.includes(day) ? "default" : "outline"}
+									size="sm"
+									onClick={() => handleDayToggle(day)}
+									className="h-8 py-1 px-3 text-xs"
+								>
+									{day.substring(0, 3)}
+								</Button>
+							))}
 						</div>
 					</div>
 
@@ -360,7 +414,7 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 	);
 };
 
-// FormField Wrapper Component
+// FormField Wrapper Component (same as before)
 const FormFieldWrapper = ({
 	control,
 	name,
@@ -432,35 +486,28 @@ const FormFieldWrapper = ({
 		)}
 	/>
 );
-
+import { selectCurrentUser } from "@/store/user/user.selector";
 // Main Component
 const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
-	const [loading, setLoading] = useState(false);
+	const dispatch = useDispatch();
+	const { departments, positions, branches, shiftSchedules, loading } = useSelector(
+		(state) => state.organization
+	);
+	const currentUser = useSelector(selectCurrentUser);
+	const userPermissions = currentUser.roles;
+
 	const [activeTab, setActiveTab] = useState("personal");
 	const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 	const [isDepartmentModalOpen, setIsDepartmentModalOpen] = useState(false);
 	const [isPositionModalOpen, setIsPositionModalOpen] = useState(false);
 	const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
-	const [organizationSettings, setOrganizationSettings] = useState({
-		departments: [],
-		positions: [],
-		branches: [],
-		shiftSchedules: [],
+	const [alertState, setAlertState] = useState({
+		open: false,
+		title: "",
+		description: "",
+		variant: "default",
 	});
 
-	// Fetch organization settings
-	useEffect(() => {
-		const fetchSettings = async () => {
-			const settings = await OrganizationSettingsService.getSettings();
-			if (settings) {
-				setOrganizationSettings(settings);
-			}
-		};
-
-		fetchSettings();
-	}, []);
-
-	// Form setup with memoized defaultValues
 	const defaultValues = useMemo(() => initialValues || getDefaultValues(), [initialValues]);
 
 	const form = useForm({
@@ -477,26 +524,37 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 		formState: { errors },
 	} = form;
 
-	// Handle adding a new item (unified handler)
-	const handleAddItem = useCallback(async (itemType, newItem) => {
-		const updatedItems = await OrganizationSettingsService.addItem(itemType, newItem);
-		if (updatedItems) {
-			setOrganizationSettings((prev) => ({
-				...prev,
-				[itemType]: updatedItems,
-			}));
+	const handleAddItem = useCallback(
+		async (itemType, newItem) => {
+			dispatch(addOrganizationItem({ itemType, newItem }))
+				.unwrap()
+				.then(() => {
+					const itemName =
+						typeof newItem === "object" && newItem.name
+							? newItem.name
+							: typeof newItem === "string"
+							? newItem
+							: itemType === "shiftSchedules"
+							? newItem.name
+							: newItem;
 
-			const itemName = itemType === "shiftSchedules" ? newItem.name : newItem;
-			const itemTypeLabel =
-				itemType === "shiftSchedules" ? "shift schedule" : itemType.slice(0, -1); // Remove trailing 's'
+					const itemTypeLabel =
+						itemType === "shiftSchedules" ? "shift schedule" : itemType.slice(0, -1);
 
-			toast("Success", {
-				description: `New ${itemTypeLabel} "${itemName}" added successfully`,
-			});
-		}
-	}, []);
+					toast("Success", {
+						description: `New ${itemTypeLabel} "${itemName}" added successfully`,
+					});
+				})
+				.catch((error) => {
+					toast("Error", {
+						description: `Failed to add new ${itemType.slice(0, -1)}`,
+						variant: "destructive",
+					});
+				});
+		},
+		[dispatch]
+	);
 
-	// Create select field with "Add New" button
 	const createCustomSelectField = useCallback(
 		(
 			field,
@@ -508,7 +566,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			setModalOpen,
 			showIcon = false
 		) => (
-			<div className="space-y-2">
+			<div className="relative">
 				<Select
 					onValueChange={(value) => {
 						field.onChange(value);
@@ -520,35 +578,41 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 						<SelectValue placeholder={placeholder} />
 					</SelectTrigger>
 					<SelectContent>
-						{options.map((item) => (
-							<SelectItem
-								key={typeof item === "object" ? item.id : item}
-								value={typeof item === "object" ? item.id : item}
-							>
-								{showIcon && <Clock className="h-4 w-4 mr-2 opacity-70" />}
-								{typeof item === "object"
-									? `${item.name} (${item.startTime}-${item.endTime})`
-									: item}
-							</SelectItem>
-						))}
+						{options.map((item) => {
+							const itemId = typeof item === "object" ? item.id : item;
+							const displayValue =
+								typeof item === "object"
+									? itemType === "shiftSchedules"
+										? `${item.name} (${item.startTime}-${item.endTime})`
+										: item.name
+									: item;
+
+							return (
+								<SelectItem key={itemId} value={itemId}>
+									{showIcon && <Clock className="h-4 w-4 mr-2 opacity-70" />}
+									{displayValue}
+								</SelectItem>
+							);
+						})}
+
+						<div
+							className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 border-t border-slate-200 dark:border-slate-700 mt-1"
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								setModalOpen(true);
+							}}
+						>
+							<Plus className="h-3.5 w-3.5 opacity-70" />
+							<span>Add New {itemType === "shiftSchedules" ? "Shift" : itemType.slice(0, -1)}</span>
+						</div>
 					</SelectContent>
 				</Select>
-
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={() => setModalOpen(true)}
-					className="h-8 px-2 text-xs"
-				>
-					<Plus className="h-3 w-3 mr-1" /> Add New
-				</Button>
 			</div>
 		),
 		[]
 	);
 
-	// Schema field configuration for each tab
 	const formConfig = useMemo(
 		() => ({
 			personal: [
@@ -598,7 +662,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 							field,
 							fieldState,
 							onChange,
-							organizationSettings.departments,
+							departments,
 							"Select department",
 							"departments",
 							setIsDepartmentModalOpen
@@ -613,7 +677,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 							field,
 							fieldState,
 							onChange,
-							organizationSettings.positions,
+							positions,
 							"Select position",
 							"positions",
 							setIsPositionModalOpen
@@ -631,6 +695,17 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					],
 				},
 				{
+					name: "employment.employmentStatus",
+					label: "Employment Status",
+					required: true,
+					options: [
+						{ value: "active", label: "Active" },
+						{ value: "non-active", label: "Non-Active" },
+						{ value: "terminated", label: "Terminated" },
+						{ value: "resigned", label: "Resigned" },
+					],
+				},
+				{
 					name: "employment.shiftId",
 					label: "Shift Schedule",
 					required: true,
@@ -639,7 +714,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 							field,
 							fieldState,
 							onChange,
-							organizationSettings.shiftSchedules,
+							shiftSchedules,
 							"Select shift schedule",
 							"shiftSchedules",
 							setIsShiftModalOpen,
@@ -647,7 +722,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 						),
 				},
 				{
-					name: "employment.branch",
+					name: "employment.branchId",
 					label: "Branch",
 					required: true,
 					renderCustomField: (field, fieldState, onChange) =>
@@ -655,7 +730,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 							field,
 							fieldState,
 							onChange,
-							organizationSettings.branches,
+							branches,
 							"Select branch",
 							"branches",
 							setIsBranchModalOpen
@@ -689,20 +764,29 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				},
 				{ name: "banking.pan", label: "PAN Number" },
 			],
+			advanceSettings: [
+				{
+					name: "advanceSettings.skipLateFines",
+					label: "Skip Late Fines",
+					type: "checkbox",
+				},
+				{
+					name: "advanceSettings.skipLeaveFines",
+					label: "Skip Leave Fines",
+					type: "checkbox",
+				},
+			],
 		}),
-		[organizationSettings, createCustomSelectField]
+		[branches, departments, positions, shiftSchedules, createCustomSelectField]
 	);
 
-	// Tab navigation with validation
 	const handleTabChange = async (newTab) => {
 		if (newTab === activeTab) return;
 
-		// Get required fields for current tab
 		const requiredFields = formConfig[activeTab]
 			.filter((field) => field.required)
 			.map((field) => field.name);
 
-		// Validate required fields
 		if (requiredFields.length > 0) {
 			const results = await Promise.all(requiredFields.map((field) => trigger(field)));
 			const isCurrentTabValid = results.every(Boolean);
@@ -718,38 +802,70 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				return;
 			}
 		}
+		setActiveTab(newTab);
 	};
 
-	// Form submission
 	const onSubmit = async (data) => {
 		try {
-			setLoading(true);
+			const branchId = data.employment.branchId;
 
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			console.log("Employee data:", data);
+			const employeeData = {
+				personal: data.personal,
+				employment: { ...data.employment, createdAt: new Date() },
+				banking: data.banking,
+				advanceSettings: data.advanceSettings,
+			};
 
-			toast("Success", {
-				description: `Employee ${mode === "add" ? "added" : "updated"} successfully`,
-			});
+			dispatch(addEmployeeToBranch({ branchId, employeeData }))
+				.unwrap()
+				.then(() => {
+					toast("Success", {
+						description: `Employee ${mode === "add" ? "added" : "updated"} successfully`,
+					});
+					form.reset(getDefaultValues());
+					setActiveTab("personal");
+					setAlertState({ open: false });
+				})
+				.catch((error) => {
+					if (error.code === "DUPLICATE_EMPLOYEE_ID") {
+						setAlertState({
+							open: true,
+							title: "Employee ID Error",
+							description: "This employee ID already exists. Please use a unique ID.",
+							variant: "destructive",
+						});
+					} else {
+						setAlertState({
+							open: true,
+							title: "Error",
+							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${
+								error.message || error
+							}`,
+							variant: "destructive",
+						});
+						toast("Error", {
+							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${
+								error.message || error
+							}`,
+							variant: "destructive",
+						});
+					}
+				});
 		} catch (error) {
 			console.error("Form submission error:", error);
 			toast("Error", {
 				description: `Failed to ${mode === "add" ? "add" : "update"} employee`,
 				variant: "destructive",
 			});
-		} finally {
-			setLoading(false);
 		}
 	};
 
-	// CSS fix for validation styling
 	useEffect(() => {
 		const style = document.createElement("style");
 		style.innerHTML = `
-			[data-error="true"] { color: var(--destructive) !important; }
-			.form-message { color: var(--destructive) !important; }
-		`;
+		[data-error="true"] { color: var(--destructive) !important; }
+		.form-message { color: var(--destructive) !important; }
+	`;
 		document.head.appendChild(style);
 
 		return () => {
@@ -757,10 +873,8 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 		};
 	}, []);
 
-	// Tab ordering for navigation
-	const tabOrder = ["personal", "employment", "banking"];
+	const tabOrder = ["personal", "employment", "banking", "advanceSettings"];
 
-	// Check if the tab has errors
 	const hasTabErrors = useCallback(
 		(tabId) => {
 			return Object.keys(errors).some((key) => key.startsWith(tabId));
@@ -768,15 +882,15 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 		[errors]
 	);
 
+	const shouldShowAdvanceSettings = userPermissions.includes("employee_advance_setting");
+
 	return (
 		<div className="w-full max-w-5xl mx-auto p-4">
-			{/* Modals */}
 			<ShiftScheduleModal
 				isOpen={isShiftModalOpen}
 				onClose={() => setIsShiftModalOpen(false)}
 				onSave={(shift) => handleAddItem("shiftSchedules", shift)}
 			/>
-
 			<SimpleModal
 				isOpen={isDepartmentModalOpen}
 				onClose={() => setIsDepartmentModalOpen(false)}
@@ -784,8 +898,8 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				title="Add New Department"
 				label="Department Name"
 				placeholder="e.g., Human Resources"
+				itemType="departments"
 			/>
-
 			<SimpleModal
 				isOpen={isPositionModalOpen}
 				onClose={() => setIsPositionModalOpen(false)}
@@ -793,16 +907,34 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				title="Add New Position"
 				label="Position Name"
 				placeholder="e.g., Science Teacher"
+				itemType="positions"
 			/>
-
-			<SimpleModal
+			<BranchModal
 				isOpen={isBranchModalOpen}
 				onClose={() => setIsBranchModalOpen(false)}
 				onSave={(branch) => handleAddItem("branches", branch)}
-				title="Add New Branch"
-				label="Branch Name"
-				placeholder="e.g., Main Campus"
 			/>
+
+			<AlertDialog
+				open={alertState.open}
+				onOpenChange={(open) => setAlertState((prev) => ({ ...prev, open }))}
+			>
+				<AlertDialogContent
+					className={alertState.variant === "destructive" ? "border-red-500" : ""}
+				>
+					<AlertDialogHeader>
+						<AlertDialogTitle
+							className={alertState.variant === "destructive" ? "text-red-500" : ""}
+						>
+							{alertState.title}
+						</AlertDialogTitle>
+						<AlertDialogDescription>{alertState.description}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogAction>Close</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<Card className="p-7">
 				<CardHeader>
@@ -820,37 +952,45 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					<form onSubmit={handleSubmit(onSubmit)}>
 						<Tabs value={activeTab} onValueChange={handleTabChange}>
 							<TabsList className="grid grid-cols-3 w-full">
-								{tabOrder.map((tabId) => (
-									<TabsTrigger key={tabId} value={tabId} className="relative">
-										{tabId.charAt(0).toUpperCase() + tabId.slice(1)} Details
-										{hasTabErrors(tabId) && (
-											<span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-										)}
-									</TabsTrigger>
-								))}
+								{tabOrder.map((tabId) => {
+									if (tabId === "advanceSettings" && !shouldShowAdvanceSettings) {
+										return null;
+									}
+									return (
+										<TabsTrigger key={tabId} value={tabId} className="relative">
+											{tabId.charAt(0).toUpperCase() + tabId.slice(1)} Details
+											{hasTabErrors(tabId) && (
+												<span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+											)}
+										</TabsTrigger>
+									);
+								})}
 							</TabsList>
 
-							{/* Tab contents */}
-							{tabOrder.map((tabId) => (
-								<TabsContent key={tabId} value={tabId} className="space-y-4 p-6">
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-										{formConfig[tabId].map((field) => (
-											<FormFieldWrapper
-												key={field.name}
-												control={form.control}
-												name={field.name}
-												label={field.label}
-												type={field.type || "text"}
-												options={field.options || []}
-												required={field.required}
-												renderCustomField={field.renderCustomField}
-											/>
-										))}
-									</div>
-								</TabsContent>
-							))}
+							{tabOrder.map((tabId) => {
+								if (tabId === "advanceSettings" && !shouldShowAdvanceSettings) {
+									return null;
+								}
+								return (
+									<TabsContent key={tabId} value={tabId} className="space-y-4 p-6">
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+											{formConfig[tabId].map((field) => (
+												<FormFieldWrapper
+													key={field.name}
+													control={form.control}
+													name={field.name}
+													label={field.label}
+													type={field.type || "text"}
+													options={field.options || []}
+													required={field.required}
+													renderCustomField={field.renderCustomField}
+												/>
+											))}
+										</div>
+									</TabsContent>
+								);
+							})}
 
-							{/* Footer Buttons */}
 							<CardFooter className="flex justify-between p-6 border-t">
 								<Button
 									variant="outline"

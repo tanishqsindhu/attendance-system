@@ -1,15 +1,34 @@
 import * as React from "react";
 import { useSelector } from "react-redux";
 
-import { AudioWaveform, BookOpen, Bot, Command, Frame, GalleryVerticalEnd, Map, PieChart, Users, Settings2, SquareTerminal, LogIn } from "lucide-react";
+import {
+	AudioWaveform,
+	BookOpen,
+	Bot,
+	Command,
+	Frame,
+	GalleryVerticalEnd,
+	Map,
+	PieChart,
+	Users,
+	Settings2,
+	SquareTerminal,
+	LogIn,
+} from "lucide-react";
 
-import SisLogo from "../assets/scottish logo.svg?react";
+import sisLogoUrl from "../assets/scottish white Logo.png?url";
 
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarHeader,
+	SidebarRail,
+} from "@/components/ui/sidebar";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
@@ -27,19 +46,19 @@ export function AppSidebar({ ...props }) {
 		teams: [
 			{
 				name: "SIS",
-				logo: SisLogo,
+				logo: sisLogoUrl,
 				plan: "Sector 16 & 17",
 			},
 			{
 				name: "SAE",
-				logo: SisLogo,
+				logo: sisLogoUrl,
 				plan: "South Bypass",
 			},
 		],
 		navMain: [
 			{
 				title: "Employees",
-				url: "#",
+				url: "/employees",
 				icon: Users,
 				isActive: true,
 				items: [

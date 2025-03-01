@@ -10,13 +10,15 @@ import Users from "./routes/users/users.components";
 import { useUser } from "@clerk/clerk-react";
 import UnauthorizedPage from "./app/authentication/unauthorized/unauthorized.component";
 import ProtectedRoute from "./components/protected-routes"; // Import your RBAC route component
-import { getOrganizationSettings } from "./firebase/firebase";
-import { setOrganizationSettings } from "./store/orgaznization-settings/organization-settings.reducer";
-setOrganizationSettings
+import { fetchOrganizationSettings } from "./store/orgaznization-settings/organization-settings.reducer";
+
 function App() {
 	const dispatch = useDispatch();
-	// getOrganizationSettings()
-	// dispatch(setOrganizationSettings);
+	useEffect(() => {
+		// Fetch organization settings on app initialization
+		dispatch(fetchOrganizationSettings());
+	}, [dispatch]);
+
 	const { user, isLoaded, isSignedIn } = useUser();
 	if (isLoaded && isSignedIn) {
 		const userRoles = user.publicMetadata?.roles

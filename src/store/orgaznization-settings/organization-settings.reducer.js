@@ -38,6 +38,7 @@ const initialState = {
 	shiftSchedules: [],
 	loading: false,
 	error: null,
+	activeBranch: "",
 	status: "idle", // Added status field for more granular state tracking
 };
 
@@ -52,6 +53,9 @@ const organizationSlice = createSlice({
 		},
 		setOrganizationStatus: (state, action) => {
 			state.status = action.payload;
+		},
+		setActiveBranch(state, action) {
+			state.activeBranch = action.payload;
 		},
 	},
 	extraReducers: (builder) => {
@@ -96,6 +100,7 @@ const organizationSlice = createSlice({
 });
 
 // Export actions
-export const { clearOrganizationError, setOrganizationStatus } = organizationSlice.actions;
+export const { clearOrganizationError, setOrganizationStatus, setActiveBranch } =
+	organizationSlice.actions;
 
 export default organizationSlice.reducer;

@@ -5,3 +5,5 @@ export const selectAllBranches = (state) => state.organization.branches;
 export const selectAllShiftSchedules = (state) => state.organization.shiftSchedules;
 export const selectOrganizationStatus = (state) => state.organization.status;
 export const selectOrganizationError = (state) => state.organization.error;
+export const selectActiveBranch = (state) => state.organization.activeBranch;
+

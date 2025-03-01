@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { addEmployeeToBranch } from "../store/employees/employees.reducer";
-
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -54,23 +53,24 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { selectCurrentUser } from "@/store/user/user.selector";
 
-// Validation schemas (same as before)
+// Validation schemas
 const personalSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
 	lastName: z.string().optional(),
-	gender: z.enum(["male", "female"]).transform((val) => val.toLowerCase()), // Normalize input
-	bloodGroup: z.string().optional(), //z.enum(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"])
+	gender: z.enum(["male", "female"]).transform((val) => val.toLowerCase()),
+	bloodGroup: z.string().optional(),
 	email: z.string().email("Invalid email format"),
 	phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits"),
 	dob: z.coerce.date().refine((date) => date <= new Date(), {
 		message: "Date of birth must be a valid past date",
 	}),
-	aadhar: z.string().optional(), //z.regex(/^\d{12}$/, "Aadhaar must be exactly 12 digits")
+	aadhar: z.string().optional(),
 	address: z.string().optional(),
 	city: z.string().optional(),
 	state: z.string().optional(),
-	pincode: z.string().optional(), //z.regex(/^\d{6}$/, "Pincode must be exactly 6 digits")
+	pincode: z.string().optional(),
 });
 
 const employmentSchema = z.object({
@@ -94,6 +94,7 @@ const bankingSchema = z.object({
 	accountType: z.string().min(1, "Account type is required"),
 	pan: z.string().optional(),
 });
+
 const advanceSettingsSchema = z.object({
 	skipLateFines: z.boolean().default(false),
 	skipLeaveFines: z.boolean().default(false),
@@ -149,7 +150,7 @@ const getDefaultValues = () => ({
 	},
 });
 
-// Simple Modal Component (same as before)
+// Simple Modal Component
 const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemType }) => {
 	const [value, setValue] = useState("");
 
@@ -163,7 +164,6 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 			return;
 		}
 
-		// Pass only the name; ID will be generated in the service
 		onSave(value);
 		setValue("");
 		onClose();
@@ -179,7 +179,6 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 						ID will be automatically assigned.
 					</DialogDescription>
 				</DialogHeader>
-
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
 						<Label htmlFor="value">
@@ -194,7 +193,6 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 							required
 						/>
 					</div>
-
 					<DialogFooter className="pt-4">
 						<Button variant="outline" type="button" onClick={onClose}>
 							Cancel
@@ -221,7 +219,6 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 			return;
 		}
 
-		// Pass only the branch name; ID will be generated in the service
 		onSave({ name: branch.name });
 		setBranch({ name: "" });
 		onClose();
@@ -237,7 +234,6 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 						automatically assigned.
 					</DialogDescription>
 				</DialogHeader>
-
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
 						<Label htmlFor="name">
@@ -252,7 +248,6 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 							required
 						/>
 					</div>
-
 					<DialogFooter className="pt-4">
 						<Button variant="outline" type="button" onClick={onClose}>
 							Cancel
@@ -265,7 +260,7 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 	);
 };
 
-// Shift Schedule Modal (same as before)
+// Shift Schedule Modal
 const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 	const [shift, setShift] = useState({
 		name: "",
@@ -310,7 +305,6 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 			return;
 		}
 
-		// Pass only necessary data; ID will be generated in the service
 		onSave({
 			name: shift.name,
 			startTime: shift.startTime,
@@ -337,7 +331,6 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 						be automatically assigned.
 					</DialogDescription>
 				</DialogHeader>
-
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
 						<Label htmlFor="name">
@@ -352,7 +345,6 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 							required
 						/>
 					</div>
-
 					<div className="grid grid-cols-2 gap-4">
 						<div className="grid gap-2">
 							<Label htmlFor="startTime">
@@ -381,7 +373,6 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 							/>
 						</div>
 					</div>
-
 					<div className="grid gap-2">
 						<Label>
 							Days<span className="text-red-600 ml-1">*</span>
@@ -401,7 +392,6 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 							))}
 						</div>
 					</div>
-
 					<DialogFooter className="pt-4">
 						<Button variant="outline" type="button" onClick={onClose}>
 							Cancel
@@ -414,7 +404,7 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 	);
 };
 
-// FormField Wrapper Component (same as before)
+// FormField Wrapper Component
 const FormFieldWrapper = ({
 	control,
 	name,
@@ -486,7 +476,7 @@ const FormFieldWrapper = ({
 		)}
 	/>
 );
-import { selectCurrentUser } from "@/store/user/user.selector";
+
 // Main Component
 const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	const dispatch = useDispatch();
@@ -510,6 +500,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 
 	const defaultValues = useMemo(() => initialValues || getDefaultValues(), [initialValues]);
 
+	// Initialize the form
 	const form = useForm({
 		defaultValues,
 		resolver: zodResolver(formSchema),
@@ -520,9 +511,60 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 		handleSubmit,
 		trigger,
 		watch,
-		setValue,
+		setValue, // Destructure setValue here
 		formState: { errors },
 	} = form;
+
+	// Use useEffect AFTER setValue is initialized
+	useEffect(() => {
+		if (initialValues && mode === "edit") {
+			// Handle timestamp conversions
+			if (initialValues.personal?.dob && typeof initialValues.personal.dob !== "string") {
+				const dobDate = new Date(initialValues.personal.dob.seconds * 1000);
+				setValue("personal.dob", dobDate);
+			}
+
+			if (
+				initialValues.employment?.joiningDate &&
+				!initialValues.employment.joiningDate.match(/^\d{4}-\d{2}-\d{2}$/)
+			) {
+				const joiningDate = initialValues.employment.joiningDate.seconds
+					? new Date(initialValues.employment.joiningDate.seconds * 1000)
+					: new Date(initialValues.employment.joiningDate);
+
+				setValue("employment.joiningDate", joiningDate.toISOString().split("T")[0]);
+			}
+
+			// Set employment values
+			Object.entries(initialValues.employment || {}).forEach(([key, value]) => {
+				if (key !== "joiningDate" && key !== "createdAt") {
+					setValue(`employment.${key}`, value);
+				}
+			});
+
+			// Set personal values
+			Object.entries(initialValues.personal || {}).forEach(([key, value]) => {
+				if (key !== "dob") {
+					setValue(`personal.${key}`, value);
+				}
+			});
+
+			// Set banking values
+			Object.entries(initialValues.banking || {}).forEach(([key, value]) => {
+				setValue(`banking.${key}`, value);
+			});
+
+			// Set advanceSettings with defaults if not present
+			setValue(
+				"advanceSettings.skipLateFines",
+				initialValues.advanceSettings?.skipLateFines || false
+			);
+			setValue(
+				"advanceSettings.skipLeaveFines",
+				initialValues.advanceSettings?.skipLeaveFines || false
+			);
+		}
+	}, [initialValues, mode, setValue]);
 
 	const handleAddItem = useCallback(
 		async (itemType, newItem) => {
@@ -768,12 +810,38 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				{
 					name: "advanceSettings.skipLateFines",
 					label: "Skip Late Fines",
-					type: "checkbox",
+					renderCustomField: (field, fieldState) => (
+						<div className="flex items-center space-x-2">
+							<input
+								type="checkbox"
+								id="skipLateFines"
+								checked={field.value}
+								onChange={(e) => field.onChange(e.target.checked)}
+								className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+							/>
+							<FormLabel className="text-gray-700 dark:text-gray-300" htmlFor="skipLateFines">
+								Skip Late Fines
+							</FormLabel>
+						</div>
+					),
 				},
 				{
 					name: "advanceSettings.skipLeaveFines",
 					label: "Skip Leave Fines",
-					type: "checkbox",
+					renderCustomField: (field, fieldState) => (
+						<div className="flex items-center space-x-2">
+							<input
+								type="checkbox"
+								id="skipLeaveFines"
+								checked={field.value}
+								onChange={(e) => field.onChange(e.target.checked)}
+								className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+							/>
+							<FormLabel className="text-gray-700 dark:text-gray-300" htmlFor="skipLeaveFines">
+								Skip Leave Fines
+							</FormLabel>
+						</div>
+					),
 				},
 			],
 		}),
@@ -863,9 +931,9 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	useEffect(() => {
 		const style = document.createElement("style");
 		style.innerHTML = `
-		[data-error="true"] { color: var(--destructive) !important; }
-		.form-message { color: var(--destructive) !important; }
-	`;
+    [data-error="true"] { color: var(--destructive) !important; }
+    .form-message { color: var(--destructive) !important; }
+  `;
 		document.head.appendChild(style);
 
 		return () => {
@@ -951,7 +1019,11 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				<Form {...form}>
 					<form onSubmit={handleSubmit(onSubmit)}>
 						<Tabs value={activeTab} onValueChange={handleTabChange}>
-							<TabsList className="grid grid-cols-3 w-full">
+							<TabsList
+								className={`grid ${
+									shouldShowAdvanceSettings ? "grid-cols-4" : "grid-cols-3"
+								} w-full`}
+							>
 								{tabOrder.map((tabId) => {
 									if (tabId === "advanceSettings" && !shouldShowAdvanceSettings) {
 										return null;
@@ -966,7 +1038,6 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 									);
 								})}
 							</TabsList>
-
 							{tabOrder.map((tabId) => {
 								if (tabId === "advanceSettings" && !shouldShowAdvanceSettings) {
 									return null;

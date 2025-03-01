@@ -15,8 +15,18 @@ import {
 import { DataTable } from "@/components/data-table.component";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector";
+import { selectEmployeesByBranch } from "@/store/employees/employees.selector";
+import {
+	selectAllDepartments,
+	selectAllPositions,
+	selectAllBranches,
+	selectAllShiftSchedules,
+} from "@/store/orgaznization-settings/organization-settings.selector";
+import { EditEmployeeModal } from "@/components/EditEmployeeModal";
 
 // Custom Empty State Component
 const CustomEmptyState = (
@@ -24,138 +34,102 @@ const CustomEmptyState = (
 		<div className="rounded-full bg-muted p-3 mb-3">
 			<Trash className="h-6 w-6 text-muted-foreground" />
 		</div>
-		<h3 className="text-lg font-semibold">No payments found</h3>
+		<h3 className="text-lg font-semibold">No employees found</h3>
 		<p className="text-sm text-muted-foreground text-center mt-2 mb-4">
-			No payments match your search criteria. Try adjusting your filters or create a new payment.
+			No employees match your search criteria. Try adjusting your filters or add a new employee.
 		</p>
 		<Button size="sm">
 			<Plus className="mr-2 h-4 w-4" />
-			New Payment
+			Add Employee
 		</Button>
 	</div>
 );
 
 export default function EmployeesList() {
-	// Sample payment data
-	const data = [
-		{
-			id: "m5gr84gvavfi9",
-			amount: 316,
-			status: "success",
-			email: "ken99@dawexample.com",
-			date: "2023-11-05",
-		},
-		{
-			id: "3u1reawdawuv4",
-			amount: 242,
-			status: "success",
-			email: "Abe45@awdexample.com",
-			date: "2023-11-03",
-		},
-		{
-			id: "derv1wawds0",
-			amount: 837,
-			status: "processing",
-			email: "Monserratafc44@example.com",
-			date: "2023-11-01",
-		},
-		{
-			id: "5kma5awd3ae",
-			amount: 874,
-			status: "success",
-			email: "Silas22@eacwxample.com",
-			date: "2023-10-29",
-		},
-		{
-			id: "bhqecjawd4p",
-			amount: 721,
-			status: "failed",
-			email: "caradwa@example.com",
-			date: "2023-10-27",
-		},
-		{
-			id: "m5grawd84i9",
-			amount: 316,
-			status: "success",
-			email: "kedwadn99@example.com",
-			date: "2023-11-05",
-		},
-		{
-			id: "3u1readwuv4",
-			amount: 242,
-			status: "success",
-			email: "Abadw5@example.com",
-			date: "2023-11-03",
-		},
-		{
-			id: "dervawd1ws0",
-			amount: 837,
-			status: "processing",
-			email: "Mdawdrrat44@example.com",
-			date: "2023-11-01",
-		},
-		{
-			id: "5kma5awda3ae",
-			amount: 874,
-			status: "success",
-			email: "Siladwad22@example.com",
-			date: "2023-10-29",
-		},
-		{
-			id: "bhqdwadecj4p",
-			amount: 721,
-			status: "failed",
-			email: "cadwadlla@example.com",
-			date: "2023-10-27",
-		},
-		{
-			id: "m5grawda84i9",
-			amount: 316,
-			status: "success",
-			email: "kdwa99@example.com",
-			date: "2023-11-05",
-		},
-		{
-			id: "3u1rawdaweuv4",
-			amount: 242,
-			status: "success",
-			email: "Abe45@example.com",
-			date: "2023-11-03",
-		},
-		{
-			id: "dervwdada1ws0",
-			amount: 837,
-			status: "processing",
-			email: "Mondawdaderrat44@example.com",
-			date: "2023-11-01",
-		},
-		{
-			id: "5kma5dawd3ae",
-			amount: 874,
-			status: "success",
-			email: "Silasadawd22@example.com",
-			date: "2023-10-29",
-		},
-		{
-			id: "bhqecjawdawd4p",
-			amount: 721,
-			status: "failed",
-			email: "carmesadwalla@example.com",
-			date: "2023-10-27",
-		},
-	];
+	const params = useParams();
+	const navigate = useNavigate();
 
-	// Status badge renderer (using the updated Badge component)
+	// Get data from Redux
+	const activeBranch = useSelector(selectActiveBranch);
+	const branchIdFromRoute = params.branchId;
+	const currentBranchId = branchIdFromRoute || activeBranch?.id || "";
+
+	// Get employees for the current branch
+	const employees = useSelector((state) => selectEmployeesByBranch(state, currentBranchId));
+
+	// Get lookup data from Redux
+	const departments = useSelector(selectAllDepartments);
+	const positions = useSelector(selectAllPositions);
+	const branches = useSelector(selectAllBranches);
+	const shiftSchedules = useSelector(selectAllShiftSchedules);
+
+	// State for managing the edit modal
+	const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+	const [selectedEmployeeId, setSelectedEmployeeId] = React.useState(null);
+
+	// Open the edit modal
+	const handleEditClick = (employeeId) => {
+		setSelectedEmployeeId(employeeId);
+		setIsEditModalOpen(true);
+	};
+
+	// Close the edit modal
+	const handleCloseEditModal = () => {
+		setIsEditModalOpen(false);
+		setSelectedEmployeeId(null);
+	};
+
+	// Create lookup maps for faster access
+	const departmentMap = React.useMemo(() => {
+		const map = {};
+		if (departments) {
+			departments.forEach((dept) => {
+				map[dept.id] = dept.name;
+			});
+		}
+		return map;
+	}, [departments]);
+
+	const positionMap = React.useMemo(() => {
+		const map = {};
+		if (positions) {
+			positions.forEach((pos) => {
+				map[pos.id] = pos.name;
+			});
+		}
+		return map;
+	}, [positions]);
+
+	const shiftMap = React.useMemo(() => {
+		const map = {};
+		if (shiftSchedules) {
+			shiftSchedules.forEach((shift) => {
+				map[shift.id] = `${shift.startTime || "00:00"} - ${shift.endTime || "00:00"}`;
+			});
+		}
+		return map;
+	}, [shiftSchedules]);
+
+	const branchMap = React.useMemo(() => {
+		const map = {};
+		if (branches) {
+			branches.forEach((branch) => {
+				map[branch.id] = branch.name;
+			});
+		}
+		return map;
+	}, [branches]);
+
+	// Status badge renderer
 	const StatusBadge = ({ status }) => {
-		// Now using the direct variant names from the updated Badge component
 		return (
-			<Badge variant={status == "failed" ? "destructive" : "outline"} className="capitalize w-23">
+			<Badge variant={status != "active" ? "destructive" : "outline"} className="capitalize w-23">
 				{status}
 			</Badge>
 		);
 	};
 
-	// Column definitions for payment data
+	// Column definitions for employee data
 	const columns = [
 		{
 			id: "select",
@@ -181,12 +155,28 @@ export default function EmployeesList() {
 			enableHiding: false,
 		},
 		{
-			accessorKey: "status",
-			header: "Status",
-			cell: ({ row }) => <StatusBadge status={row.getValue("status")} />,
+			accessorKey: "name",
+			header: ({ column }) => {
+				return (
+					<Button
+						variant="ghost"
+						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+					>
+						Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				);
+			},
+			cell: ({ row }) => {
+				const personal = row.original.personal;
+				const firstName = personal?.firstName || "";
+				const lastName = personal?.lastName || "";
+				const fullName = [firstName, lastName].filter(Boolean).join(" ") || "-";
+				return <div className="font-medium">{fullName}</div>;
+			},
 		},
 		{
-			accessorKey: "email",
+			accessorKey: "personal.email",
 			header: ({ column }) => {
 				return (
 					<Button
@@ -198,38 +188,102 @@ export default function EmployeesList() {
 					</Button>
 				);
 			},
-			cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+			cell: ({ row }) => {
+				const personal = row.original.personal;
+				return <div className="lowercase">{personal?.email || "-"}</div>;
+			},
 		},
 		{
-			accessorKey: "date",
+			accessorKey: "personal.phone",
+			header: "Phone",
+			cell: ({ row }) => {
+				const personal = row.original.personal;
+				return <div>{personal?.phone || "-"}</div>;
+			},
+		},
+		{
+			accessorKey: "employment.department",
+			header: "Department",
+			cell: ({ row }) => {
+				const employment = row.original.employment;
+				const departmentId = employment?.department;
+				const departmentName = departmentId ? departmentMap[departmentId] : null;
+				return <div>{departmentName || departmentId || "-"}</div>;
+			},
+		},
+		{
+			accessorKey: "employment.position",
+			header: "Position",
+			cell: ({ row }) => {
+				const employment = row.original.employment;
+				const positionId = employment?.position;
+				const positionName = positionId ? positionMap[positionId] : null;
+				return <div>{positionName || positionId || "-"}</div>;
+			},
+		},
+		{
+			accessorKey: "employment.shiftId",
+			header: "Shift",
+			cell: ({ row }) => {
+				const employment = row.original.employment;
+				const shiftId = employment?.shiftId;
+				const shiftTime = shiftId ? shiftMap[shiftId] : null;
+				return <div>{shiftTime || shiftId || "-"}</div>;
+			},
+		},
+		{
+			accessorKey: "employment.employmentStatus",
+			header: "Status",
+			cell: ({ row }) => {
+				const employment = row.original.employment;
+				return employment?.employmentStatus ? (
+					<StatusBadge status={employment.employmentStatus} />
+				) : (
+					<div>-</div>
+				);
+			},
+		},
+		{
+			accessorKey: "employment.joiningDate",
 			header: ({ column }) => {
 				return (
 					<Button
 						variant="ghost"
 						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 					>
-						Date
+						Join Date
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
 				);
 			},
 			cell: ({ row }) => {
-				// Format date
-				const date = new Date(row.getValue("date"));
-				const formatted = new Intl.DateTimeFormat("en-US", {
-					year: "numeric",
-					month: "short",
-					day: "numeric",
-				}).format(date);
+				const employment = row.original.employment;
+				if (!employment?.joiningDate) return <div>-</div>;
 
-				return <div>{formatted}</div>;
+				// Format date
+				try {
+					const date = new Date(employment.joiningDate);
+					const formatted = new Intl.DateTimeFormat("en-US", {
+						year: "numeric",
+						month: "short",
+						day: "numeric",
+					}).format(date);
+					return <div>{formatted}</div>;
+				} catch (error) {
+					return <div>{employment.joiningDate || "-"}</div>;
+				}
 			},
 		},
 		{
-			accessorKey: "amount",
-			header: () => <div className="text-right">Amount</div>,
+			accessorKey: "employment.salaryAmount",
+			header: () => <div className="text-right">Salary</div>,
 			cell: ({ row }) => {
-				const amount = parseFloat(row.getValue("amount"));
+				const employment = row.original.employment;
+				if (!employment?.salaryAmount && employment?.salaryAmount !== 0) {
+					return <div className="text-right">-</div>;
+				}
+
+				const amount = parseFloat(employment.salaryAmount);
 				const formatted = new Intl.NumberFormat("en-IN", {
 					style: "currency",
 					currency: "INR",
@@ -242,7 +296,7 @@ export default function EmployeesList() {
 			id: "actions",
 			enableHiding: false,
 			cell: ({ row }) => {
-				const payment = row.original;
+				const employee = row.original;
 
 				return (
 					<DropdownMenu>
@@ -257,20 +311,30 @@ export default function EmployeesList() {
 							<DropdownMenuItem
 								onClick={(e) => {
 									e.stopPropagation();
-									navigator.clipboard.writeText(payment.id);
-									toast("Payment ID copied", {
-										description: `ID ${payment.id} copied to clipboard`,
+									navigator.clipboard.writeText(employee.id);
+									toast("Employee ID copied", {
+										description: `ID ${employee.id} copied to clipboard`,
 									});
 								}}
 							>
-								Copy payment ID
+								Copy employee ID
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-								View customer
+							<DropdownMenuItem
+								onClick={(e) => {
+									e.stopPropagation();
+									navigate(`/employees/${employee.id}`);
+								}}
+							>
+								View profile
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-								View payment details
+							<DropdownMenuItem
+								onClick={(e) => {
+									e.stopPropagation();
+									handleEditClick(employee.id); // Open the edit modal
+								}}
+							>
+								Edit details
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -278,24 +342,6 @@ export default function EmployeesList() {
 			},
 		},
 	];
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		if (!Object.values(formData).every((field) => field)) {
-			alert("Please fill all fields");
-			return;
-		}
-		toast("You submitted the following values:", {
-			description: (
-				<pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-					<code className="text-white">{JSON.stringify(data, null, 2)}</code>
-				</pre>
-			),
-		});
-		setLoading(true);
-		const employeeData = await addEmployeeDetails(formData);
-		alert(employeeData);
-		setLoading(false);
-	};
 
 	// Table actions
 	const tableActions = (
@@ -304,48 +350,59 @@ export default function EmployeesList() {
 				<Download className="mr-2 h-4 w-4" />
 				Export
 			</Button>
-			<Button size="sm">
+			<Button size="sm" onClick={() => navigate("/employees/add")}>
 				<Plus className="mr-2 h-4 w-4" />
-				Add Payment
+				Add Employee
 			</Button>
 		</>
 	);
 
 	// Row click handler
 	const handleRowClick = (rowData) => {
-		console.log("Row clicked:", rowData);
-		toast("Payment selected", {
-			description: `You clicked on payment ID: ${rowData.id}`,
+		navigate(`/employees/${rowData.id}`);
+		toast("Employee selected", {
+			description: `Viewing profile for ${rowData.personal?.firstName || ""} ${
+				rowData.personal?.lastName || ""
+			}`,
 		});
 	};
 
 	// Custom row class handler
 	const getRowClassName = (rowData) => {
-		return rowData.status === "failed" ? "bg-red-50/50 dark:bg-red-900/20" : "";
+		return rowData.employment?.employmentStatus != "active"
+			? "bg-red-50/50 dark:bg-red-900/20"
+			: "";
 	};
 
-	const { category } = useParams();
-	// const categoriesMap = useSelector(selectCategoriesMap);
-	// const [products, setProducts] = useState(categoriesMap[category]);
-
-	// useEffect(() => {
-	// 	setProducts(categoriesMap[category]);
-	// }, [category, categoriesMap]);
+	// Determine which branch to display in the title
+	const currentBranchName = branchMap[currentBranchId] || "";
 
 	return (
 		<>
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">All Employees</CardTitle>
-					{/* <CardDescription>Card Description</CardDescription> */}
+					<CardTitle className="text-2xl">
+						All Employees {currentBranchName ? `- ${currentBranchName}` : ""}
+					</CardTitle>
 				</CardHeader>
 				<CardContent>
+					{/* Edit Employee Modal */}
+					<EditEmployeeModal
+						isOpen={isEditModalOpen}
+						onClose={handleCloseEditModal}
+						employeeData={employees[selectedEmployeeId]}
+					/>
 					<div className="space-y-4">
 						<DataTable
-							data={data}
+							data={employees || []}
 							columns={columns}
-							filterableColumns={["email", "status", "date", "amount"]} // Multiple filterable columns
-							filterPlaceholder="Filter..."
+							filterableColumns={[
+								"name",
+								"personal_email",
+								"personal_phone",
+								"employment_department",
+							]}
+							filterPlaceholder="Search employees..."
 							pagination={true}
 							initialPageSize={5}
 							pageSizeOptions={[5, 10, 25, 50]}
@@ -356,9 +413,6 @@ export default function EmployeesList() {
 						/>
 					</div>
 				</CardContent>
-				<CardFooter>
-					<p>Card Footer</p>
-				</CardFooter>
 			</Card>
 		</>
 	);

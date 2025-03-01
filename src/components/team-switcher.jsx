@@ -1,6 +1,5 @@
 import * as React from "react";
 import { ChevronsUpDown } from "lucide-react";
-
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,10 +14,28 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { useDispatch, useSelector } from "react-redux";
+import { selectCurrentUser } from "@/store/user/user.selector.js";
+import { setActiveBranch } from "../store/orgaznization-settings/organization-settings.reducer";
 
 export function TeamSwitcher({ teams }) {
+	const dispatch = useDispatch();
+	const currentUser = useSelector(selectCurrentUser);
 	const { isMobile } = useSidebar();
-	const [activeTeam, setActiveTeam] = React.useState(teams[0]);
+
+	// Memoized function to determine allowed branches based on role
+	const allowedBranches = React.useMemo(() => {
+		if (currentUser.roles.includes("bothBranches")) return teams;
+		return teams.find((team) => currentUser.roles.includes(team.plan)) || null;
+	}, [currentUser.roles, teams]);
+
+	// Set default active team
+	const [activeTeam, setActiveTeam] = React.useState(allowedBranches[0]);
+
+	// Dispatch active team to Redux on change
+	React.useEffect(() => {
+		if (activeTeam) dispatch(setActiveBranch(activeTeam));
+	}, [dispatch, activeTeam]);
 
 	return (
 		<SidebarMenu>
@@ -36,32 +53,35 @@ export function TeamSwitcher({ teams }) {
 								<span className="truncate font-medium">{activeTeam.name}</span>
 								<span className="truncate text-xs">{activeTeam.plan}</span>
 							</div>
-							<ChevronsUpDown className="ml-auto" />
+							{currentUser.roles.includes("bothBranches") && <ChevronsUpDown className="ml-auto" />}
 						</SidebarMenuButton>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent
-						className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-						align="start"
-						side={isMobile ? "bottom" : "right"}
-						sideOffset={4}
-					>
-						<DropdownMenuLabel className="text-muted-foreground text-xs">
-							Branches
-						</DropdownMenuLabel>
-						{teams.map((team, index) => (
-							<DropdownMenuItem
-								key={team.name}
-								onClick={() => setActiveTeam(team)}
-								className="gap-2 p-2"
-							>
-								<div className="flex size-6 items-center justify-center rounded-xs border">
-									<team.logo className="size-4 shrink-0" />
-								</div>
-								{team.name}
-								<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
+
+					{currentUser.roles.includes("bothBranches") && (
+						<DropdownMenuContent
+							className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+							align="start"
+							side={isMobile ? "bottom" : "right"}
+							sideOffset={4}
+						>
+							<DropdownMenuLabel className="text-muted-foreground text-xs">
+								Branches
+							</DropdownMenuLabel>
+							{teams.map((team, index) => (
+								<DropdownMenuItem
+									key={team.id}
+									onClick={() => setActiveTeam(team)}
+									className="gap-2 p-2"
+								>
+									<div className="flex size-6 items-center justify-center rounded-xs border">
+										<img src={team.alternateLogo} className="size-5" alt="Team logo" />
+									</div>
+									{team.plan}
+									<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					)}
 				</DropdownMenu>
 			</SidebarMenuItem>
 		</SidebarMenu>

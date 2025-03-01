@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
-import { getEmployeeDetails } from "../../firebase/firebase"; // Firebase functions
 import {
 	Table,
 	TableBody,
@@ -28,6 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { getEmployeeDetails } from "../../firebase/firebase";
 
 const EmployeeProfile = ({ branchId }) => {
 	const { empId } = useParams();
@@ -52,7 +52,7 @@ const EmployeeProfile = ({ branchId }) => {
 		setEmployee(data);
 		setAttendance(data?.attendance?.[monthYear] || {}); // Fetch attendance from employee data
 	};
-
+	
 	return (
 		<Card className="max-w-4xl mx-auto p-6">
 			{/* Employee Details */}
@@ -61,16 +61,16 @@ const EmployeeProfile = ({ branchId }) => {
 				{employee ? (
 					<CardDescription>
 						<p>
-							<strong>Name:</strong> {employee.name}
+							<strong>Name:</strong> {employee.personal.firstName}  {employee.personal.lastName}
 						</p>
 						<p>
 							<strong>Employee ID:</strong> {empId}
 						</p>
 						<p>
-							<strong>Department:</strong> {employee.department}
+							<strong>Department:</strong> {employee.employment.department}
 						</p>
 						<p>
-							<strong>Shift:</strong> {employee.shiftStart} - {employee.shiftEnd}
+							<strong>Shift:</strong> {employee.employment.shiftId}
 						</p>
 					</CardDescription>
 				) : (

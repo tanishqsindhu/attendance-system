@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import {
 	AudioWaveform,
@@ -16,7 +16,8 @@ import {
 	LogIn,
 } from "lucide-react";
 
-import sisLogoUrl from "../assets/scottish white Logo.png?url";
+import sisLogoUrl from "@/assets/scottish white Logo.png?url";
+import sisLogoColorUrl from "@/assets/scottish logo.svg?url";
 
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
@@ -30,12 +31,21 @@ import {
 	SidebarRail,
 } from "@/components/ui/sidebar";
 import { selectCurrentUser } from "@/store/user/user.selector";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { selectAllBranches } from "@/store/orgaznization-settings/organization-settings.selector";
 
 export function AppSidebar({ ...props }) {
+	const branches = useSelector(selectAllBranches);
 	const currentUser = useSelector(selectCurrentUser);
+	const teams = branches.map((branch) => ({
+		name: "Scottish Internatioinal School",
+		logo: sisLogoUrl,
+		plan: branch.name,
+		id: branch.id,
+		alternateLogo: sisLogoColorUrl,
+	}));
 	// This is sample data.
 	const data = {
 		user: {
@@ -43,18 +53,7 @@ export function AppSidebar({ ...props }) {
 			email: `${currentUser ? currentUser.email : "example@email.com"}`,
 			avatar: `${currentUser ? currentUser.imageUrl : "/avatars/shadcn.jpg"}`,
 		},
-		teams: [
-			{
-				name: "SIS",
-				logo: sisLogoUrl,
-				plan: "Sector 16 & 17",
-			},
-			{
-				name: "SAE",
-				logo: sisLogoUrl,
-				plan: "South Bypass",
-			},
-		],
+		teams,
 		navMain: [
 			{
 				title: "Employees",
@@ -168,7 +167,7 @@ export function AppSidebar({ ...props }) {
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
-				<TeamSwitcher teams={data.teams} />
+				{data.teams.length > 0 ? <TeamSwitcher teams={data.teams} /> : ""}
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />

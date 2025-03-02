@@ -61,7 +61,7 @@ const Employees = () => {
 				path=":empId"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "viewEmployee"]}>
-						<EmployeeProfile branchId={activeBranch.id} />
+						<EmployeeProfile />
 					</ProtectedRoute>
 				}
 			/>

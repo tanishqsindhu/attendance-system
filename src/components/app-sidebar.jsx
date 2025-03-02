@@ -135,11 +135,11 @@ export function AppSidebar({ ...props }) {
 						url: "#",
 					},
 					{
-						title: "Billing",
+						title: "Department",
 						url: "#",
 					},
 					{
-						title: "Limits",
+						title: "Salary",
 						url: "#",
 					},
 				],
@@ -167,7 +167,7 @@ export function AppSidebar({ ...props }) {
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
-				{data.teams.length > 0 ? <TeamSwitcher teams={data.teams} /> : ""}
+				{data.teams.length > 0 && currentUser ? <TeamSwitcher teams={data.teams} /> : ""}
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />

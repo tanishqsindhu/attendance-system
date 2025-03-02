@@ -6,4 +6,3 @@ export const selectAllShiftSchedules = (state) => state.organization.shiftSchedu
 export const selectOrganizationStatus = (state) => state.organization.status;
 export const selectOrganizationError = (state) => state.organization.error;
 export const selectActiveBranch = (state) => state.organization.activeBranch;
-

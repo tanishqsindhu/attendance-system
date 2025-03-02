@@ -1,8 +1,8 @@
 import { combineReducers } from "@reduxjs/toolkit";
 
-import { userReducer } from "./user/user.reducer";
+import { userReducer } from "@/store/user/user.reducer";
 import  employeesReducer from "@/store/employees/employees.reducer";
-import { cartReducer } from "./cart/cart.reducer";
+import { cartReducer } from "@/store/cart/cart.reducer";
 import organizationReducer from "@/store/orgaznization-settings/organization-settings.reducer";
 
 export const rootReducer = combineReducers({
@@ -10,4 +10,5 @@ export const rootReducer = combineReducers({
 	employees: employeesReducer,
 	cart: cartReducer,
 	organization: organizationReducer,
+	employeeTransactions:employeesReducer,
 });

@@ -8,6 +8,7 @@ export const fetchOrganizationSettings = createAsyncThunk(
 	async (_, { rejectWithValue }) => {
 		try {
 			const settings = await OrganizationSettingsService.getSettings();
+			console.log(settings);
 			return settings;
 		} catch (error) {
 			return rejectWithValue(error.message);

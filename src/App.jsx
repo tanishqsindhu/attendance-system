@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import Page from "./app/dashboard/page";
@@ -13,31 +13,42 @@ import ProtectedRoute from "./components/protected-routes"; // Import your RBAC 
 import { fetchOrganizationSettings } from "./store/orgaznization-settings/organization-settings.reducer";
 
 function App() {
+	const navigate = useNavigate();
 	const dispatch = useDispatch();
+	const { user, isLoaded, isSignedIn } = useUser();
+
 	useEffect(() => {
 		// Fetch organization settings on app initialization
 		dispatch(fetchOrganizationSettings());
 	}, [dispatch]);
 
-	const { user, isLoaded, isSignedIn } = useUser();
-	if (isLoaded && isSignedIn) {
-		const userRoles = user.publicMetadata?.roles
-			? Array.isArray(user.publicMetadata.roles)
-				? user.publicMetadata.roles
-				: [user.publicMetadata.roles]
-			: ["user"];
+	useEffect(() => {
+		if (isLoaded && !isSignedIn) {
+			navigate("/users/login");
+		}
+	}, [isLoaded, isSignedIn, navigate]);
 
-		dispatch(
-			setCurrentUser({
-				id: user.id,
-				username: user.username,
-				email: user.primaryEmailAddress?.emailAddress,
-				fullName: user.fullName,
-				imageUrl: user.imageUrl,
-				roles: userRoles, // Now always an array
-			})
-		);
-	}
+	useEffect(() => {
+		if (isLoaded && isSignedIn) {
+			const userRoles = user.publicMetadata?.roles
+				? Array.isArray(user.publicMetadata.roles)
+					? user.publicMetadata.roles
+					: [user.publicMetadata.roles]
+				: ["user"];
+
+			dispatch(
+				setCurrentUser({
+					id: user.id,
+					username: user.username,
+					email: user.primaryEmailAddress?.emailAddress,
+					fullName: user.fullName,
+					imageUrl: user.imageUrl,
+					roles: userRoles, // Now always an array
+				})
+			);
+		}
+	}, [isLoaded, isSignedIn, user, dispatch]);
+
 	return (
 		<Routes>
 			<Route path="/" element={<Page />}>

@@ -82,11 +82,21 @@ const AttendanceTable = ({
 		const statusMap = {
 			active: "success",
 			"Missing Punch": "destructive",
-			MissingPunch: "warning",
 			probation: "secondary",
 		};
+
+		// Check if the status contains "Late In" or "Early Out"
+		if (/Late In|Early Out/.test(status)) {
+			return (
+				<Badge variant="warning" className="capitalize w-60">
+					{status}
+				</Badge>
+			);
+		}
+
+		// Default to the statusMap or secondary if no match
 		return (
-			<Badge variant={statusMap[status] || "secondary"} className="capitalize w-35">
+			<Badge variant={statusMap[status] || "secondary"} className="capitalize w-60">
 				{status}
 			</Badge>
 		);

@@ -1,27 +1,14 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSelector } from "react-redux";
 import { selectAllBranches } from "./store/orgaznization-settings/organization-settings.selector";
 import { selectCurrentUser } from "./store/user/user.selector";
-import { getAvailableAttendancePeriods } from "@/firebase/firebase.js";
+import { getAvailableAttendancePeriods } from "@/firebase/index.js";
 
 export default function ProcessAttendance() {
 	const [branchId, setBranchId] = useState("");
@@ -34,9 +21,7 @@ export default function ProcessAttendance() {
 	const branches = useSelector(selectAllBranches);
 	const currentUser = useSelector(selectCurrentUser);
 
-	const allowedBranches = branches.filter(
-		(branch) => currentUser.roles.includes(branch.id) || currentUser.roles.includes("bothBranches")
-	);
+	const allowedBranches = branches.filter((branch) => currentUser.roles.includes(branch.id) || currentUser.roles.includes("bothBranches"));
 	// console.log(availablePeriods);
 	// Fetch available periods when branch changes
 	useEffect(() => {
@@ -54,7 +39,7 @@ export default function ProcessAttendance() {
 		setIsLoading(true);
 		try {
 			const periods = await getAvailableAttendancePeriods(branchId);
-			console.log(periods)
+			console.log(periods);
 			setAvailablePeriods(periods);
 
 			// Auto-select most recent year if available
@@ -102,9 +87,7 @@ export default function ProcessAttendance() {
 			<Card className="max-w-4xl mx-auto p-6">
 				<CardHeader>
 					<CardTitle>Process Attendance</CardTitle>
-					<CardDescription>
-						Select a branch and available attendance period to process
-					</CardDescription>
+					<CardDescription>Select a branch and available attendance period to process</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form>
@@ -129,12 +112,7 @@ export default function ProcessAttendance() {
 							{/* Year Selection */}
 							<div className="flex flex-col space-y-1.5">
 								<Label htmlFor="year">Select Year</Label>
-								<Select
-									id="year"
-									onValueChange={setYear}
-									value={year}
-									disabled={!branchId || isLoading}
-								>
+								<Select id="year" onValueChange={setYear} value={year} disabled={!branchId || isLoading}>
 									<SelectTrigger>
 										{isLoading ? (
 											<div className="flex items-center">
@@ -158,12 +136,7 @@ export default function ProcessAttendance() {
 							{/* Month Selection */}
 							<div className="flex flex-col space-y-1.5">
 								<Label htmlFor="month">Select Month</Label>
-								<Select
-									id="month"
-									onValueChange={setMonth}
-									value={month}
-									disabled={!year || isLoading}
-								>
+								<Select id="month" onValueChange={setMonth} value={month} disabled={!year || isLoading}>
 									<SelectTrigger>
 										<SelectValue placeholder="Select Month" />
 									</SelectTrigger>
@@ -180,11 +153,7 @@ export default function ProcessAttendance() {
 					</form>
 				</CardContent>
 				<CardFooter className="flex justify-between">
-					<Button
-						onClick={handleSubmit}
-						disabled={isProcessing || !branchId || !year || !month}
-						className={isProcessing ? "opacity-50 w-full" : "w-full"}
-					>
+					<Button onClick={handleSubmit} disabled={isProcessing || !branchId || !year || !month} className={isProcessing ? "opacity-50 w-full" : "w-full"}>
 						{isProcessing ? (
 							<div className="flex items-center justify-center gap-2">
 								<Loader2 className="animate-spin" />

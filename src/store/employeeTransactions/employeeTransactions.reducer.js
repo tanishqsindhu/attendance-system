@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { PayrollService } from "@/firebase/firebase";
+import { PayrollService } from "@/firebase/index";
 
 // Async thunks for payroll transactions
 export const fetchAllTransactions = createAsyncThunk(

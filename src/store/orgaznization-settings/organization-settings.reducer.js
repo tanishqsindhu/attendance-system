@@ -1,35 +1,29 @@
 // store/slices/organizationSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { OrganizationSettingsService } from "../../firebase/firebase";
+import { OrganizationSettingsService } from "@/firebase/index";
 
 // Async thunks for organization settings
-export const fetchOrganizationSettings = createAsyncThunk(
-	"organization/fetchSettings",
-	async (_, { rejectWithValue }) => {
-		try {
-			const settings = await OrganizationSettingsService.getSettings();
-			console.log(settings);
-			return settings;
-		} catch (error) {
-			return rejectWithValue(error.message);
-		}
+export const fetchOrganizationSettings = createAsyncThunk("organization/fetchSettings", async (_, { rejectWithValue }) => {
+	try {
+		const settings = await OrganizationSettingsService.getSettings();
+		console.log(settings);
+		return settings;
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
-export const addOrganizationItem = createAsyncThunk(
-	"organization/addItem",
-	async ({ itemType, newItem }, { rejectWithValue }) => {
-		try {
-			const updatedItems = await OrganizationSettingsService.addItem(itemType, newItem);
-			if (!updatedItems) {
-				throw new Error(`Failed to add ${itemType}`);
-			}
-			return { itemType, items: updatedItems };
-		} catch (error) {
-			return rejectWithValue(error.message);
+export const addOrganizationItem = createAsyncThunk("organization/addItem", async ({ itemType, newItem }, { rejectWithValue }) => {
+	try {
+		const updatedItems = await OrganizationSettingsService.addItem(itemType, newItem);
+		if (!updatedItems) {
+			throw new Error(`Failed to add ${itemType}`);
 		}
+		return { itemType, items: updatedItems };
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
 // Initial state - removed employees related state
 const initialState = {
@@ -101,16 +95,6 @@ const organizationSlice = createSlice({
 });
 
 // Export actions
-export const { clearOrganizationError, setOrganizationStatus, setActiveBranch } =
-	organizationSlice.actions;
+export const { clearOrganizationError, setOrganizationStatus, setActiveBranch } = organizationSlice.actions;
 
 export default organizationSlice.reducer;
-
-// Selectors
-export const selectAllDepartments = (state) => state.organization.departments;
-export const selectAllPositions = (state) => state.organization.positions;
-export const selectAllBranches = (state) => state.organization.branches;
-export const selectAllShiftSchedules = (state) => state.organization.shiftSchedules;
-export const selectOrganizationStatus = (state) => state.organization.status;
-export const selectOrganizationError = (state) => state.organization.error;
-export const selectActiveBranch = (state) => state.organization.activeBranch;

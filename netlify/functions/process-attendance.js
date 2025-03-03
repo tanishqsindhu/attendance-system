@@ -1,9 +1,4 @@
-const {
-	getAttendanceLogs,
-	getEmployees,
-	saveProcessedAttendance,
-	OrganizationSettingsService,
-} = require("@/firebase/firebase");
+const { getAttendanceLogs, getEmployees, saveProcessedAttendance, OrganizationSettingsService } = require("@/firebase/index");
 
 /**
  * Serverless function to process attendance data from raw logs
@@ -31,10 +26,7 @@ exports.handler = async (event) => {
 		console.log(`Processing attendance for branch: ${branchId}, input month-year: ${monthYear}`);
 
 		// Fetch attendance logs & employees in parallel
-		const [attendanceLogs, employees] = await Promise.all([
-			getAttendanceLogs(branchId, monthYear),
-			getEmployees(branchId),
-		]);
+		const [attendanceLogs, employees] = await Promise.all([getAttendanceLogs(branchId, monthYear), getEmployees(branchId)]);
 
 		// Validate data existence
 		if (!attendanceLogs || Object.keys(attendanceLogs).length === 0) {
@@ -51,14 +43,10 @@ exports.handler = async (event) => {
 			};
 		}
 
-		console.log(
-			`Found ${Object.keys(attendanceLogs).length} attendance records and ${
-				Object.keys(employees).length
-			} employees`
-		);
+		console.log(`Found ${Object.keys(attendanceLogs).length} attendance records and ${Object.keys(employees).length} employees`);
 
 		// Fetch shift schedules from organization settings
-		const { shiftSchedules } = await OrganizationSettingsService.getSettings(); 
+		const { shiftSchedules } = await OrganizationSettingsService.getSettings();
 
 		// Process attendance grouped by month-year derived from timestamps
 		const processedAttendance = {};
@@ -89,9 +77,7 @@ exports.handler = async (event) => {
 
 		// Store processed attendance in Firestore - one call per month-year
 		const savePromises = Object.entries(processedAttendance).map(async ([monthYear, data]) => {
-			console.log(
-				`Saving attendance data for ${monthYear} with ${Object.keys(data).length} employees`
-			);
+			console.log(`Saving attendance data for ${monthYear} with ${Object.keys(data).length} employees`);
 			return saveProcessedAttendance(branchId, monthYear, data);
 		});
 
@@ -105,10 +91,7 @@ exports.handler = async (event) => {
 				summary: {
 					monthsProcessed: Object.keys(processedAttendance).length,
 					totalEmployees: Object.keys(employees).length,
-					processedEmployees: Object.values(processedAttendance).reduce(
-						(count, monthData) => count + Object.keys(monthData).length,
-						0
-					),
+					processedEmployees: Object.values(processedAttendance).reduce((count, monthData) => count + Object.keys(monthData).length, 0),
 				},
 			}),
 		};

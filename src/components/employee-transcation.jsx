@@ -18,7 +18,7 @@ import {
 	addTransaction,
 } from "@/store/employeeTransactions/employeeTransactions.reducer.js";
 
-import { selectEmployeesByBranch } from "../store/employees/employees.reducer";
+import { selectEmployeesByBranch } from "../store/employees/employees.selector";
 import {
 	selectTransactionsByEmployee,
 	selectIsTransactionsLoading,

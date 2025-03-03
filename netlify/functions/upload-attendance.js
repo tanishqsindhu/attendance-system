@@ -1,5 +1,5 @@
 const { parse } = require("csv-parse/sync");
-const { checkAttendanceExists, saveAttendanceData } = require("../../src/firebase/firebase");
+const { checkAttendanceExists, saveAttendanceData } = require("@/firebase/index");
 
 /**
  * Netlify function to handle attendance data uploads
@@ -37,9 +37,7 @@ exports.handler = async (event) => {
 			return {
 				statusCode: alreadyExists ? 409 : 200,
 				body: JSON.stringify({
-					message: alreadyExists
-						? `Attendance data for ${monthYear} already exists.`
-						: "No existing attendance data found.",
+					message: alreadyExists ? `Attendance data for ${monthYear} already exists.` : "No existing attendance data found.",
 					exists: alreadyExists,
 					monthYear,
 				}),
@@ -87,10 +85,7 @@ exports.handler = async (event) => {
 
 		// Return appropriate error based on type
 		const statusCode = error.name === "SyntaxError" ? 400 : 500;
-		const errorMessage =
-			error.name === "SyntaxError"
-				? "Invalid file format. Please check your file and try again."
-				: "Server error processing attendance data";
+		const errorMessage = error.name === "SyntaxError" ? "Invalid file format. Please check your file and try again." : "Server error processing attendance data";
 
 		return {
 			statusCode,

@@ -1,57 +1,48 @@
 // store/slices/employeesSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { OrganizationSettingsService } from "@/firebase/firebase";
+import { OrganizationSettingsService, addEmployeeToBranch as firebaseAddEmployeeToBranch } from "@/firebase/index";
 
 // Async thunks for employees
-export const fetchEmployeesByBranch = createAsyncThunk(
-	"employees/fetchByBranch",
-	async (branchId, { rejectWithValue }) => {
-		try {
-			const employees = await OrganizationSettingsService.getEmployeesByBranch(branchId);
-			return { branchId, employees };
-		} catch (error) {
-			return rejectWithValue(error.message);
-		}
+export const fetchEmployeesByBranch = createAsyncThunk("employees/fetchByBranch", async (branchId, { rejectWithValue }) => {
+	try {
+		const employees = await OrganizationSettingsService.getEmployeesByBranch(branchId);
+		return { branchId, employees };
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
-export const addEmployeeToBranch = createAsyncThunk(
-	"employees/addToBranch",
-	async ({ branchId, employeeData }, { getState, rejectWithValue }) => {
-		try {
-			// Check if employee with the same ID already exists in any branch
-			const state = getState();
-			const allEmployees = state.employees.allEmployees;
+export const addEmployeeToBranch = createAsyncThunk("employees/addToBranch", async ({ branchId, employeeData }, { getState, rejectWithValue }) => {
+	try {
+		// Check if employee with the same ID already exists in any branch
+		const state = getState();
+		const allEmployees = state.employees.allEmployees;
 
-			if (employeeData.id && allEmployees.some((emp) => emp.id === employeeData.id)) {
-				return rejectWithValue({
-					code: "DUPLICATE_EMPLOYEE_ID",
-					message: `Employee with ID ${employeeData.id} already exists`,
-				});
-			}
-
-			const newEmployee = await OrganizationSettingsService.addEmployeeToBranch(
-				branchId,
-				employeeData
-			);
-
-			if (!newEmployee) {
-				throw new Error("Failed to add employee");
-			}
-
-			return { branchId, employee: newEmployee };
-		} catch (error) {
-			return rejectWithValue(
-				error.code
-					? error
-					: {
-							code: "ADD_EMPLOYEE_ERROR",
-							message: error.message || "An error occurred while adding employee",
-					  }
-			);
+		if (employeeData.id && allEmployees.some((emp) => emp.id === employeeData.id)) {
+			return rejectWithValue({
+				code: "DUPLICATE_EMPLOYEE_ID",
+				message: `Employee with ID ${employeeData.id} already exists`,
+			});
 		}
+
+		const newEmployee = await firebaseAddEmployeeToBranch(branchId, employeeData);
+
+		if (!newEmployee) {
+			throw new Error("Failed to add employee");
+		}
+
+		return { branchId, employee: newEmployee };
+	} catch (error) {
+		return rejectWithValue(
+			error.code
+				? error
+				: {
+						code: "ADD_EMPLOYEE_ERROR",
+						message: error.message || "An error occurred while adding employee",
+				  }
+		);
 	}
-);
+});
 
 // Initial state for employees
 const initialState = {
@@ -95,9 +86,7 @@ const employeesSlice = createSlice({
 
 				// Update allEmployees array with deduplication
 				const existingEmployeeIds = new Set(state.allEmployees.map((emp) => emp.id));
-				const newEmployees = action.payload.employees.filter(
-					(emp) => !existingEmployeeIds.has(emp.id)
-				);
+				const newEmployees = action.payload.employees.filter((emp) => !existingEmployeeIds.has(emp.id));
 				state.allEmployees = [...state.allEmployees, ...newEmployees];
 			})
 			.addCase(fetchEmployeesByBranch.rejected, (state, action) => {
@@ -148,11 +137,3 @@ const employeesSlice = createSlice({
 export const { clearEmployeesError, setEmployeesStatus } = employeesSlice.actions;
 
 export default employeesSlice.reducer;
-// Selectors
-export const selectEmployeesByBranch = (state, branchId) =>
-	state.employees.byBranch[branchId] || [];
-export const selectAllEmployees = (state) => state.employees.allEmployees;
-export const selectEmployeesStatus = (state) => state.employees.status;
-export const selectEmployeesError = (state) => state.employees.error;
-export const selectEmployeesErrorCode = (state) => state.employees.lastErrorCode;
-export const selectIsEmployeeLoading = (state) => state.employees.loading;

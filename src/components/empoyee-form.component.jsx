@@ -41,7 +41,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { addEmployeeToBranch } from "../store/employees/employees.reducer";
+import { addEmployeeToBranch } from "@/store/employees/employees.reducer.js";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -1077,7 +1077,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 									Previous
 								</Button>
 
-								{activeTab !== tabOrder[tabOrder.length - 1] ? (
+								{activeTab !== tabOrder[tabOrder.length - 2] ? (
 									<Button
 										type="button"
 										onClick={() => {

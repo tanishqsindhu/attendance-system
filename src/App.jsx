@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/protected-routes"; // Import your RBAC 
 import { fetchOrganizationSettings } from "./store/orgaznization-settings/organization-settings.reducer";
 import EmployeePayroll from "./components/employee-transcation";
 import AllTransactions from "./components/allTransacations";
+import Settings from "./routes/organization settings/settings.component";
 
 function App() {
 	const navigate = useNavigate();
@@ -32,11 +33,7 @@ function App() {
 
 	useEffect(() => {
 		if (isLoaded && isSignedIn) {
-			const userRoles = user.publicMetadata?.roles
-				? Array.isArray(user.publicMetadata.roles)
-					? user.publicMetadata.roles
-					: [user.publicMetadata.roles]
-				: ["user"];
+			const userRoles = user.publicMetadata?.roles ? (Array.isArray(user.publicMetadata.roles) ? user.publicMetadata.roles : [user.publicMetadata.roles]) : ["user"];
 
 			dispatch(
 				setCurrentUser({
@@ -55,7 +52,7 @@ function App() {
 		<Routes>
 			<Route path="/" element={<Page />}>
 				<Route
-					path="employees/*"
+					path="/employees/*"
 					element={
 						<ProtectedRoute allowedRoles={["admin", "viewEmployees"]}>
 							<Employees />
@@ -63,18 +60,19 @@ function App() {
 					}
 				/>
 				<Route
-					path="upload-data/*"
+					path="/upload-data/*"
 					element={
 						<ProtectedRoute allowedRoles={["uploadData"]}>
 							<AttendanceUpload />
 						</ProtectedRoute>
 					}
 				/>
-				<Route path="unauthorized/*" element={<UnauthorizedPage />} />
+				<Route path="/settings/*" element={<Settings />} />
+				<Route path="/unauthorized/*" element={<UnauthorizedPage />} />
 			</Route>
-			<Route path="users/*" element={<Users />} />
-			<Route path="employeePayroll/*" element={<EmployeePayroll branchId="B001" employeeId="2"/>} />
-			<Route path="allTransactions/*" element={<AllTransactions />} />
+			<Route path="/users/*" element={<Users />} />
+			<Route path="/employeePayroll/*" element={<EmployeePayroll branchId="B001" employeeId="2" />} />
+			<Route path="/allTransactions/*" element={<AllTransactions />} />
 		</Routes>
 	);
 }

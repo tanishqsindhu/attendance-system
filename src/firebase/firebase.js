@@ -9,6 +9,10 @@ import {
 	query,
 	getDocs,
 	runTransaction,
+	serverTimestamp,
+	addDoc,
+	where,
+	orderBy,
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -470,7 +474,402 @@ export const OrganizationSettingsService = {
 				: { code: "ADD_EMPLOYEE_ERROR", message: error.message || "Failed to add employee." };
 		}
 	},
-};
+	
+
+// 1. First, let's extend the organization settings to include holiday and attendance rules
+// Add this to OrganizationSettingsService in firebase.js
+
+/**
+ * Add holiday to the system
+ * @param {Object} holidayData - Holiday details including date, name, and type
+ * @returns {Promise<Object>} - Added holiday
+ */
+async addHoliday(holidayData) {
+	if (!holidayData || !holidayData.date || !holidayData.name) {
+	  throw new Error("Holiday data must include date and name");
+	}
+  
+	try {
+	  const holidaysRef = collection(db, "holidays");
+	  const holidayId = generateId(`${holidayData.date}-${holidayData.name}`);
+	  
+	  const newHoliday = {
+		id: holidayId,
+		date: holidayData.date,
+		name: holidayData.name,
+		type: holidayData.type || "full", // "full" or "half"
+		createdAt: serverTimestamp(),
+	  };
+	  
+	  await setDoc(doc(holidaysRef, holidayId), newHoliday);
+	  return newHoliday;
+	} catch (error) {
+	  logError("addHoliday", error);
+	  throw error;
+	}
+  },
+  
+  /**
+   * Get all holidays in a date range
+   * @param {Date} startDate - Start date
+   * @param {Date} endDate - End date
+   * @returns {Promise<Array>} - List of holidays
+   */
+  async getHolidays(startDate, endDate) {
+	try {
+	  const holidaysRef = collection(db, "holidays");
+	  let q = query(holidaysRef);
+	  
+	  if (startDate && endDate) {
+		q = query(
+		  holidaysRef,
+		  where("date", ">=", startDate),
+		  where("date", "<=", endDate)
+		);
+	  }
+	  
+	  const snapshot = await getDocs(q);
+	  return snapshot.docs.map(doc => doc.data());
+	} catch (error) {
+	  logError("getHolidays", error);
+	  return [];
+	}
+  },
+  
+  /**
+   * Save attendance rules for a branch
+   * @param {string} branchId - Branch ID
+   * @param {Object} rules - Attendance rules
+   * @returns {Promise<Object>} - Updated rules
+   */
+  async saveAttendanceRules(branchId, rules) {
+	if (!branchId || !rules) {
+	  throw new Error("branchId and rules are required");
+	}
+	
+	try {
+	  const rulesRef = doc(db, "branches", branchId, "settings", "attendanceRules");
+	  await setDoc(rulesRef, rules, { merge: true });
+	  return rules;
+	} catch (error) {
+	  logError("saveAttendanceRules", error);
+	  throw error;
+	}
+  },
+  
+  /**
+   * Get attendance rules for a branch
+   * @param {string} branchId - Branch ID
+   * @returns {Promise<Object>} - Attendance rules
+   */
+  async getAttendanceRules(branchId) {
+	if (!branchId) {
+	  throw new Error("branchId is required");
+	}
+	
+	try {
+	  const rulesRef = doc(db, "branches", branchId, "settings", "attendanceRules");
+	  const docSnap = await getDoc(rulesRef);
+	  
+	  if (!docSnap.exists()) {
+		// Return default rules if none exist
+		return {
+		  lateDeductions: {
+			enabled: false,
+			deductPerMinute: 0,
+			maxDeductionTime: 0,
+			halfDayThreshold: 0,
+			absentThreshold: 0
+		  },
+		  customDaySchedules: {}
+		};
+	  }
+	  
+	  return docSnap.data();
+	} catch (error) {
+	  logError("getAttendanceRules", error);
+	  throw error;
+	}
+  }
+  
+  // 2. Next, let's update the shift schedules model to allow for specific day settings
+  // Add this to the addItem method in OrganizationSettingsService for shift schedules
+  
+  // When adding a shift schedule, allow specific day overrides
+  if (itemType === "shiftSchedules") {
+	const scheduleWithDayOverrides = {
+	  ...(typeof newItem === "object" ? newItem : { name: newItem }),
+	  // Default settings
+	  defaultTimes: {
+		start: newItem.defaultTimes?.start || "08:00",
+		end: newItem.defaultTimes?.end || "16:00"
+	  },
+	  // Day-specific overrides (if any)
+	  dayOverrides: newItem.dayOverrides || {},
+	  // Flexible time settings (if any)
+	  flexibleTime: newItem.flexibleTime || {
+		enabled: false,
+		graceMinutes: 15
+	  }
+	};
+	
+	itemWithId = {
+	  id: formattedId,
+	  numericId,
+	  ...scheduleWithDayOverrides
+	};
+  }
+  
+  // 3. Now, let's create a service to handle attendance processing with these new rules
+  
+  /**
+   * Process attendance with deduction rules
+   * @param {Object} attendance - Raw attendance record
+   * @param {string} employeeId - Employee ID
+   * @param {Object} shiftSchedule - Employee's shift schedule
+   * @param {Object} rules - Attendance rules for the branch
+   * @param {Object} holidays - Map of holidays keyed by date
+   * @returns {Object} - Processed attendance with deductions
+   */
+  export const processAttendanceWithRules = (attendance, employeeId, shiftSchedule, rules, holidays) => {
+	if (!attendance || !employeeId || !shiftSchedule || !rules) {
+	  throw new Error("Missing required parameters");
+	}
+	
+	const processed = {};
+	const dates = Object.keys(attendance);
+	
+	// Iterate through each date in the attendance record
+	dates.forEach(date => {
+	  const dayRecord = attendance[date];
+	  
+	  // Check if it's a holiday
+	  const isHoliday = holidays[date];
+	  if (isHoliday) {
+		processed[date] = {
+		  ...dayRecord,
+		  status: "holiday",
+		  holidayName: isHoliday.name,
+		  holidayType: isHoliday.type,
+		  deductions: 0
+		};
+		return;
+	  }
+	  
+	  // Get day of week (0-6, where 0 is Sunday)
+	  const dayOfWeek = new Date(date).getDay();
+	  const dayName = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][dayOfWeek];
+	  
+	  // Check if there's a specific schedule for this day
+	  const daySchedule = shiftSchedule.dayOverrides?.[dayName] || shiftSchedule.defaultTimes;
+	  
+	  // Also check if there's a specific schedule for this date in custom day schedules
+	  const customSchedule = rules.customDaySchedules?.[date];
+	  const scheduledStart = customSchedule?.start || daySchedule.start;
+	  const scheduledEnd = customSchedule?.end || daySchedule.end;
+	  
+	  // Parse times to minutes since midnight for easier comparison
+	  const scheduledStartMinutes = timeStringToMinutes(scheduledStart);
+	  const actualStartMinutes = timeStringToMinutes(dayRecord.timeIn || "00:00");
+	  
+	  // Calculate lateness in minutes
+	  const latenessMinutes = Math.max(0, actualStartMinutes - scheduledStartMinutes);
+	  
+	  // Apply deduction rules if enabled
+	  let deductions = 0;
+	  let attendanceStatus = "present";
+	  
+	  if (rules.lateDeductions?.enabled && latenessMinutes > 0) {
+		const { deductPerMinute, maxDeductionTime, halfDayThreshold, absentThreshold } = rules.lateDeductions;
+		
+		// If lateness exceeds the absent threshold, mark as absent
+		if (latenessMinutes >= absentThreshold) {
+		  attendanceStatus = "absent";
+		  deductions = 1.0; // Full day deduction
+		}
+		// If lateness exceeds half-day threshold, mark as half-day
+		else if (latenessMinutes >= halfDayThreshold) {
+		  attendanceStatus = "half-day";
+		  deductions = 0.5; // Half day deduction
+		}
+		// Otherwise calculate per-minute deductions up to max time
+		else {
+		  const deductibleMinutes = Math.min(latenessMinutes, maxDeductionTime);
+		  deductions = (deductPerMinute / 100) * deductibleMinutes;
+		  attendanceStatus = "late";
+		}
+	  }
+	  
+	  // Store processed record
+	  processed[date] = {
+		...dayRecord,
+		scheduledStart,
+		scheduledEnd,
+		latenessMinutes,
+		status: attendanceStatus,
+		deductions
+	  };
+	});
+	
+	return processed;
+  };
+  
+  /**
+   * Convert time string (HH:MM) to minutes since midnight
+   * @param {string} timeString - Time in HH:MM format
+   * @returns {number} - Minutes since midnight
+   */
+  const timeStringToMinutes = (timeString) => {
+	if (!timeString) return 0;
+	
+	const [hours, minutes] = timeString.split(':').map(Number);
+	return (hours * 60) + minutes;
+  };
+  
+  // 4. Finally, let's update the PayrollService to incorporate these new rules
+  
+  // Add these methods to PayrollService class
+  
+  /**
+   * Calculate payroll with attendance rules applied
+   * @param {string} branchId - Branch ID
+   * @param {string} employeeId - Employee ID
+   * @param {Object} period - Payroll period {startDate, endDate}
+   * @returns {Promise<Object>} - Payroll calculation
+   */
+  static async calculatePayrollWithRules(branchId, employeeId, period) {
+	try {
+	  // Get employee details
+	  const employee = await getEmployeeDetails(branchId, employeeId);
+	  if (!employee) {
+		throw new Error(`Employee ${employeeId} not found`);
+	  }
+	  
+	  // Get attendance rules for the branch
+	  const rules = await OrganizationSettingsService.getAttendanceRules(branchId);
+	  
+	  // Get holidays in the period
+	  const holidays = await OrganizationSettingsService.getHolidays(period.startDate, period.endDate);
+	  const holidaysMap = holidays.reduce((map, holiday) => {
+		map[holiday.date] = holiday;
+		return map;
+	  }, {});
+	  
+	  // Get shift schedule for employee
+	  const shiftScheduleId = employee.employment?.shiftScheduleId;
+	  const settings = await OrganizationSettingsService.getSettings();
+	  const shiftSchedule = settings.shiftSchedules.find(s => s.id === shiftScheduleId) || {
+		defaultTimes: { start: "08:00", end: "16:00" }
+	  };
+	  
+	  // Get attendance records for the period
+	  const { startDate, endDate } = period;
+	  const startMonth = startDate.substring(0, 7); // YYYY-MM
+	  const endMonth = endDate.substring(0, 7); // YYYY-MM
+	  
+	  // Fetch attendance for all months in the period
+	  const monthsToFetch = getMonthsBetween(startMonth, endMonth);
+	  const attendancePromises = monthsToFetch.map(month => 
+		getEmployeeAttendanceLogs(branchId, employeeId, month)
+	  );
+	  
+	  const attendanceResults = await Promise.all(attendancePromises);
+	  let allAttendance = {};
+	  
+	  // Merge attendance from all months
+	  attendanceResults.forEach(monthAttendance => {
+		allAttendance = { ...allAttendance, ...monthAttendance };
+	  });
+	  
+	  // Filter attendance to only include dates in the period
+	  const periodAttendance = Object.keys(allAttendance)
+		.filter(date => date >= startDate && date <= endDate)
+		.reduce((obj, date) => {
+		  obj[date] = allAttendance[date];
+		  return obj;
+		}, {});
+	  
+	  // Process attendance with rules
+	  const processedAttendance = processAttendanceWithRules(
+		periodAttendance,
+		employeeId,
+		shiftSchedule,
+		rules,
+		holidaysMap
+	  );
+	  
+	  // Calculate total deductions
+	  const totalDeductions = Object.values(processedAttendance)
+		.reduce((sum, record) => sum + (record.deductions || 0), 0);
+	  
+	  // Calculate pay based on employee's salary and deductions
+	  const dailyRate = employee.employment?.salary / 22; // Assuming 22 working days per month
+	  const deductionAmount = dailyRate * totalDeductions;
+	  
+	  // Get all existing transactions for this period
+	  const existingTransactions = await this.getEmployeeTransactions(branchId, employeeId);
+	  const periodTransactions = existingTransactions.filter(
+		t => t.date >= startDate && t.date <= endDate
+	  );
+	  
+	  return {
+		employee: {
+		  id: employeeId,
+		  name: `${employee.personal?.firstName} ${employee.personal?.lastName}`,
+		  position: employee.employment?.position,
+		  department: employee.employment?.department
+		},
+		salary: employee.employment?.salary || 0,
+		attendance: processedAttendance,
+		summary: {
+		  workingDays: Object.keys(processedAttendance).length,
+		  present: Object.values(processedAttendance).filter(r => r.status === "present").length,
+		  late: Object.values(processedAttendance).filter(r => r.status === "late").length,
+		  halfDay: Object.values(processedAttendance).filter(r => r.status === "half-day").length,
+		  absent: Object.values(processedAttendance).filter(r => r.status === "absent").length,
+		  holiday: Object.values(processedAttendance).filter(r => r.status === "holiday").length,
+		  totalDeductions,
+		  deductionAmount
+		},
+		transactions: periodTransactions,
+		netPay: employee.employment?.salary - deductionAmount
+	  };
+	} catch (error) {
+	  console.error("Error calculating payroll with rules:", error);
+	  throw error;
+	}
+  }
+  
+  /**
+   * Get months between two YYYY-MM dates
+   * @param {string} startMonth - Start month in YYYY-MM format
+   * @param {string} endMonth - End month in YYYY-MM format
+   * @returns {Array<string>} - Array of months in YYYY-MM format
+   */
+  function getMonthsBetween(startMonth, endMonth) {
+	const result = [];
+	const [startYear, startMonthNum] = startMonth.split('-').map(Number);
+	const [endYear, endMonthNum] = endMonth.split('-').map(Number);
+	
+	let currentYear = startYear;
+	let currentMonth = startMonthNum;
+	
+	while (
+	  currentYear < endYear || 
+	  (currentYear === endYear && currentMonth <= endMonthNum)
+	) {
+	  result.push(`${currentYear}-${String(currentMonth).padStart(2, '0')}`);
+	  
+	  currentMonth++;
+	  if (currentMonth > 12) {
+		currentMonth = 1;
+		currentYear++;
+	  }
+	}
+	
+	return result;
+  }
+;
 
 /**
  * Fetch available attendance log periods for a branch
@@ -553,149 +952,122 @@ export const getEmployeeAttendanceLogs = async (branchId, employeeId, monthYear)
 	}
 };
 
-/**
- * Fetches transaction history for an employee
- * @param {string} branchId - ID of the branch
- * @param {string} employeeId - ID of the employee
- * @returns {Promise<Array>} - Array of transactions
- */
-export const getEmployeeTransactions = async (branchId, employeeId) => {
-	try {
-		const transactionsRef = collection(
-			db,
-			`branches/${branchId}/employees/${employeeId}/transactions`
-		);
-		const transactionsQuery = query(transactionsRef, orderBy("date", "desc"));
-		const transactionsSnap = await getDocs(transactionsQuery);
+export class PayrollService {
+	// Get all payroll transactions across all employees
+	static async getAllTransactions() {
+		try {
+			const q = query(collection(db, "payrollTransactions"), orderBy("date", "desc"));
+			const querySnapshot = await getDocs(q);
 
-		if (transactionsSnap.empty) {
-			return [];
+			return querySnapshot.docs.map((doc) => ({
+				id: doc.id,
+				...doc.data(),
+			}));
+		} catch (error) {
+			console.error("Error fetching all transactions:", error);
+			throw error;
 		}
-
-		return transactionsSnap.docs.map((doc) => ({
-			id: doc.id,
-			...doc.data(),
-		}));
-	} catch (error) {
-		console.error("Error fetching employee transactions:", error);
-		throw error;
 	}
-};
 
-/**
- * Adds a new transaction for an employee
- * @param {string} branchId - ID of the branch
- * @param {string} employeeId - ID of the employee
- * @param {Object} transaction - Transaction details
- * @param {string} transaction.type - Type of transaction (salary, advance, bonus, etc.)
- * @param {number} transaction.amount - Transaction amount
- * @param {string} transaction.status - Transaction status (paid, pending, cancelled)
- * @param {string} transaction.description - Transaction description
- * @returns {Promise<Object>} - Added transaction with ID
- */
-export const addEmployeeTransaction = async (branchId, employeeId, transaction) => {
-	try {
-		const transactionsRef = collection(
-			db,
-			`branches/${branchId}/employees/${employeeId}/transactions`
-		);
+	// Get transactions for a specific employee
+	static async getEmployeeTransactions(branchId, employeeId) {
+		try {
+			const q = query(
+				collection(db, "payrollTransactions"),
+				where("branchId", "==", branchId),
+				where("employeeId", "==", employeeId),
+				orderBy("date", "desc")
+			);
 
-		// Create transaction object with server timestamp
-		const newTransaction = {
-			...transaction,
-			date: transaction.date ? Timestamp.fromDate(new Date(transaction.date)) : serverTimestamp(),
-			createdAt: serverTimestamp(),
-		};
+			const querySnapshot = await getDocs(q);
 
-		const docRef = await addDoc(transactionsRef, newTransaction);
-
-		// Return the created transaction with ID
-		return {
-			id: docRef.id,
-			...newTransaction,
-			// Replace serverTimestamp with actual Timestamp for immediate use in UI
-			date: newTransaction.date.toDate ? newTransaction.date : new Date(),
-			createdAt: new Date(),
-		};
-	} catch (error) {
-		console.error("Error adding employee transaction:", error);
-		throw error;
+			return querySnapshot.docs.map((doc) => ({
+				id: doc.id,
+				...doc.data(),
+			}));
+		} catch (error) {
+			console.error(`Error fetching transactions for employee ${employeeId}:`, error);
+			throw error;
+		}
 	}
-};
 
-/**
- * Updates an existing transaction for an employee
- * @param {string} branchId - ID of the branch
- * @param {string} employeeId - ID of the employee
- * @param {string} transactionId - ID of the transaction to update
- * @param {Object} updatedFields - Fields to update
- * @returns {Promise<Object>} - Updated transaction
- */
-export const updateEmployeeTransaction = async (
-	branchId,
-	employeeId,
-	transactionId,
-	updatedFields
-) => {
-	try {
-		const transactionRef = doc(
-			db,
-			`branches/${branchId}/employees/${employeeId}/transactions`,
-			transactionId
-		);
+	// Add a new transaction
+	static async addTransaction(transactionData) {
+		try {
+			// First, verify employee exists
+			const { branchId, employeeId } = transactionData;
+			const employeeRef = doc(db, `branches/${branchId}/employees/${employeeId}`);
+			const employeeDoc = await getDoc(employeeRef);
 
-		await updateDoc(transactionRef, {
-			...updatedFields,
-			updatedAt: serverTimestamp(),
-		});
+			if (!employeeDoc.exists()) {
+				throw new Error(`Employee with ID ${employeeId} not found in branch ${branchId}`);
+			}
 
-		const updatedSnapshot = await getDoc(transactionRef);
+			// Add the transaction to the transactions collection
+			const transactionWithTimestamp = {
+				...transactionData,
+				date: transactionData.date || serverTimestamp(),
+				createdAt: serverTimestamp(),
+				updatedAt: serverTimestamp(),
+			};
 
-		return {
-			id: updatedSnapshot.id,
-			...updatedSnapshot.data(),
-		};
-	} catch (error) {
-		console.error("Error updating employee transaction:", error);
-		throw error;
+			const docRef = await addDoc(collection(db, "payrollTransactions"), transactionWithTimestamp);
+
+			return {
+				id: docRef.id,
+				...transactionWithTimestamp,
+				date: transactionWithTimestamp.date, // Return the provided date or server timestamp
+			};
+		} catch (error) {
+			console.error("Error adding transaction:", error);
+			throw error;
+		}
 	}
-};
 
-/**
- * Gets a summary of employee transactions (totals by type)
- * @param {string} branchId - ID of the branch
- * @param {string} employeeId - ID of the employee
- * @returns {Promise<Object>} - Transaction summary
- */
-export const getEmployeeTransactionSummary = async (branchId, employeeId) => {
-	try {
-		const transactions = await getEmployeeTransactions(branchId, employeeId);
+	// Get payroll summary for a branch
+	static async getBranchPayrollSummary(branchId, period) {
+		try {
+			const { startDate, endDate } = period;
 
-		// Calculate totals by transaction type
-		const summary = transactions.reduce(
-			(acc, transaction) => {
-				const type = transaction.type || "other";
-				const status = transaction.status || "unknown";
+			const q = query(
+				collection(db, "payrollTransactions"),
+				where("branchId", "==", branchId),
+				where("date", ">=", startDate),
+				where("date", "<=", endDate)
+			);
 
-				// Only count paid transactions in the totals
-				if (status === "paid") {
-					acc.totalPaid = (acc.totalPaid || 0) + transaction.amount;
-					acc.byType[type] = (acc.byType[type] || 0) + transaction.amount;
+			const querySnapshot = await getDocs(q);
+			const transactions = querySnapshot.docs.map((doc) => ({
+				id: doc.id,
+				...doc.data(),
+			}));
+
+			// Calculate summary
+			const summary = {
+				totalTransactions: transactions.length,
+				totalAmount: transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+				transactionsByType: {},
+			};
+
+			// Group by transaction type
+			transactions.forEach((transaction) => {
+				const type = transaction.type;
+				if (!summary.transactionsByType[type]) {
+					summary.transactionsByType[type] = {
+						count: 0,
+						amount: 0,
+					};
 				}
 
-				// Track pending amounts separately
-				if (status === "pending") {
-					acc.totalPending = (acc.totalPending || 0) + transaction.amount;
-				}
+				summary.transactionsByType[type].count += 1;
+				summary.transactionsByType[type].amount += transaction.amount;
+			});
 
-				return acc;
-			},
-			{ byType: {}, totalPaid: 0, totalPending: 0 }
-		);
-
-		return summary;
-	} catch (error) {
-		console.error("Error getting transaction summary:", error);
-		throw error;
+			return summary;
+		} catch (error) {
+			console.error(`Error getting payroll summary for branch ${branchId}:`, error);
+			throw error;
+		}
 	}
-};
+	
+}

@@ -24,16 +24,16 @@ import {
 } from "@/components/ui/select";
 import { getEmployeeDetails } from "@/firebase/firebase";
 import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector";
-import {
-	fetchTransactions,
-	addTransaction,
-	clearTransactions,
-} from "@/store/employeeTransactions/employeeTransactions.reducer.js";
-import {
-	selectEmployeeTransactions,
-	selectTransactionsLoading,
-	selectTransactionsError,
-} from "@/store/employeeTransactions/employeeTransactions.selector.js";
+// import {
+// 	fetchTransactions,
+// 	addTransaction,
+// 	clearTransactions,
+// } from "@/store/employeeTransactions/employeeTransactions.reducer.js";
+// import {
+// 	selectEmployeeTransactions,
+// 	selectTransactionsLoading,
+// 	selectTransactionsError,
+// } from "@/store/employeeTransactions/employeeTransactions.selector.js";
 import { Mail, Phone, MapPin, Briefcase, Calendar, User, CreditCard, Clock } from "lucide-react";
 import { EditEmployeeModal } from "../../components/EditEmployeeModal";
 import TransactionTable from "../../components/transcation-table.component";
@@ -51,9 +51,9 @@ const EmployeeProfile = () => {
 	const [monthYear, setMonthYear] = useState("");
 	const [activeTab, setActiveTab] = useState("personal");
 	const branchId = useSelector(selectActiveBranch);
-	const transactions = useSelector(selectEmployeeTransactions);
-	const transactionsLoading = useSelector(selectTransactionsLoading);
-	const transactionsError = useSelector(selectTransactionsError);
+	// const transactions = useSelector(selectEmployeeTransactions);
+	// const transactionsLoading = useSelector(selectTransactionsLoading);
+	// const transactionsError = useSelector(selectTransactionsError);
 
 	// Fetch employee details
 	const fetchEmployeeDetails = useCallback(async () => {

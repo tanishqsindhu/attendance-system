@@ -5,6 +5,10 @@ import employeesReducer from "@/store/employees/employees.reducer";
 import { cartReducer } from "@/store/cart/cart.reducer";
 import organizationReducer from "@/store/orgaznization-settings/organization-settings.reducer";
 import payrollTransactions from "@/store/employeeTransactions/employeeTransactions.reducer";
+import holidayReducer from "@/store/holiday/holiday.reducer.jsx";
+import attendanceRulesReducer from "@/store/attendance-rules/attendance-rules.reducer";
+import customShiftsReducer from "@/store/custom-shift/custom-shift.reducer";
+
 export const rootReducer = combineReducers({
 	user: userReducer,
 	employees: employeesReducer,
@@ -12,4 +16,7 @@ export const rootReducer = combineReducers({
 	organization: organizationReducer,
 	employeeTransactions: employeesReducer,
 	payrollTransactions: payrollTransactions,
+	holidays: holidayReducer,
+	attendanceRules: attendanceRulesReducer,
+	customShifts: customShiftsReducer,
 });

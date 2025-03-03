@@ -33,7 +33,11 @@ function App() {
 
 	useEffect(() => {
 		if (isLoaded && isSignedIn) {
-			const userRoles = user.publicMetadata?.roles ? (Array.isArray(user.publicMetadata.roles) ? user.publicMetadata.roles : [user.publicMetadata.roles]) : ["user"];
+			const userRoles = user.publicMetadata?.roles
+				? Array.isArray(user.publicMetadata.roles)
+					? user.publicMetadata.roles
+					: [user.publicMetadata.roles]
+				: ["user"];
 
 			dispatch(
 				setCurrentUser({
@@ -71,7 +75,10 @@ function App() {
 				<Route path="/unauthorized/*" element={<UnauthorizedPage />} />
 			</Route>
 			<Route path="/users/*" element={<Users />} />
-			<Route path="/employeePayroll/*" element={<EmployeePayroll branchId="B001" employeeId="2" />} />
+			<Route
+				path="/employeePayroll/*"
+				element={<EmployeePayroll branchId="B001" employeeId="2" />}
+			/>
 			<Route path="/allTransactions/*" element={<AllTransactions />} />
 		</Routes>
 	);

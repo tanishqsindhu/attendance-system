@@ -1,6 +1,15 @@
 import { db } from "./firebase-config";
 import { documentExists, logError } from "./firebase-utils";
-import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction, where } from "firebase/firestore";
+import {
+	doc,
+	getDoc,
+	setDoc,
+	collection,
+	getDocs,
+	query,
+	runTransaction,
+	where,
+} from "firebase/firestore";
 
 export const OrganizationSettingsService = {
 	/**
@@ -11,7 +20,9 @@ export const OrganizationSettingsService = {
 		try {
 			const settingsRef = doc(db, "settings", "organizationSettings");
 			const docSnap = await getDoc(settingsRef);
-			return docSnap.exists() ? docSnap.data() : { departments: [], positions: [], branches: [], shiftSchedules: [] };
+			return docSnap.exists()
+				? docSnap.data()
+				: { departments: [], positions: [], branches: [], shiftSchedules: [] };
 		} catch (error) {
 			logError("getSettings", error);
 			return { departments: [], positions: [], branches: [], shiftSchedules: [] };
@@ -98,7 +109,8 @@ export const OrganizationSettingsService = {
 			const prefix = this.getItemPrefix(itemType);
 
 			// Determine the ID to use
-			let numericId = newItem.id && typeof newItem.id === "number" ? newItem.id : await this.getNextId(itemType);
+			let numericId =
+				newItem.id && typeof newItem.id === "number" ? newItem.id : await this.getNextId(itemType);
 
 			const formattedId = this.formatId(prefix, numericId);
 
@@ -170,115 +182,6 @@ export const OrganizationSettingsService = {
 		} catch (error) {
 			logError("getEmployeesByBranch", error);
 			return [];
-		}
-	},
-
-	/**
-	 * Add holiday to the system
-	 * @param {Object} holidayData - Holiday details including date, name, and type
-	 * @returns {Promise<Object>} - Added holiday
-	 */
-	async addHoliday(holidayData) {
-		if (!holidayData || !holidayData.date || !holidayData.name) {
-			throw new Error("Holiday data must include date and name");
-		}
-
-		try {
-			const holidaysRef = collection(db, "holidays");
-			const holidayId = generateId(`${holidayData.date}-${holidayData.name}`);
-
-			const newHoliday = {
-				id: holidayId,
-				date: holidayData.date,
-				name: holidayData.name,
-				type: holidayData.type || "full", // "full" or "half"
-				createdAt: serverTimestamp(),
-			};
-
-			await setDoc(doc(holidaysRef, holidayId), newHoliday);
-			return newHoliday;
-		} catch (error) {
-			logError("addHoliday", error);
-			throw error;
-		}
-	},
-
-	/**
-	 * Get all holidays in a date range
-	 * @param {Date} startDate - Start date
-	 * @param {Date} endDate - End date
-	 * @returns {Promise<Array>} - List of holidays
-	 */
-	async getHolidays(startDate, endDate) {
-		try {
-			const holidaysRef = collection(db, "holidays");
-			let q = query(holidaysRef);
-
-			if (startDate && endDate) {
-				q = query(holidaysRef, where("date", ">=", startDate), where("date", "<=", endDate));
-			}
-
-			const snapshot = await getDocs(q);
-			return snapshot.docs.map((doc) => doc.data());
-		} catch (error) {
-			logError("getHolidays", error);
-			return [];
-		}
-	},
-
-	/**
-	 * Save attendance rules for a branch
-	 * @param {string} branchId - Branch ID
-	 * @param {Object} rules - Attendance rules
-	 * @returns {Promise<Object>} - Updated rules
-	 */
-	async saveAttendanceRules(branchId, rules) {
-		if (!branchId || !rules) {
-			throw new Error("branchId and rules are required");
-		}
-
-		try {
-			const rulesRef = doc(db, "branches", branchId, "settings", "attendanceRules");
-			await setDoc(rulesRef, rules, { merge: true });
-			return rules;
-		} catch (error) {
-			logError("saveAttendanceRules", error);
-			throw error;
-		}
-	},
-
-	/**
-	 * Get attendance rules for a branch
-	 * @param {string} branchId - Branch ID
-	 * @returns {Promise<Object>} - Attendance rules
-	 */
-	async getAttendanceRules(branchId) {
-		if (!branchId) {
-			throw new Error("branchId is required");
-		}
-
-		try {
-			const rulesRef = doc(db, "branches", branchId, "settings", "attendanceRules");
-			const docSnap = await getDoc(rulesRef);
-
-			if (!docSnap.exists()) {
-				// Return default rules if none exist
-				return {
-					lateDeductions: {
-						enabled: false,
-						deductPerMinute: 0,
-						maxDeductionTime: 0,
-						halfDayThreshold: 0,
-						absentThreshold: 0,
-					},
-					customDaySchedules: {},
-				};
-			}
-
-			return docSnap.data();
-		} catch (error) {
-			logError("getAttendanceRules", error);
-			throw error;
 		}
 	},
 };

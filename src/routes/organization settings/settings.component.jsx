@@ -1,14 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 
-import ShiftScheduleForm from "../../components/ShiftScheduleForm";
 import HolidayManager from "../../components/HolidayManager";
 import AttendanceRulesForm from "../../components/AttendanceRulesForm";
+import CustomShiftsPage from "../../app/custom-shifts/custom-shifts-page";
 
 const Settings = () => {
 	return (
 		<Routes>
 			{/* <Route index element={<UserProfilePage />} /> */}
-			<Route path="/shift-schedule" element={<ShiftScheduleForm />} />
+			<Route path="/shift-schedule" element={<CustomShiftsPage />} />
 			<Route path="/holiday-manager" element={<HolidayManager />} />
 			<Route path="/attendance-rules" element={<AttendanceRulesForm />} />
 		</Routes>

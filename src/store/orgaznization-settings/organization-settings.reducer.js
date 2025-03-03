@@ -6,7 +6,6 @@ import { OrganizationSettingsService } from "@/firebase/index";
 export const fetchOrganizationSettings = createAsyncThunk("organization/fetchSettings", async (_, { rejectWithValue }) => {
 	try {
 		const settings = await OrganizationSettingsService.getSettings();
-		console.log(settings);
 		return settings;
 	} catch (error) {
 		return rejectWithValue(error.message);

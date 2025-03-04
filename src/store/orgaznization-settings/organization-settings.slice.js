@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { OrganizationSettingsService } from "@/firebase/index";
+import { selectAllEmployees } from "@/store/employees/employees.slice";
+import { toast } from "sonner";
 
 // Async thunks for organization settings
 export const fetchOrganizationSettings = createAsyncThunk(
@@ -32,15 +34,24 @@ export const addOrganizationItem = createAsyncThunk(
 
 export const deleteShiftSchedule = createAsyncThunk(
 	"organization/deleteShiftSchedule",
-	async (scheduleId, { rejectWithValue }) => {
+	async (scheduleId, { rejectWithValue, getState }) => {
 		try {
+			// Get employees from the Redux store using getState
+			const state = getState();
+			const employees = selectAllEmployees(state);
+
+			// Call the delete item method with employees
 			const updatedSchedules = await OrganizationSettingsService.deleteItem(
 				"shiftSchedules",
-				scheduleId
+				scheduleId,
+				employees
 			);
+
 			return updatedSchedules;
 		} catch (error) {
-			return rejectWithValue(error.message);
+			// If error is a string, return it directly
+			// If it's an error object, return its message
+			return rejectWithValue(error instanceof Error ? error.message : error);
 		}
 	}
 );
@@ -74,7 +85,63 @@ export const removeShiftScheduleDateOverride = createAsyncThunk(
 		}
 	}
 );
+export const deleteOrganizationItem = createAsyncThunk(
+	"organization/deleteItem",
+	async ({ itemType, itemId }, { rejectWithValue, getState }) => {
+		try {
+			// Validate inputs
+			if (!itemType || !itemId) {
+				throw new Error("Item type and ID are required");
+			}
 
+			// Get employees from the Redux store using getState
+			const state = getState();
+			const employees = selectAllEmployees(state);
+
+			// Validate employees
+			if (!employees || employees.length === 0) {
+				throw new Error("No employees found in the system");
+			}
+
+			// Call the delete item method with employees
+			const updatedItems = await OrganizationSettingsService.deleteItem(
+				itemType,
+				itemId,
+				employees
+			);
+
+			return {
+				itemType,
+				updatedItems,
+			};
+		} catch (error) {
+			// Log the error for debugging
+			console.error("Delete Item Error:", error);
+
+			// Return a clear, user-friendly error message
+			return rejectWithValue(
+				error instanceof Error
+					? error.message
+					: "An unexpected error occurred while deleting the item"
+			);
+		}
+	}
+);
+export const updateOrganizationItem = createAsyncThunk(
+	"organization/updateItem",
+	async ({ itemType, itemId, updatedItem }, { rejectWithValue }) => {
+		try {
+			const updatedItems = await OrganizationSettingsService.updateItem(
+				itemType,
+				itemId,
+				updatedItem
+			);
+			return { itemType, items: updatedItems };
+		} catch (error) {
+			return rejectWithValue(error.message);
+		}
+	}
+);
 // Initial state
 const initialState = {
 	departments: [],
@@ -171,6 +238,52 @@ const organizationSlice = createSlice({
 				state.shiftSchedules = action.payload;
 			})
 			.addCase(removeShiftScheduleDateOverride.rejected, (state, action) => {
+				state.loading = false;
+				state.status = "failed";
+				state.error = action.payload;
+			})
+			.addCase(deleteOrganizationItem.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(deleteOrganizationItem.fulfilled, (state, action) => {
+				const { itemType, updatedItems } = action.payload;
+
+				// Update the specific array based on itemType
+				switch (itemType) {
+					case "departments":
+						state.departments = updatedItems;
+						break;
+					case "positions":
+						state.positions = updatedItems;
+						break;
+					case "branches":
+						state.branches = updatedItems;
+						break;
+					case "shiftSchedules":
+						state.shiftSchedules = updatedItems;
+						break;
+				}
+
+				state.loading = false;
+			})
+			.addCase(deleteOrganizationItem.rejected, (state, action) => {
+				state.loading = false;
+				state.error = action.payload;
+			})
+			// Add new cases for updateOrganizationItem
+			.addCase(updateOrganizationItem.pending, (state) => {
+				state.loading = true;
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(updateOrganizationItem.fulfilled, (state, action) => {
+				state.loading = false;
+				state.status = "succeeded";
+				// Update the specific item type array with the new items
+				state[action.payload.itemType] = action.payload.items;
+			})
+			.addCase(updateOrganizationItem.rejected, (state, action) => {
 				state.loading = false;
 				state.status = "failed";
 				state.error = action.payload;

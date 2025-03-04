@@ -1,8 +1,6 @@
-// src/components/organization/AddItemDialog.jsx
 "use client";
 
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -10,9 +8,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
-const AddItemDialog = ({ triggerText, children }) => {
-	const [isOpen, setIsOpen] = React.useState(false);
+const AddItemDialog = ({ triggerText, itemType, children }) => {
+	const [isOpen, setIsOpen] = useState(false);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -21,9 +20,14 @@ const AddItemDialog = ({ triggerText, children }) => {
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{triggerText}</DialogTitle>
+					<DialogTitle>
+						Add New {itemType.slice(0, -1).charAt(0).toUpperCase() + itemType.slice(0, -1).slice(1)}
+					</DialogTitle>
 				</DialogHeader>
-				{React.cloneElement(children, { onClose: () => setIsOpen(false) })}
+				{React.cloneElement(children, {
+					onClose: () => setIsOpen(false),
+					itemType,
+				})}
 			</DialogContent>
 		</Dialog>
 	);

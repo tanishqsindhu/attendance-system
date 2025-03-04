@@ -1,5 +1,7 @@
+import { useSelector } from "react-redux";
 import { db } from "./firebase-config";
 import { documentExists, logError } from "./firebase-utils";
+import { selectAllEmployees } from "@/store/employees/employees.slice";
 import {
 	doc,
 	getDoc,
@@ -293,21 +295,117 @@ export const OrganizationSettingsService = {
 			return [];
 		}
 	},
-	async deleteItem(itemType, itemId) {
-		const settingsRef = doc(db, "settings", "organizationSettings");
-		const docSnap = await getDoc(settingsRef);
 
-		if (!docSnap.exists()) {
-			throw new Error("Organization settings not found");
+	/**
+	 * Delete an item from organization settings
+	 * @param {string} itemType - Type of item (departments, positions, branches, shiftSchedules)
+	 * @param {string} itemId - ID of the item to delete
+	 * @param {Array} employees - Array of all employees to check for item usage
+	 * @returns {Promise<Array>} - Updated array of items
+	 */
+	async deleteItem(itemType, itemId, employees) {
+		if (!itemType || !itemId || !employees) {
+			throw new Error("itemType, itemId, and employees are required");
 		}
 
-		const settings = docSnap.data();
-		const items = settings[itemType] || [];
+		const settingsRef = doc(db, "settings", "organizationSettings");
 
-		// Check if any employees are using this shift schedule
-		const updatedItems = items.filter((item) => item.id !== itemId);
+		try {
+			const docSnap = await getDoc(settingsRef);
 
-		await setDoc(settingsRef, { ...settings, [itemType]: updatedItems }, { merge: true });
-		return updatedItems;
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const items = settings[itemType] || [];
+
+			// Check if any employees are using this setting
+			let isSettingInUse = false;
+
+			switch (itemType) {
+				case "departments":
+					isSettingInUse = employees.some((employee) => employee.employment?.department === itemId);
+					break;
+				case "positions":
+					isSettingInUse = employees.some((employee) => employee.employment?.position === itemId);
+					break;
+				case "branches":
+					isSettingInUse = employees.some((employee) => employee.employment?.branchId === itemId);
+					break;
+				case "shiftSchedules":
+					isSettingInUse = employees.some((employee) => employee.employment?.shiftId === itemId);
+					break;
+				default:
+					throw new Error(`Invalid itemType: ${itemType}`);
+			}
+
+			if (isSettingInUse) {
+				throw new Error(
+					`Cannot delete ${itemType} with ID ${itemId} as it is currently in use by one or more employees.`
+				);
+			}
+
+			// If the setting is not in use, proceed with deletion
+			const updatedItems = items.filter((item) => item.id !== itemId);
+
+			await setDoc(settingsRef, { ...settings, [itemType]: updatedItems }, { merge: true });
+			return updatedItems;
+		} catch (error) {
+			logError(`deleteItem for ${itemType}`, error);
+			throw error;
+		}
+	},
+	/**
+	 * Update an item in an organization settings collection
+	 * @param {string} itemType - Type of item
+	 * @param {string} itemId - ID of the item to update
+	 * @param {Object} updatedItem - Updated item data
+	 * @returns {Promise<Array>} - Updated array of items
+	 */
+	async updateItem(itemType, itemId, updatedItem) {
+		if (!itemType || !itemId || !updatedItem) {
+			throw new Error("itemType, itemId, and updatedItem are required");
+		}
+
+		try {
+			const settingsRef = doc(db, "settings", "organizationSettings");
+			const docSnap = await getDoc(settingsRef);
+
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const items = [...(settings[itemType] || [])];
+
+			// Find the index of the item to update
+			const itemIndex = items.findIndex((item) => item.id === itemId);
+
+			if (itemIndex === -1) {
+				throw new Error(`${itemType.slice(0, -1)} with ID ${itemId} not found`);
+			}
+
+			// Create a new item by merging existing item with updates
+			const existingItem = items[itemIndex];
+			const updatedItemData = {
+				...existingItem,
+				...updatedItem,
+				// Ensure ID and numericId remain unchanged
+				id: itemId,
+				numericId: existingItem.numericId,
+			};
+
+			// Replace the old item with the updated item
+			items[itemIndex] = updatedItemData;
+
+			// Update the Firestore document
+			await setDoc(settingsRef, { ...settings, [itemType]: items }, { merge: true });
+
+			return items;
+		} catch (error) {
+			logError(`updateItem for ${itemType}`, error);
+			throw error;
+		}
 	},
 };

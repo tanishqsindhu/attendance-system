@@ -226,13 +226,15 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 				</TabsContent>
 
 				{/* Date Overrides Tab */}
-				<TabsContent value="overrides overflow-y-auto">
+				<TabsContent value="overrides" className="overflow-y-auto">
 					<div className="space-y-4">
 						{/* New Date Override Form */}
 						<div className="grid grid-cols-1 gap-4">
 							<div>
 								<Label className="mb-2 block">Select Date</Label>
 								<Calendar
+									fromYear={2000}
+									toYear={2030}
 									mode="single"
 									selected={newOverride.date}
 									onSelect={(date) => setNewOverride((prev) => ({ ...prev, date }))}

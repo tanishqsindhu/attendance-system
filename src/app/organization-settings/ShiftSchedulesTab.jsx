@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-	fetchOrganizationSettings,
-	deleteShiftSchedule,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { deleteShiftSchedule } from "@/store/orgaznization-settings/organization-settings.slice.js";
 import { DataTable } from "@/components/data-table.component";
 import AddItemDialog from "@/components/AddItemDialog.component";
-import ShiftScheduleDialog from "@/components/shift-schedule/ShiftScheduleDialog";
-import ShiftScheduleForm from "@/components/shift-schedule/AddShiftScheduleForm.component";
+import ShiftScheduleDialog from "@/components/organization-settings/shift-schedule/ShiftScheduleDialog";
+import ShiftScheduleForm from "@/components/organization-settings/shift-schedule/AddShiftScheduleForm.component";
 import { Button } from "@/components/ui/button";
 import {
 	AlertDialog,
@@ -113,8 +110,8 @@ const ShiftSchedulesTab = () => {
 			<div>
 				<DataTable
 					tableActions={
-						<AddItemDialog triggerText="Add Shift Schedule">
-							<ShiftScheduleForm />
+						<AddItemDialog triggerText="Add Shift Schedule" itemType="shiftSchedules">
+							<ShiftScheduleForm itemType="shiftSchedules" />
 						</AddItemDialog>
 					}
 					data={shiftSchedules}

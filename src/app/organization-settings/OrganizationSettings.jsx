@@ -9,7 +9,7 @@ import BranchesTab from "./BranchesTab";
 import ShiftSchedulesTab from "./ShiftSchedulesTab";
 
 const OrganizationSettings = () => {
-	const [activeTab, setActiveTab] = useState("departments");
+	const [activeTab, setActiveTab] = useState("branches");
 
 	const tabItems = [
 		{

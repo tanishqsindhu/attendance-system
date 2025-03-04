@@ -12,7 +12,7 @@ import {
 	selectShiftScheduleById,
 	removeShiftScheduleDateOverride,
 } from "@/store/orgaznization-settings/organization-settings.slice.js";
-import ShiftScheduleForm from "@/components/shift-schedule/AddShiftScheduleForm.component";
+import ShiftScheduleForm from "@/components/organization-settings/shift-schedule/AddShiftScheduleForm.component";
 import {
 	Table,
 	TableBody,
@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Trash2, Edit } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Days } from "@/lib/constants";
 
 const ShiftScheduleDialog = ({
 	scheduleId,

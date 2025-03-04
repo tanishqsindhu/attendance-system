@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 const DateOverrideForm = ({ scheduleId, existingOverrides = {} }) => {
 	const dispatch = useDispatch();
@@ -31,8 +31,7 @@ const DateOverrideForm = ({ scheduleId, existingOverrides = {} }) => {
 
 	const handleAddDateOverride = () => {
 		if (!selectedDate) {
-			toast({
-				title: "Date Required",
+			toast("Date Required", {
 				description: "Please select a date for the override.",
 				variant: "destructive",
 			});
@@ -50,8 +49,7 @@ const DateOverrideForm = ({ scheduleId, existingOverrides = {} }) => {
 				},
 			})
 		).then(() => {
-			toast({
-				title: "Date Override Added",
+			toast("Date Override Added", {
 				description: `Override added for ${formattedDate}`,
 			});
 			// Reset form
@@ -72,8 +70,7 @@ const DateOverrideForm = ({ scheduleId, existingOverrides = {} }) => {
 				date,
 			})
 		).then(() => {
-			toast({
-				title: "Date Override Removed",
+			toast("Date Override Removed",{
 				description: `Override removed for ${date}`,
 			});
 		});

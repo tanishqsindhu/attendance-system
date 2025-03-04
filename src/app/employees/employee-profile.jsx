@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getEmployeeDetails } from "@/firebase/index.js";
-import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector";
+import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice.js";
 // import { fetchEmployeeTransactions, addTransaction, clearTransactionsError } from "@/store/employeeTransactions/employeeTransactions.reducer.js";
 // import { selectTransactionsByEmployee, selectIsTransactionsLoading, selectTransactionsError } from "@/store/employeeTransactions/employeeTransactions.selector.js";
 import { Mail, Phone, MapPin, Briefcase, Calendar, User, CreditCard, Clock } from "lucide-react";

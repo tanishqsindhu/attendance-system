@@ -34,7 +34,7 @@ import { selectCurrentUser } from "@/store/user/user.selector";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import { selectAllBranches } from "@/store/orgaznization-settings/organization-settings.selector";
+import { selectAllBranches } from "@/store/orgaznization-settings/organization-settings.slice";
 
 export function AppSidebar({ ...props }) {
 	const branches = useSelector(selectAllBranches);
@@ -128,19 +128,31 @@ export function AppSidebar({ ...props }) {
 				items: [
 					{
 						title: "General",
-						url: "#",
+						url: "/settings",
 					},
 					{
-						title: "Team",
-						url: "#",
+						title: "Branches",
+						url: "/settings/branches",
 					},
 					{
 						title: "Department",
-						url: "#",
+						url: "/settings/department",
 					},
 					{
-						title: "Salary",
-						url: "#",
+						title: "Positions",
+						url: "/settings/positions",
+					},
+					{
+						title: "Shift Schedule",
+						url: "/settings/shift-schedule",
+					},
+					{
+						title: "Holidays Manager",
+						url: "/settings/holiday-manager",
+					},
+					{
+						title: "Attendance Rules",
+						url: "/settings/attendance-rules",
 					},
 				],
 			},

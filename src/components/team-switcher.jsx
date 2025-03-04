@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/user/user.selector.js";
-import { setActiveBranch } from "../store/orgaznization-settings/organization-settings.reducer";
+import { setActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice";
 
 export function TeamSwitcher({ teams }) {
 	const dispatch = useDispatch();

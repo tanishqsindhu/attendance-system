@@ -1,20 +1,20 @@
 {
 	"geolocation": {
 		"data": {
-			"city": "Mumbai",
+			"city": "Panipat",
 			"country": {
 				"code": "IN",
 				"name": "India"
 			},
 			"subdivision": {
-				"code": "MH",
-				"name": "Maharashtra"
+				"code": "HR",
+				"name": "Haryana"
 			},
 			"timezone": "Asia/Kolkata",
-			"latitude": 19.0748,
-			"longitude": 72.8856,
-			"postalCode": "400017"
+			"latitude": 29.3885,
+			"longitude": 76.9669,
+			"postalCode": "132103"
 		},
-		"timestamp": 1741026151949
+		"timestamp": 1741112614482
 	}
 }

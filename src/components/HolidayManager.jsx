@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import { addHoliday, fetchHolidays, deleteHoliday } from "@/store/holiday/holiday.reducer";
-import { selectHolidays, selectHolidaysLoading } from "@/store/holiday/holiday.selector";
+import {
+	addHoliday,
+	fetchHolidays,
+	deleteHoliday,
+	selectHolidays,
+	selectHolidaysLoading,
+} from "@/store/holiday/holiday.slice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

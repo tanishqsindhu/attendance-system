@@ -4,9 +4,9 @@ import { toast } from "sonner";
 import {
 	saveAttendanceRules,
 	getAttendanceRules,
-} from "@/store/attendance-rules/attendance-rules.reducer.js";
-import { selectAttendanceRules } from "@/store/attendance-rules/attendance-rules.selector.js";
-import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector.js";
+	selectAttendanceRules,
+} from "@/store/attendance-rules/attendance-rules.slice.js";
+import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice.js";
 
 // Import shadcn components
 import {

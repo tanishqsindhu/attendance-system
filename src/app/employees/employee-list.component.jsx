@@ -18,14 +18,14 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector";
-import { selectEmployeesByBranch } from "@/store/employees/employees.selector";
 import {
 	selectAllDepartments,
 	selectAllPositions,
 	selectAllBranches,
 	selectAllShiftSchedules,
-} from "@/store/orgaznization-settings/organization-settings.selector";
+	selectActiveBranch,
+} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { selectEmployeesByBranch } from "@/store/employees/employees.slice.js";
 import { EditEmployeeModal } from "@/components/EditEmployeeModal";
 
 // Custom Empty State Component

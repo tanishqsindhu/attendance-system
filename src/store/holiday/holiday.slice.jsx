@@ -104,3 +104,7 @@ const holidaySlice = createSlice({
 });
 
 export default holidaySlice.reducer;
+
+// selectors
+export const selectHolidays = (state) => state.holidays.holidays;
+export const selectHolidaysLoading = (state) => state.holidays.loading;

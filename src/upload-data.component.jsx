@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { selectAllBranches } from "./store/orgaznization-settings/organization-settings.selector";
+import { selectAllBranches } from "./store/orgaznization-settings/organization-settings.slice";
 import { selectCurrentUser } from "./store/user/user.selector";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {

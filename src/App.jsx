@@ -10,7 +10,7 @@ import Users from "./routes/users/users.components";
 import { useUser } from "@clerk/clerk-react";
 import UnauthorizedPage from "./app/authentication/unauthorized/unauthorized.component";
 import ProtectedRoute from "./components/protected-routes"; // Import your RBAC route component
-import { fetchOrganizationSettings } from "./store/orgaznization-settings/organization-settings.reducer";
+import { fetchOrganizationSettings } from "./store/orgaznization-settings/organization-settings.slice";
 import EmployeePayroll from "./components/employee-transcation";
 import AllTransactions from "./components/allTransacations";
 import Settings from "./routes/organization settings/settings.component";

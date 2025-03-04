@@ -12,18 +12,17 @@ import TransactionTable from "@/components/transcation-table.component";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
 
 // Redux actions
-import { fetchEmployeesByBranch } from "@/store/employees/employees.reducer.js";
+import {
+	fetchEmployeesByBranch,
+	selectEmployeesByBranch,
+} from "@/store/employees/employees.slice.js";
 import {
 	fetchEmployeeTransactions,
 	addTransaction,
-} from "@/store/employeeTransactions/employeeTransactions.reducer.js";
-
-import { selectEmployeesByBranch } from "../store/employees/employees.selector";
-import {
 	selectTransactionsByEmployee,
 	selectIsTransactionsLoading,
 	selectTransactionsError,
-} from "../store/employeeTransactions/employeeTransactions.selector";
+} from "@/store/employeeTransactions/employeeTransactions.slice.js";
 
 const EmployeePayroll = ({ branchId, employeeId }) => {
 	const dispatch = useDispatch();

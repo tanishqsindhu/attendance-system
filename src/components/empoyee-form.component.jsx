@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { addOrganizationItem } from "../store/orgaznization-settings/organization-settings.reducer";
+import { addOrganizationItem } from "../store/orgaznization-settings/organization-settings.slice";
 import { toast } from "sonner";
 import {
 	Card,
@@ -41,7 +41,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { addEmployeeToBranch } from "@/store/employees/employees.reducer.js";
+import { addEmployeeToBranch } from "@/store/employees/employees.slice.js";
 import {
 	AlertDialog,
 	AlertDialogAction,

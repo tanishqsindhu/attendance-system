@@ -9,6 +9,7 @@ import {
 	query,
 	runTransaction,
 	where,
+	updateDoc,
 } from "firebase/firestore";
 
 export const OrganizationSettingsService = {
@@ -142,6 +143,8 @@ export const OrganizationSettingsService = {
 					},
 					// Day-specific overrides (if any)
 					dayOverrides: newItem.dayOverrides || {},
+					// Date-specific overrides (if any)
+					dateOverrides: newItem.dateOverrides || {},
 					// Flexible time settings (if any)
 					flexibleTime: newItem.flexibleTime || {
 						enabled: false,
@@ -166,6 +169,112 @@ export const OrganizationSettingsService = {
 	},
 
 	/**
+	 * Update a shift schedule with date overrides
+	 * @param {string} scheduleId - ID of the shift schedule
+	 * @param {Object} dateOverride - Object containing the date and schedule override
+	 * @returns {Promise<Array>} - Updated array of shift schedules
+	 */
+	async addShiftScheduleDateOverride(scheduleId, dateOverride) {
+		if (!scheduleId || !dateOverride || !dateOverride.date) {
+			throw new Error("scheduleId and dateOverride with date are required");
+		}
+
+		try {
+			const settingsRef = doc(db, "settings", "organizationSettings");
+			const docSnap = await getDoc(settingsRef);
+
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const shiftSchedules = [...(settings.shiftSchedules || [])];
+
+			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
+			if (scheduleIndex === -1) {
+				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
+			}
+
+			// Create a copy of the schedule to modify
+			const updatedSchedule = { ...shiftSchedules[scheduleIndex] };
+
+			// Initialize dateOverrides if it doesn't exist
+			if (!updatedSchedule.dateOverrides) {
+				updatedSchedule.dateOverrides = {};
+			}
+
+			// Add or update the date override
+			updatedSchedule.dateOverrides[dateOverride.date] = {
+				start: dateOverride.start || updatedSchedule.defaultTimes.start,
+				end: dateOverride.end || updatedSchedule.defaultTimes.end,
+				isWorkDay: dateOverride.isWorkDay !== undefined ? dateOverride.isWorkDay : true,
+				description: dateOverride.description || "",
+			};
+
+			// Update the schedule in the array
+			shiftSchedules[scheduleIndex] = updatedSchedule;
+
+			// Update the database
+			await setDoc(settingsRef, { ...settings, shiftSchedules }, { merge: true });
+
+			return shiftSchedules;
+		} catch (error) {
+			logError("addShiftScheduleDateOverride", error);
+			throw error;
+		}
+	},
+
+	/**
+	 * Remove a date override from a shift schedule
+	 * @param {string} scheduleId - ID of the shift schedule
+	 * @param {string} date - Date to remove override for (ISO string)
+	 * @returns {Promise<Array>} - Updated array of shift schedules
+	 */
+	async removeShiftScheduleDateOverride(scheduleId, date) {
+		if (!scheduleId || !date) {
+			throw new Error("scheduleId and date are required");
+		}
+
+		try {
+			const settingsRef = doc(db, "settings", "organizationSettings");
+			const docSnap = await getDoc(settingsRef);
+
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const shiftSchedules = [...(settings.shiftSchedules || [])];
+
+			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
+			if (scheduleIndex === -1) {
+				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
+			}
+
+			// Create a copy of the schedule to modify
+			const updatedSchedule = { ...shiftSchedules[scheduleIndex] };
+
+			// Check if dateOverrides exists and the specific date exists
+			if (updatedSchedule.dateOverrides && updatedSchedule.dateOverrides[date]) {
+				// Remove the date override
+				const { [date]: removed, ...remainingOverrides } = updatedSchedule.dateOverrides;
+				updatedSchedule.dateOverrides = remainingOverrides;
+
+				// Update the schedule in the array
+				shiftSchedules[scheduleIndex] = updatedSchedule;
+
+				// Update the database
+				await setDoc(settingsRef, { ...settings, shiftSchedules }, { merge: true });
+			}
+
+			return shiftSchedules;
+		} catch (error) {
+			logError("removeShiftScheduleDateOverride", error);
+			throw error;
+		}
+	},
+
+	/**
 	 * Get employees for a branch
 	 * @param {string} branchId - Branch ID
 	 * @returns {Promise<Array>} - Array of employees
@@ -183,5 +292,22 @@ export const OrganizationSettingsService = {
 			logError("getEmployeesByBranch", error);
 			return [];
 		}
+	},
+	async deleteItem(itemType, itemId) {
+		const settingsRef = doc(db, "settings", "organizationSettings");
+		const docSnap = await getDoc(settingsRef);
+
+		if (!docSnap.exists()) {
+			throw new Error("Organization settings not found");
+		}
+
+		const settings = docSnap.data();
+		const items = settings[itemType] || [];
+
+		// Check if any employees are using this shift schedule
+		const updatedItems = items.filter((item) => item.id !== itemId);
+
+		await setDoc(settingsRef, { ...settings, [itemType]: updatedItems }, { merge: true });
+		return updatedItems;
 	},
 };

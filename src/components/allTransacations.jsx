@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/date-picker";
 
 // Redux actions
-import { fetchAllTransactions } from "@/store/employeeTransactions/employeeTransactions.reducer.js";
+import { fetchAllTransactions } from "@/store/employeeTransactions/employeeTransactions.slice";
 import {
 	selectAllTransactions,
 	selectIsTransactionsLoading,
 	selectTransactionsError,
-} from "../store/employeeTransactions/employeeTransactions.selector";
+} from "../store/employeeTransactions/employeeTransactions.slice";
 
 const AllTransactions = () => {
 	const dispatch = useDispatch();

@@ -10,7 +10,6 @@ export function EditEmployeeModal({ isOpen, onClose, employeeData }) {
 		<Dialog
 			open={isOpen}
 			onOpenChange={onClose}
-			
 		>
 			<DialogContent className="max-w-5xl w-full max-h-[95vh] overflow-y-auto rounded">
 					<EmployeeAddForm mode="edit" initialValues={employeeData} onSuccess={onClose} />

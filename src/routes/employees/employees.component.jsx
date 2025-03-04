@@ -7,10 +7,9 @@ import EmployeeProfile from "@/app/employees/employee-profile";
 import EmployeesList from "@/app/employees/employee-list.component";
 import AttendanceUpload from "@/upload-data.component";
 import EmployeeAdd from "@/app/employees/addEmployee";
-import { selectEmployeesByBranch } from "@/store/employees/employees.selector";
-import { fetchEmployeesByBranch } from "@/store/employees/employees.reducer.js";
-import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.selector";
-import ProtectedRoute from "../../components/protected-routes";
+import { fetchEmployeesByBranch,selectEmployeesByBranch } from "@/store/employees/employees.slice.js";
+import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice.js";
+import ProtectedRoute from "@/components/protected-routes";
 
 const Employees = () => {
 	const dispatch = useDispatch();

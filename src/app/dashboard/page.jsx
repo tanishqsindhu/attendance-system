@@ -77,7 +77,7 @@ export default function Page() {
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 					<Outlet />
-					<Toaster position="top-center" />
+					<Toaster position="top-center" richColors />
 				</div>
 			</SidebarInset>
 		</SidebarProvider>

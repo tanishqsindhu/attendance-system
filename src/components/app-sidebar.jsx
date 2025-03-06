@@ -1,20 +1,7 @@
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import {
-	AudioWaveform,
-	BookOpen,
-	Bot,
-	Command,
-	Frame,
-	GalleryVerticalEnd,
-	Map,
-	PieChart,
-	Users,
-	Settings2,
-	SquareTerminal,
-	LogIn,
-} from "lucide-react";
+import { AudioWaveform, BookOpen, Bot, Command, Frame, GalleryVerticalEnd, Map, PieChart, Users, Settings2, SquareTerminal, LogIn } from "lucide-react";
 
 import sisLogoUrl from "@/assets/scottish white Logo.png?url";
 import sisLogoColorUrl from "@/assets/scottish logo.svg?url";
@@ -23,18 +10,12 @@ import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
-import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
-	SidebarRail,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
-import { selectAllBranches } from "@/store/orgaznization-settings/organization-settings.slice";
+import { selectAllBranches } from "@/store/organization-settings/organization-settings.slice";
 
 export function AppSidebar({ ...props }) {
 	const branches = useSelector(selectAllBranches);
@@ -130,22 +111,22 @@ export function AppSidebar({ ...props }) {
 						title: "General",
 						url: "/settings",
 					},
-					{
-						title: "Branches",
-						url: "/settings/branches",
-					},
-					{
-						title: "Department",
-						url: "/settings/department",
-					},
-					{
-						title: "Positions",
-						url: "/settings/positions",
-					},
-					{
-						title: "Shift Schedule",
-						url: "/settings/shift-schedule",
-					},
+					// {
+					// 	title: "Branches",
+					// 	url: "/settings/branches",
+					// },
+					// {
+					// 	title: "Department",
+					// 	url: "/settings/department",
+					// },
+					// {
+					// 	title: "Positions",
+					// 	url: "/settings/positions",
+					// },
+					// {
+					// 	title: "Shift Schedule",
+					// 	url: "/settings/shift-schedule",
+					// },
 					{
 						title: "Holidays Manager",
 						url: "/settings/holiday-manager",
@@ -178,9 +159,7 @@ export function AppSidebar({ ...props }) {
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
-			<SidebarHeader>
-				{data.teams.length > 0 && currentUser ? <TeamSwitcher teams={data.teams} /> : ""}
-			</SidebarHeader>
+			<SidebarHeader>{data.teams.length > 0 && currentUser ? <TeamSwitcher teams={data.teams} /> : ""}</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />
 				{/* <NavProjects projects={data.projects} /> */}

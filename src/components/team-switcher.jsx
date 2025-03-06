@@ -1,22 +1,10 @@
 import * as React from "react";
 import { ChevronsUpDown } from "lucide-react";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-	useSidebar,
-} from "@/components/ui/sidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/user/user.selector.js";
-import { setActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice";
+import { setActiveBranch } from "@/store/organization-settings/organization-settings.slice";
 
 export function TeamSwitcher({ teams }) {
 	const dispatch = useDispatch();
@@ -42,10 +30,7 @@ export function TeamSwitcher({ teams }) {
 			<SidebarMenuItem>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton
-							size="lg"
-							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-						>
+						<SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
 							<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
 								<img src={activeTeam.logo} className="size-5" alt="Team logo" />
 							</div>
@@ -58,21 +43,10 @@ export function TeamSwitcher({ teams }) {
 					</DropdownMenuTrigger>
 
 					{currentUser.roles.includes("bothBranches") && (
-						<DropdownMenuContent
-							className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-							align="start"
-							side={isMobile ? "bottom" : "right"}
-							sideOffset={4}
-						>
-							<DropdownMenuLabel className="text-muted-foreground text-xs">
-								Branches
-							</DropdownMenuLabel>
+						<DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg" align="start" side={isMobile ? "bottom" : "right"} sideOffset={4}>
+							<DropdownMenuLabel className="text-muted-foreground text-xs">Branches</DropdownMenuLabel>
 							{teams.map((team, index) => (
-								<DropdownMenuItem
-									key={team.id}
-									onClick={() => setActiveTeam(team)}
-									className="gap-2 p-2"
-								>
+								<DropdownMenuItem key={team.id} onClick={() => setActiveTeam(team)} className="gap-2 p-2">
 									<div className="flex size-6 items-center justify-center rounded-xs border">
 										<img src={team.alternateLogo} className="size-5" alt="Team logo" />
 									</div>

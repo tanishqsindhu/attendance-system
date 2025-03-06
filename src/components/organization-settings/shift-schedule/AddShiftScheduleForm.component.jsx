@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { addOrganizationItem } from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { addOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
 import { Days } from "@/lib/constants";
 import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -112,12 +112,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 			e.preventDefault();
 
 			// Basic validation
-			if (
-				!formData.name ||
-				!formData.startTime ||
-				!formData.endTime ||
-				formData.days.length === 0
-			) {
+			if (!formData.name || !formData.startTime || !formData.endTime || formData.days.length === 0) {
 				toast("Validation Error", {
 					description: "Please fill all required fields",
 					variant: "destructive",
@@ -150,41 +145,23 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 					<div className="space-y-4">
 						<div>
 							<Label className="mb-2 block">Shift Name</Label>
-							<Input
-								name="name"
-								value={formData.name}
-								onChange={handleInputChange}
-								placeholder="Morning Shift"
-							/>
+							<Input name="name" value={formData.name} onChange={handleInputChange} placeholder="Morning Shift" />
 						</div>
 						<div className="space-y-4">
 							<div className="grid grid-cols-2 gap-4">
 								<div>
 									<Label className="mb-2 block">Default Start Time</Label>
-									<Input
-										type="time"
-										name="startTime"
-										value={formData.startTime}
-										onChange={handleInputChange}
-									/>
+									<Input type="time" name="startTime" value={formData.startTime} onChange={handleInputChange} />
 								</div>
 								<div>
 									<Label className="mb-2 block">Default End Time</Label>
-									<Input
-										type="time"
-										name="endTime"
-										value={formData.endTime}
-										onChange={handleInputChange}
-									/>
+									<Input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} />
 								</div>
 							</div>
 
 							<div>
 								<div className="flex items-center space-x-2 mb-2">
-									<Checkbox
-										checked={formData.flexibleTime.enabled}
-										onCheckedChange={handleFlexibleTimeToggle}
-									/>
+									<Checkbox checked={formData.flexibleTime.enabled} onCheckedChange={handleFlexibleTimeToggle} />
 									<Label>Enable Flexible Time</Label>
 								</div>
 								{formData.flexibleTime.enabled && (
@@ -213,10 +190,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 							<div className="grid grid-cols-3 gap-2">
 								{Days.map((day) => (
 									<div key={day} className="flex items-center space-x-2">
-										<Checkbox
-											checked={formData.days.includes(day)}
-											onCheckedChange={() => handleDayToggle(day)}
-										/>
+										<Checkbox checked={formData.days.includes(day)} onCheckedChange={() => handleDayToggle(day)} />
 										<Label>{day.substring(0, 3)}</Label>
 									</div>
 								))}
@@ -232,14 +206,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 						<div className="grid grid-cols-1 gap-4">
 							<div>
 								<Label className="mb-2 block">Select Date</Label>
-								<Calendar
-									fromYear={2000}
-									toYear={2030}
-									mode="single"
-									selected={newOverride.date}
-									onSelect={(date) => setNewOverride((prev) => ({ ...prev, date }))}
-									className="rounded-md border w-full flex justify-center"
-								/>
+								<Calendar fromYear={2000} toYear={2030} mode="single" selected={newOverride.date} onSelect={(date) => setNewOverride((prev) => ({ ...prev, date }))} className="rounded-md border w-full flex justify-center" />
 							</div>
 							<div className="space-y-3">
 								<div>
@@ -295,12 +262,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 										placeholder="Holiday, Special Event, etc."
 									/>
 								</div>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={handleAddDateOverride}
-									disabled={!newOverride.date}
-								>
+								<Button type="button" variant="outline" onClick={handleAddDateOverride} disabled={!newOverride.date}>
 									<Plus className="mr-2 h-4 w-4" /> Add Date Override
 								</Button>
 							</div>
@@ -311,10 +273,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 							<div className="border rounded-md p-4 mt-4">
 								<h4 className="text-md font-semibold mb-3">Existing Date Overrides</h4>
 								{Object.entries(formData.dateOverrides).map(([date, override]) => (
-									<div
-										key={date}
-										className="flex justify-between items-center p-2 border-b last:border-b-0"
-									>
+									<div key={date} className="flex justify-between items-center p-2 border-b last:border-b-0">
 										<div>
 											<span className="font-medium">{date}</span>
 											<span className="ml-2 text-muted-foreground">
@@ -323,12 +282,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 												{override.description && ` - ${override.description}`}
 											</span>
 										</div>
-										<Button
-											variant="destructive"
-											size="icon"
-											type="button"
-											onClick={() => handleRemoveDateOverride(date)}
-										>
+										<Button variant="destructive" size="icon" type="button" onClick={() => handleRemoveDateOverride(date)}>
 											<Trash2 className="h-4 w-4" />
 										</Button>
 									</div>
@@ -344,9 +298,7 @@ const ShiftScheduleForm = ({ onClose, initialData = null }) => {
 				<Button type="button" variant="outline" onClick={onClose}>
 					Cancel
 				</Button>
-				<Button type="submit">
-					{initialData ? "Update Shift Schedule" : "Add Shift Schedule"}
-				</Button>
+				<Button type="submit">{initialData ? "Update Shift Schedule" : "Add Shift Schedule"}</Button>
 			</div>
 		</form>
 	);

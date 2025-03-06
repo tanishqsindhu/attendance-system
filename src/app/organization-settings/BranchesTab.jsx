@@ -2,10 +2,7 @@
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-	selectAllBranches,
-	deleteOrganizationItem,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { selectAllBranches, deleteOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
 import { DataTable } from "@/components/data-table.component";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,12 +54,7 @@ const BranchesTab = () => {
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="outline"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => setEditingBranch(branch)}
-									>
+									<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingBranch(branch)}>
 										<Edit className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -71,12 +63,7 @@ const BranchesTab = () => {
 
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="destructive"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => handleDelete(branch.id)}
-									>
+									<Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDelete(branch.id)}>
 										<Trash2 className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -113,12 +100,7 @@ const BranchesTab = () => {
 						<DialogHeader>
 							<DialogTitle>Edit Branch</DialogTitle>
 						</DialogHeader>
-						<AddItemForm
-							itemType="branches"
-							initialData={editingBranch}
-							mode="edit"
-							onSuccess={() => setEditingBranch(null)}
-						/>
+						<AddItemForm itemType="branches" initialData={editingBranch} mode="edit" onSuccess={() => setEditingBranch(null)} />
 					</DialogContent>
 				</Dialog>
 			)}

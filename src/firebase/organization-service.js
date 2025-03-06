@@ -2,17 +2,7 @@ import { useSelector } from "react-redux";
 import { db } from "./firebase-config";
 import { documentExists, logError } from "./firebase-utils";
 import { selectAllEmployees } from "@/store/employees/employees.slice";
-import {
-	doc,
-	getDoc,
-	setDoc,
-	collection,
-	getDocs,
-	query,
-	runTransaction,
-	where,
-	updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction, where, updateDoc } from "firebase/firestore";
 
 export const OrganizationSettingsService = {
 	/**
@@ -23,9 +13,7 @@ export const OrganizationSettingsService = {
 		try {
 			const settingsRef = doc(db, "settings", "organizationSettings");
 			const docSnap = await getDoc(settingsRef);
-			return docSnap.exists()
-				? docSnap.data()
-				: { departments: [], positions: [], branches: [], shiftSchedules: [] };
+			return docSnap.exists() ? docSnap.data() : { departments: [], positions: [], branches: [], shiftSchedules: [] };
 		} catch (error) {
 			logError("getSettings", error);
 			return { departments: [], positions: [], branches: [], shiftSchedules: [] };
@@ -112,8 +100,7 @@ export const OrganizationSettingsService = {
 			const prefix = this.getItemPrefix(itemType);
 
 			// Determine the ID to use
-			let numericId =
-				newItem.id && typeof newItem.id === "number" ? newItem.id : await this.getNextId(itemType);
+			let numericId = newItem.id && typeof newItem.id === "number" ? newItem.id : await this.getNextId(itemType);
 
 			const formattedId = this.formatId(prefix, numericId);
 
@@ -197,8 +184,8 @@ export const OrganizationSettingsService = {
 				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
 			}
 
-			// Create a copy of the schedule to modify
-			const updatedSchedule = { ...shiftSchedules[scheduleIndex] };
+			// Create a deep copy of the schedule to modify
+			const updatedSchedule = JSON.parse(JSON.stringify(shiftSchedules[scheduleIndex]));
 
 			// Initialize dateOverrides if it doesn't exist
 			if (!updatedSchedule.dateOverrides) {
@@ -217,7 +204,7 @@ export const OrganizationSettingsService = {
 			shiftSchedules[scheduleIndex] = updatedSchedule;
 
 			// Update the database
-			await setDoc(settingsRef, { ...settings, shiftSchedules }, { merge: true });
+			await updateDoc(settingsRef, { shiftSchedules: shiftSchedules });
 
 			return shiftSchedules;
 		} catch (error) {
@@ -236,39 +223,39 @@ export const OrganizationSettingsService = {
 		if (!scheduleId || !date) {
 			throw new Error("scheduleId and date are required");
 		}
-
+	
 		try {
 			const settingsRef = doc(db, "settings", "organizationSettings");
 			const docSnap = await getDoc(settingsRef);
-
+	
 			if (!docSnap.exists()) {
 				throw new Error("Organization settings not found");
 			}
-
+	
 			const settings = docSnap.data();
 			const shiftSchedules = [...(settings.shiftSchedules || [])];
-
+	
 			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
 			if (scheduleIndex === -1) {
 				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
 			}
-
-			// Create a copy of the schedule to modify
-			const updatedSchedule = { ...shiftSchedules[scheduleIndex] };
-
+	
+			// Create a deep copy of the schedule to modify
+			const updatedSchedule = JSON.parse(JSON.stringify(shiftSchedules[scheduleIndex]));
+	
 			// Check if dateOverrides exists and the specific date exists
 			if (updatedSchedule.dateOverrides && updatedSchedule.dateOverrides[date]) {
 				// Remove the date override
 				const { [date]: removed, ...remainingOverrides } = updatedSchedule.dateOverrides;
 				updatedSchedule.dateOverrides = remainingOverrides;
-
+	
 				// Update the schedule in the array
 				shiftSchedules[scheduleIndex] = updatedSchedule;
-
-				// Update the database
-				await setDoc(settingsRef, { ...settings, shiftSchedules }, { merge: true });
+	
+				// Update the database with only the modified field
+				await updateDoc(settingsRef, { shiftSchedules: shiftSchedules });
 			}
-
+	
 			return shiftSchedules;
 		} catch (error) {
 			logError("removeShiftScheduleDateOverride", error);
@@ -341,9 +328,7 @@ export const OrganizationSettingsService = {
 			}
 
 			if (isSettingInUse) {
-				throw new Error(
-					`Cannot delete ${itemType} with ID ${itemId} as it is currently in use by one or more employees.`
-				);
+				throw new Error(`Cannot delete ${itemType} with ID ${itemId} as it is currently in use by one or more employees.`);
 			}
 
 			// If the setting is not in use, proceed with deletion

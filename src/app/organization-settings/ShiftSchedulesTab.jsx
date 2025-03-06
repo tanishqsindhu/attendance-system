@@ -1,21 +1,12 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteShiftSchedule } from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { deleteShiftSchedule } from "@/store/organization-settings/organization-settings.slice.js";
 import { DataTable } from "@/components/data-table.component";
 import AddItemDialog from "@/components/AddItemDialog.component";
 import ShiftScheduleDialog from "@/components/organization-settings/shift-schedule/ShiftScheduleDialog";
 import ShiftScheduleForm from "@/components/organization-settings/shift-schedule/AddShiftScheduleForm.component";
 import { Button } from "@/components/ui/button";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, SquarePen } from "lucide-react";
 import { ShiftScheduleUtils } from "@/firebase/shift-schedule.service.js";
 import { toast } from "sonner";
@@ -87,17 +78,8 @@ const ShiftSchedulesTab = () => {
 			cell: ({ row }) => (
 				<div className="flex space-x-2">
 					<ShiftScheduleDialog scheduleId={row.original.id} triggerText="View" />
-					<ShiftScheduleDialog
-						scheduleId={row.original.id}
-						triggerText={<SquarePen />}
-						editState={true}
-						variantType="warning"
-					/>
-					<Button
-						variant="destructive"
-						size="icon"
-						onClick={() => handleDeleteInitiation(row.original.id)}
-					>
+					<ShiftScheduleDialog scheduleId={row.original.id} triggerText={<SquarePen />} editState={true} variantType="warning" />
+					<Button variant="destructive" size="icon" onClick={() => handleDeleteInitiation(row.original.id)}>
 						<Trash2 className="h-4 w-4" />
 					</Button>
 				</div>
@@ -128,9 +110,7 @@ const ShiftSchedulesTab = () => {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This action cannot be undone. This will permanently delete the shift schedule.
-						</AlertDialogDescription>
+						<AlertDialogDescription>This action cannot be undone. This will permanently delete the shift schedule.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>

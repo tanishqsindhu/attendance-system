@@ -8,7 +8,6 @@ const Settings = () => {
 	return (
 		<Routes>
 			<Route index element={<OrganizationSettings />} />
-			{/* <Route path="/shift-schedule" element={<CustomShiftsPage />} /> */}
 			<Route path="/holiday-manager" element={<HolidayManager />} />
 			<Route path="/attendance-rules" element={<AttendanceRulesForm />} />
 		</Routes>

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSelector } from "react-redux";
-import { selectAllBranches } from "./store/orgaznization-settings/organization-settings.slice";
+import { selectAllBranches } from "@/store/organization-settings/organization-settings.slice";
 import { selectCurrentUser } from "./store/user/user.selector";
 import { getAvailableAttendancePeriods } from "@/firebase/index.js";
 

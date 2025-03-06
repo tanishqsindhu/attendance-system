@@ -1,23 +1,10 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { selectAllBranches } from "./store/orgaznization-settings/organization-settings.slice";
+import { selectAllBranches } from "@/store/organization-settings/organization-settings.slice";
 import { selectCurrentUser } from "./store/user/user.selector";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-} from "@/components/ui/form";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,9 +21,7 @@ export default function AttendanceUpload() {
 	const currentUser = useSelector(selectCurrentUser);
 
 	// Filter branches based on user roles
-	const allowedBranches = branches.filter(
-		(branch) => currentUser.roles.includes(branch.id) || currentUser.roles.includes("bothBranches")
-	);
+	const allowedBranches = branches.filter((branch) => currentUser.roles.includes(branch.id) || currentUser.roles.includes("bothBranches"));
 
 	// Generate year options for the select dropdown
 	const currentYear = new Date().getFullYear();
@@ -98,9 +83,7 @@ export default function AttendanceUpload() {
 
 					// Step 2: Handle existing attendance
 					if (checkResponse.status === 409 && !formData.forceOverwrite) {
-						const confirmOverwrite = window.confirm(
-							`Attendance data for ${monthYear} already exists.\nDo you want to overwrite it?`
-						);
+						const confirmOverwrite = window.confirm(`Attendance data for ${monthYear} already exists.\nDo you want to overwrite it?`);
 						if (!confirmOverwrite) {
 							setIsLoading(false);
 							return;
@@ -241,12 +224,7 @@ export default function AttendanceUpload() {
 
 						<FormItem>
 							<FormLabel>Upload Biometric File</FormLabel>
-							<Input
-								type="file"
-								accept=".txt,.csv"
-								onChange={handleFileChange}
-								className="cursor-pointer"
-							/>
+							<Input type="file" accept=".txt,.csv" onChange={handleFileChange} className="cursor-pointer" />
 						</FormItem>
 
 						<FormField
@@ -255,17 +233,11 @@ export default function AttendanceUpload() {
 							render={({ field }) => (
 								<FormItem className="flex flex-row items-start space-x-3 space-y-0">
 									<FormControl>
-										<Checkbox
-											checked={field.value}
-											onCheckedChange={field.onChange}
-											id="forceOverwrite"
-										/>
+										<Checkbox checked={field.value} onCheckedChange={field.onChange} id="forceOverwrite" />
 									</FormControl>
 									<div className="space-y-1 leading-none">
 										<FormLabel htmlFor="forceOverwrite">Force Overwrite (if exists)</FormLabel>
-										<FormDescription>
-											Automatically overwrite existing attendance data without confirmation
-										</FormDescription>
+										<FormDescription>Automatically overwrite existing attendance data without confirmation</FormDescription>
 									</div>
 								</FormItem>
 							)}

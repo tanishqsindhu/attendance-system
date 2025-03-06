@@ -1,22 +1,11 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
-import {
-	saveAttendanceRules,
-	getAttendanceRules,
-	selectAttendanceRules,
-} from "@/store/attendance-rules/attendance-rules.slice.js";
-import { selectActiveBranch } from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { saveAttendanceRules, getAttendanceRules, selectAttendanceRules } from "@/store/attendance-rules/attendance-rules.slice.js";
+import { selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
 
 // Import shadcn components
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -103,9 +92,7 @@ const AttendanceRulesForm = () => {
 		return (
 			<Alert variant="warning" className="mb-6">
 				<AlertCircle className="h-4 w-4" />
-				<AlertDescription>
-					Please select a branch first to configure attendance rules.
-				</AlertDescription>
+				<AlertDescription>Please select a branch first to configure attendance rules.</AlertDescription>
 			</Alert>
 		);
 	}
@@ -114,18 +101,12 @@ const AttendanceRulesForm = () => {
 		<Card className="w-full">
 			<CardHeader>
 				<CardTitle>Attendance Rules Configuration</CardTitle>
-				<CardDescription>
-					Configure attendance deduction rules for your school payroll system
-				</CardDescription>
+				<CardDescription>Configure attendance deduction rules for your school payroll system</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<form onSubmit={handleSubmit}>
 					<div className="flex items-center space-x-2 mb-6">
-						<Switch
-							id="enableLateDeductions"
-							checked={rules.lateDeductions.enabled}
-							onCheckedChange={handleSwitchChange}
-						/>
+						<Switch id="enableLateDeductions" checked={rules.lateDeductions.enabled} onCheckedChange={handleSwitchChange} />
 						<Label htmlFor="enableLateDeductions" className="font-medium">
 							Enable Late Deductions
 						</Label>
@@ -136,14 +117,8 @@ const AttendanceRulesForm = () => {
 							<Separator className="my-4" />
 
 							<div className="mb-6">
-								<Label className="text-base font-medium mb-3 block">
-									Deduction Calculation Method
-								</Label>
-								<RadioGroup
-									value={rules.lateDeductions.deductionType}
-									onValueChange={handleDeductionTypeChange}
-									className="flex flex-col space-y-2"
-								>
+								<Label className="text-base font-medium mb-3 block">Deduction Calculation Method</Label>
+								<RadioGroup value={rules.lateDeductions.deductionType} onValueChange={handleDeductionTypeChange} className="flex flex-col space-y-2">
 									<div className="flex items-center space-x-2">
 										<RadioGroupItem value="percentage" id="percentage" />
 										<Label htmlFor="percentage">Percentage of daily wage</Label>
@@ -164,36 +139,15 @@ const AttendanceRulesForm = () => {
 								<TabsContent value="deductions" className="pt-4">
 									{rules.lateDeductions.deductionType === "percentage" ? (
 										<div className="space-y-2">
-											<Label htmlFor="deductPerMinute">
-												Deduction per Minute (% of daily wage)
-											</Label>
-											<Input
-												id="deductPerMinute"
-												type="number"
-												value={rules.lateDeductions.deductPerMinute}
-												onChange={(e) => handleInputChange("deductPerMinute", e.target.value)}
-												min="0"
-												max="100"
-												step="0.01"
-											/>
-											<p className="text-sm text-muted-foreground">
-												Example: 0.5 means 0.5% of daily wage per minute late
-											</p>
+											<Label htmlFor="deductPerMinute">Deduction per Minute (% of daily wage)</Label>
+											<Input id="deductPerMinute" type="number" value={rules.lateDeductions.deductPerMinute} onChange={(e) => handleInputChange("deductPerMinute", e.target.value)} min="0" max="100" step="0.01" />
+											<p className="text-sm text-muted-foreground">Example: 0.5 means 0.5% of daily wage per minute late</p>
 										</div>
 									) : (
 										<div className="space-y-2">
 											<Label htmlFor="fixedAmountPerMinute">Fixed Deduction per Minute (₹)</Label>
-											<Input
-												id="fixedAmountPerMinute"
-												type="number"
-												value={rules.lateDeductions.fixedAmountPerMinute}
-												onChange={(e) => handleInputChange("fixedAmountPerMinute", e.target.value)}
-												min="0"
-												step="1"
-											/>
-											<p className="text-sm text-muted-foreground">
-												Example: ₹5 means ₹5 will be deducted per minute late
-											</p>
+											<Input id="fixedAmountPerMinute" type="number" value={rules.lateDeductions.fixedAmountPerMinute} onChange={(e) => handleInputChange("fixedAmountPerMinute", e.target.value)} min="0" step="1" />
+											<p className="text-sm text-muted-foreground">Example: ₹5 means ₹5 will be deducted per minute late</p>
 										</div>
 									)}
 								</TabsContent>
@@ -202,44 +156,20 @@ const AttendanceRulesForm = () => {
 									<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 										<div className="space-y-2">
 											<Label htmlFor="maxDeductionTime">Maximum Per-Minute Deduction Time</Label>
-											<Input
-												id="maxDeductionTime"
-												type="number"
-												value={rules.lateDeductions.maxDeductionTime}
-												onChange={(e) => handleInputChange("maxDeductionTime", e.target.value)}
-												min="0"
-											/>
-											<p className="text-sm text-muted-foreground">
-												Minutes until per-minute deductions stop
-											</p>
+											<Input id="maxDeductionTime" type="number" value={rules.lateDeductions.maxDeductionTime} onChange={(e) => handleInputChange("maxDeductionTime", e.target.value)} min="0" />
+											<p className="text-sm text-muted-foreground">Minutes until per-minute deductions stop</p>
 										</div>
 
 										<div className="space-y-2">
 											<Label htmlFor="halfDayThreshold">Half-Day Threshold</Label>
-											<Input
-												id="halfDayThreshold"
-												type="number"
-												value={rules.lateDeductions.halfDayThreshold}
-												onChange={(e) => handleInputChange("halfDayThreshold", e.target.value)}
-												min="0"
-											/>
-											<p className="text-sm text-muted-foreground">
-												Minutes late for half-day deduction (50%)
-											</p>
+											<Input id="halfDayThreshold" type="number" value={rules.lateDeductions.halfDayThreshold} onChange={(e) => handleInputChange("halfDayThreshold", e.target.value)} min="0" />
+											<p className="text-sm text-muted-foreground">Minutes late for half-day deduction (50%)</p>
 										</div>
 
 										<div className="space-y-2">
 											<Label htmlFor="absentThreshold">Absent Threshold</Label>
-											<Input
-												id="absentThreshold"
-												type="number"
-												value={rules.lateDeductions.absentThreshold}
-												onChange={(e) => handleInputChange("absentThreshold", e.target.value)}
-												min="0"
-											/>
-											<p className="text-sm text-muted-foreground">
-												Minutes late for absent deduction (100%)
-											</p>
+											<Input id="absentThreshold" type="number" value={rules.lateDeductions.absentThreshold} onChange={(e) => handleInputChange("absentThreshold", e.target.value)} min="0" />
+											<p className="text-sm text-muted-foreground">Minutes late for absent deduction (100%)</p>
 										</div>
 									</div>
 								</TabsContent>
@@ -249,12 +179,7 @@ const AttendanceRulesForm = () => {
 				</form>
 			</CardContent>
 			<CardFooter>
-				<Button
-					type="submit"
-					onClick={handleSubmit}
-					disabled={loading}
-					className="w-full sm:w-auto"
-				>
+				<Button type="submit" onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
 					{loading ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

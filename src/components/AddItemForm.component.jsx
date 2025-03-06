@@ -7,27 +7,13 @@ import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDispatch } from "react-redux";
-import {
-	addOrganizationItem,
-	updateOrganizationItem,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { addOrganizationItem, updateOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 
 // Zod schema for form validation
 const formSchema = z.object({
-	name: z
-		.string()
-		.min(2, { message: "Name must be at least 2 characters long" })
-		.max(50, { message: "Name must be less than 50 characters" })
-		.trim(),
+	name: z.string().min(2, { message: "Name must be at least 2 characters long" }).max(50, { message: "Name must be less than 50 characters" }).trim(),
 });
 
 const AddItemForm = ({ itemType, initialData = null, mode = "add", onClose, onSuccess }) => {
@@ -63,7 +49,7 @@ const AddItemForm = ({ itemType, initialData = null, mode = "add", onClose, onSu
 			}
 
 			// Success toast
-			toast(mode === "add" ? "Item Added" : "Item Updated",{
+			toast(mode === "add" ? "Item Added" : "Item Updated", {
 				description: `${itemType} has been successfully ${mode === "add" ? "added" : "updated"}.`,
 			});
 
@@ -73,7 +59,7 @@ const AddItemForm = ({ itemType, initialData = null, mode = "add", onClose, onSu
 			onSuccess && onSuccess(result);
 		} catch (error) {
 			// Error toast
-			toast("Error",{
+			toast("Error", {
 				description: error.message,
 				variant: "destructive",
 			});

@@ -1,19 +1,10 @@
 "use client";
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-	selectAllPositions,
-	deleteOrganizationItem,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { selectAllPositions, deleteOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
 import { DataTable } from "@/components/data-table.component";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Edit, Trash2 } from "lucide-react";
 import AddItemDialog from "@/components/AddItemDialog.component";
 import AddItemForm from "@/components/AddItemForm.component";
@@ -64,12 +55,7 @@ const PositionsTab = () => {
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="outline"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => setEditingPosition(position)}
-									>
+									<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingPosition(position)}>
 										<Edit className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -78,12 +64,7 @@ const PositionsTab = () => {
 
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="destructive"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => handleDelete(position.id)}
-									>
+									<Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDelete(position.id)}>
 										<Trash2 className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -120,12 +101,7 @@ const PositionsTab = () => {
 						<DialogHeader>
 							<DialogTitle>Edit Position</DialogTitle>
 						</DialogHeader>
-						<AddItemForm
-							itemType="positions"
-							initialData={editingPosition}
-							mode="edit"
-							onSuccess={() => setEditingPosition(null)}
-						/>
+						<AddItemForm itemType="positions" initialData={editingPosition} mode="edit" onSuccess={() => setEditingPosition(null)} />
 					</DialogContent>
 				</Dialog>
 			)}

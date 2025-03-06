@@ -4,27 +4,14 @@ import * as React from "react";
 import { ArrowUpDown, Download, MoreHorizontal, Plus, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/data-table.component";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-	selectAllDepartments,
-	selectAllPositions,
-	selectAllBranches,
-	selectAllShiftSchedules,
-	selectActiveBranch,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { selectAllDepartments, selectAllPositions, selectAllBranches, selectAllShiftSchedules, selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
 import { selectEmployeesByBranch } from "@/store/employees/employees.slice.js";
 import { EditEmployeeModal } from "@/components/EditEmployeeModal";
 
@@ -35,9 +22,7 @@ const CustomEmptyState = (
 			<Trash className="h-6 w-6 text-muted-foreground" />
 		</div>
 		<h3 className="text-lg font-semibold">No employees found</h3>
-		<p className="text-sm text-muted-foreground text-center mt-2 mb-4">
-			No employees match your search criteria. Try adjusting your filters or add a new employee.
-		</p>
+		<p className="text-sm text-muted-foreground text-center mt-2 mb-4">No employees match your search criteria. Try adjusting your filters or add a new employee.</p>
 		<Button size="sm">
 			<Plus className="mr-2 h-4 w-4" />
 			Add Employee
@@ -133,16 +118,7 @@ export default function EmployeesList() {
 	const columns = [
 		{
 			id: "select",
-			header: ({ table }) => (
-				<Checkbox
-					checked={
-						table.getIsAllPageRowsSelected() ||
-						(table.getIsSomePageRowsSelected() && "indeterminate")
-					}
-					onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-					aria-label="Select all"
-				/>
-			),
+			header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
 			cell: ({ row }) => (
 				<Checkbox
 					checked={row.getIsSelected()}
@@ -158,10 +134,7 @@ export default function EmployeesList() {
 			accessorKey: "name",
 			header: ({ column }) => {
 				return (
-					<Button
-						variant="ghost"
-						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-					>
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 						Name
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
@@ -179,10 +152,7 @@ export default function EmployeesList() {
 			accessorKey: "personal.email",
 			header: ({ column }) => {
 				return (
-					<Button
-						variant="ghost"
-						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-					>
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 						Email
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
@@ -236,21 +206,14 @@ export default function EmployeesList() {
 			header: "Status",
 			cell: ({ row }) => {
 				const employment = row.original.employment;
-				return employment?.employmentStatus ? (
-					<StatusBadge status={employment.employmentStatus} />
-				) : (
-					<div>-</div>
-				);
+				return employment?.employmentStatus ? <StatusBadge status={employment.employmentStatus} /> : <div>-</div>;
 			},
 		},
 		{
 			accessorKey: "employment.joiningDate",
 			header: ({ column }) => {
 				return (
-					<Button
-						variant="ghost"
-						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-					>
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 						Join Date
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
@@ -361,17 +324,13 @@ export default function EmployeesList() {
 	const handleRowClick = (rowData) => {
 		navigate(`/employees/${rowData.id}`);
 		toast("Employee selected", {
-			description: `Viewing profile for ${rowData.personal?.firstName || ""} ${
-				rowData.personal?.lastName || ""
-			}`,
+			description: `Viewing profile for ${rowData.personal?.firstName || ""} ${rowData.personal?.lastName || ""}`,
 		});
 	};
 
 	// Custom row class handler
 	const getRowClassName = (rowData) => {
-		return rowData.employment?.employmentStatus != "active"
-			? "bg-red-50/50 dark:bg-red-900/20"
-			: "";
+		return rowData.employment?.employmentStatus != "active" ? "bg-red-50/50 dark:bg-red-900/20" : "";
 	};
 
 	// Determine which branch to display in the title
@@ -381,27 +340,16 @@ export default function EmployeesList() {
 		<>
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">
-						All Employees {currentBranchName ? `- ${currentBranchName}` : ""}
-					</CardTitle>
+					<CardTitle className="text-2xl">All Employees {currentBranchName ? `- ${currentBranchName}` : ""}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					{/* Edit Employee Modal */}
-					<EditEmployeeModal
-						isOpen={isEditModalOpen}
-						onClose={handleCloseEditModal}
-						employeeData={employees[selectedEmployeeId]}
-					/>
+					<EditEmployeeModal isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employees[selectedEmployeeId]} />
 					<div className="space-y-4">
 						<DataTable
 							data={employees || []}
 							columns={columns}
-							filterableColumns={[
-								"name",
-								"personal_email",
-								"personal_phone",
-								"employment_department",
-							]}
+							filterableColumns={["name", "personal_email", "personal_phone", "employment_department"]}
 							filterPlaceholder="Search employees..."
 							pagination={true}
 							initialPageSize={5}

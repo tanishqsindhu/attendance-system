@@ -1,41 +1,15 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	selectShiftScheduleById,
-	removeShiftScheduleDateOverride,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { selectShiftScheduleById, removeShiftScheduleDateOverride } from "@/store/organization-settings/organization-settings.slice.js";
 import ShiftScheduleForm from "@/components/organization-settings/shift-schedule/AddShiftScheduleForm.component";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Trash2, Edit } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const ShiftScheduleDialog = ({
-	scheduleId,
-	triggerText = "View",
-	editState = false,
-	variantType = "outline",
-}) => {
+const ShiftScheduleDialog = ({ scheduleId, triggerText = "View", editState = false, variantType = "outline" }) => {
 	const dispatch = useDispatch();
 	const [isEditing, setIsEditing] = useState(editState);
 	const [activeTab, setActiveTab] = useState("general");
@@ -67,16 +41,10 @@ const ShiftScheduleDialog = ({
 				) : (
 					<div>
 						<div className="flex space-x-4 mb-4">
-							<Button
-								variant={activeTab === "general" ? "default" : "outline"}
-								onClick={() => setActiveTab("general")}
-							>
+							<Button variant={activeTab === "general" ? "default" : "outline"} onClick={() => setActiveTab("general")}>
 								General Info
 							</Button>
-							<Button
-								variant={activeTab === "dateOverrides" ? "default" : "outline"}
-								onClick={() => setActiveTab("dateOverrides")}
-							>
+							<Button variant={activeTab === "dateOverrides" ? "default" : "outline"} onClick={() => setActiveTab("dateOverrides")}>
 								Date Overrides
 							</Button>
 						</div>
@@ -108,9 +76,7 @@ const ShiftScheduleDialog = ({
 							<div>
 								{Object.keys(schedule.dateOverrides || {}).length === 0 ? (
 									<Alert>
-										<AlertDescription>
-											No date overrides exist for this shift schedule.
-										</AlertDescription>
+										<AlertDescription>No date overrides exist for this shift schedule.</AlertDescription>
 									</Alert>
 								) : (
 									<Table>
@@ -138,10 +104,7 @@ const ShiftScheduleDialog = ({
 																</Button>
 															</DropdownMenuTrigger>
 															<DropdownMenuContent>
-																<DropdownMenuItem
-																	className="text-red-600"
-																	onSelect={() => handleRemoveDateOverride(date)}
-																>
+																<DropdownMenuItem className="text-red-600" onSelect={() => handleRemoveDateOverride(date)}>
 																	<Trash2 className="mr-2 h-4 w-4" /> Remove Override
 																</DropdownMenuItem>
 															</DropdownMenuContent>

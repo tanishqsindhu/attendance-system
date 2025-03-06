@@ -2,10 +2,7 @@
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import {
-	selectAllDepartments,
-	deleteOrganizationItem,
-} from "@/store/orgaznization-settings/organization-settings.slice.js";
+import { selectAllDepartments, deleteOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
 import { DataTable } from "@/components/data-table.component";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -59,12 +56,7 @@ const DepartmentsTab = () => {
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="outline"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => setEditingDepartment(department)}
-									>
+									<Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setEditingDepartment(department)}>
 										<Edit className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -73,12 +65,7 @@ const DepartmentsTab = () => {
 
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button
-										variant="destructive"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => handleDelete(department.id)}
-									>
+									<Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDelete(department.id)}>
 										<Trash2 className="h-4 w-4" />
 									</Button>
 								</TooltipTrigger>
@@ -115,12 +102,7 @@ const DepartmentsTab = () => {
 						<DialogHeader>
 							<DialogTitle>Edit Department</DialogTitle>
 						</DialogHeader>
-						<AddItemForm
-							itemType="departments"
-							initialData={editingDepartment}
-							mode="edit"
-							onSuccess={() => setEditingDepartment(null)}
-						/>
+						<AddItemForm itemType="departments" initialData={editingDepartment} mode="edit" onSuccess={() => setEditingDepartment(null)} />
 					</DialogContent>
 				</Dialog>
 			)}

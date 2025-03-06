@@ -3,56 +3,19 @@ import { useSelector, useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { addOrganizationItem } from "../store/orgaznization-settings/organization-settings.slice";
+import { addOrganizationItem } from "@/store/organization-settings/organization-settings.slice.js";
 import { toast } from "sonner";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Info, Plus, Clock } from "lucide-react";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { addEmployeeToBranch } from "@/store/employees/employees.slice.js";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { selectCurrentUser } from "@/store/user/user.selector";
 
 // Validation schemas
@@ -174,10 +137,7 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
-					<DialogDescription>
-						Create a new {itemType.slice(0, -1)} that will be available for all employees. A unique
-						ID will be automatically assigned.
-					</DialogDescription>
+					<DialogDescription>Create a new {itemType.slice(0, -1)} that will be available for all employees. A unique ID will be automatically assigned.</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
@@ -185,13 +145,7 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 							{label}
 							<span className="text-red-600 ml-1">*</span>
 						</Label>
-						<Input
-							id="value"
-							value={value}
-							onChange={(e) => setValue(e.target.value)}
-							placeholder={placeholder}
-							required
-						/>
+						<Input id="value" value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} required />
 					</div>
 					<DialogFooter className="pt-4">
 						<Button variant="outline" type="button" onClick={onClose}>
@@ -229,24 +183,14 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Add New Branch</DialogTitle>
-					<DialogDescription>
-						Create a new branch that will be available for all employees. A unique ID will be
-						automatically assigned.
-					</DialogDescription>
+					<DialogDescription>Create a new branch that will be available for all employees. A unique ID will be automatically assigned.</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
 						<Label htmlFor="name">
 							Branch Name<span className="text-red-600 ml-1">*</span>
 						</Label>
-						<Input
-							id="name"
-							name="name"
-							value={branch.name}
-							onChange={(e) => setBranch({ name: e.target.value })}
-							placeholder="e.g., Main Campus"
-							required
-						/>
+						<Input id="name" name="name" value={branch.name} onChange={(e) => setBranch({ name: e.target.value })} placeholder="e.g., Main Campus" required />
 					</div>
 					<DialogFooter className="pt-4">
 						<Button variant="outline" type="button" onClick={onClose}>
@@ -326,51 +270,27 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Add New Shift Schedule</DialogTitle>
-					<DialogDescription>
-						Create a new shift schedule that will be available for all employees. A unique ID will
-						be automatically assigned.
-					</DialogDescription>
+					<DialogDescription>Create a new shift schedule that will be available for all employees. A unique ID will be automatically assigned.</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit} className="space-y-4 py-4">
 					<div className="grid gap-2">
 						<Label htmlFor="name">
 							Shift Name<span className="text-red-600 ml-1">*</span>
 						</Label>
-						<Input
-							id="name"
-							name="name"
-							value={shift.name}
-							onChange={handleChange}
-							placeholder="e.g., Morning Shift"
-							required
-						/>
+						<Input id="name" name="name" value={shift.name} onChange={handleChange} placeholder="e.g., Morning Shift" required />
 					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div className="grid gap-2">
 							<Label htmlFor="startTime">
 								Start Time<span className="text-red-600 ml-1">*</span>
 							</Label>
-							<Input
-								id="startTime"
-								name="startTime"
-								type="time"
-								value={shift.startTime}
-								onChange={handleChange}
-								required
-							/>
+							<Input id="startTime" name="startTime" type="time" value={shift.startTime} onChange={handleChange} required />
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="endTime">
 								End Time<span className="text-red-600 ml-1">*</span>
 							</Label>
-							<Input
-								id="endTime"
-								name="endTime"
-								type="time"
-								value={shift.endTime}
-								onChange={handleChange}
-								required
-							/>
+							<Input id="endTime" name="endTime" type="time" value={shift.endTime} onChange={handleChange} required />
 						</div>
 					</div>
 					<div className="grid gap-2">
@@ -379,14 +299,7 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 						</Label>
 						<div className="flex flex-wrap gap-2">
 							{daysOfWeek.map((day) => (
-								<Button
-									key={day}
-									type="button"
-									variant={shift.days.includes(day) ? "default" : "outline"}
-									size="sm"
-									onClick={() => handleDayToggle(day)}
-									className="h-8 py-1 px-3 text-xs"
-								>
+								<Button key={day} type="button" variant={shift.days.includes(day) ? "default" : "outline"} size="sm" onClick={() => handleDayToggle(day)} className="h-8 py-1 px-3 text-xs">
 									{day.substring(0, 3)}
 								</Button>
 							))}
@@ -405,26 +318,13 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 };
 
 // FormField Wrapper Component
-const FormFieldWrapper = ({
-	control,
-	name,
-	label,
-	type = "text",
-	options = [],
-	onChange,
-	required = false,
-	renderCustomField = null,
-}) => (
+const FormFieldWrapper = ({ control, name, label, type = "text", options = [], onChange, required = false, renderCustomField = null }) => (
 	<FormField
 		control={control}
 		name={name}
 		render={({ field, fieldState }) => (
 			<FormItem>
-				<FormLabel
-					className={`text-gray-700 dark:text-gray-300 ${
-						fieldState.error ? "text-red-600 dark:text-red-500 !important" : ""
-					}`}
-				>
+				<FormLabel className={`text-gray-700 dark:text-gray-300 ${fieldState.error ? "text-red-600 dark:text-red-500 !important" : ""}`}>
 					{label}
 					{required && <span className="text-red-600 ml-1">*</span>}
 				</FormLabel>
@@ -468,10 +368,7 @@ const FormFieldWrapper = ({
 						/>
 					)}
 				</FormControl>
-				<FormMessage
-					className="!text-red-600 !dark:text-red-500 font-medium"
-					style={{ color: "var(--destructive)" }}
-				/>
+				<FormMessage className="!text-red-600 !dark:text-red-500 font-medium" style={{ color: "var(--destructive)" }} />
 			</FormItem>
 		)}
 	/>
@@ -480,9 +377,7 @@ const FormFieldWrapper = ({
 // Main Component
 const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	const dispatch = useDispatch();
-	const { departments, positions, branches, shiftSchedules, loading } = useSelector(
-		(state) => state.organization
-	);
+	const { departments, positions, branches, shiftSchedules, loading } = useSelector((state) => state.organization);
 	const currentUser = useSelector(selectCurrentUser);
 	const userPermissions = currentUser.roles;
 
@@ -524,13 +419,8 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				setValue("personal.dob", dobDate);
 			}
 
-			if (
-				initialValues.employment?.joiningDate &&
-				!initialValues.employment.joiningDate.match(/^\d{4}-\d{2}-\d{2}$/)
-			) {
-				const joiningDate = initialValues.employment.joiningDate.seconds
-					? new Date(initialValues.employment.joiningDate.seconds * 1000)
-					: new Date(initialValues.employment.joiningDate);
+			if (initialValues.employment?.joiningDate && !initialValues.employment.joiningDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+				const joiningDate = initialValues.employment.joiningDate.seconds ? new Date(initialValues.employment.joiningDate.seconds * 1000) : new Date(initialValues.employment.joiningDate);
 
 				setValue("employment.joiningDate", joiningDate.toISOString().split("T")[0]);
 			}
@@ -555,14 +445,8 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			});
 
 			// Set advanceSettings with defaults if not present
-			setValue(
-				"advanceSettings.skipLateFines",
-				initialValues.advanceSettings?.skipLateFines || false
-			);
-			setValue(
-				"advanceSettings.skipLeaveFines",
-				initialValues.advanceSettings?.skipLeaveFines || false
-			);
+			setValue("advanceSettings.skipLateFines", initialValues.advanceSettings?.skipLateFines || false);
+			setValue("advanceSettings.skipLeaveFines", initialValues.advanceSettings?.skipLeaveFines || false);
 		}
 	}, [initialValues, mode, setValue]);
 
@@ -571,17 +455,9 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			dispatch(addOrganizationItem({ itemType, newItem }))
 				.unwrap()
 				.then(() => {
-					const itemName =
-						typeof newItem === "object" && newItem.name
-							? newItem.name
-							: typeof newItem === "string"
-							? newItem
-							: itemType === "shiftSchedules"
-							? newItem.name
-							: newItem;
+					const itemName = typeof newItem === "object" && newItem.name ? newItem.name : typeof newItem === "string" ? newItem : itemType === "shiftSchedules" ? newItem.name : newItem;
 
-					const itemTypeLabel =
-						itemType === "shiftSchedules" ? "shift schedule" : itemType.slice(0, -1);
+					const itemTypeLabel = itemType === "shiftSchedules" ? "shift schedule" : itemType.slice(0, -1);
 
 					toast("Success", {
 						description: `New ${itemTypeLabel} "${itemName}" added successfully`,
@@ -598,16 +474,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	);
 
 	const createCustomSelectField = useCallback(
-		(
-			field,
-			fieldState,
-			onChange,
-			options,
-			placeholder,
-			itemType,
-			setModalOpen,
-			showIcon = false
-		) => (
+		(field, fieldState, onChange, options, placeholder, itemType, setModalOpen, showIcon = false) => (
 			<div className="relative">
 				<Select
 					onValueChange={(value) => {
@@ -622,12 +489,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					<SelectContent>
 						{options.map((item) => {
 							const itemId = typeof item === "object" ? item.id : item;
-							const displayValue =
-								typeof item === "object"
-									? itemType === "shiftSchedules"
-										? `${item.name} (${item.startTime}-${item.endTime})`
-										: item.name
-									: item;
+							const displayValue = typeof item === "object" ? (itemType === "shiftSchedules" ? `${item.name} (${item.startTime}-${item.endTime})` : item.name) : item;
 
 							return (
 								<SelectItem key={itemId} value={itemId}>
@@ -699,31 +561,13 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					name: "employment.department",
 					label: "Department",
 					required: true,
-					renderCustomField: (field, fieldState, onChange) =>
-						createCustomSelectField(
-							field,
-							fieldState,
-							onChange,
-							departments,
-							"Select department",
-							"departments",
-							setIsDepartmentModalOpen
-						),
+					renderCustomField: (field, fieldState, onChange) => createCustomSelectField(field, fieldState, onChange, departments, "Select department", "departments", setIsDepartmentModalOpen),
 				},
 				{
 					name: "employment.position",
 					label: "Position",
 					required: true,
-					renderCustomField: (field, fieldState, onChange) =>
-						createCustomSelectField(
-							field,
-							fieldState,
-							onChange,
-							positions,
-							"Select position",
-							"positions",
-							setIsPositionModalOpen
-						),
+					renderCustomField: (field, fieldState, onChange) => createCustomSelectField(field, fieldState, onChange, positions, "Select position", "positions", setIsPositionModalOpen),
 				},
 				{
 					name: "employment.employmentType",
@@ -751,32 +595,13 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					name: "employment.shiftId",
 					label: "Shift Schedule",
 					required: true,
-					renderCustomField: (field, fieldState, onChange) =>
-						createCustomSelectField(
-							field,
-							fieldState,
-							onChange,
-							shiftSchedules,
-							"Select shift schedule",
-							"shiftSchedules",
-							setIsShiftModalOpen,
-							true
-						),
+					renderCustomField: (field, fieldState, onChange) => createCustomSelectField(field, fieldState, onChange, shiftSchedules, "Select shift schedule", "shiftSchedules", setIsShiftModalOpen, true),
 				},
 				{
 					name: "employment.branchId",
 					label: "Branch",
 					required: true,
-					renderCustomField: (field, fieldState, onChange) =>
-						createCustomSelectField(
-							field,
-							fieldState,
-							onChange,
-							branches,
-							"Select branch",
-							"branches",
-							setIsBranchModalOpen
-						),
+					renderCustomField: (field, fieldState, onChange) => createCustomSelectField(field, fieldState, onChange, branches, "Select branch", "branches", setIsBranchModalOpen),
 				},
 				{ name: "employment.salaryAmount", label: "Salary Amount", type: "number", required: true },
 				{
@@ -812,13 +637,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					label: "Skip Late Fines",
 					renderCustomField: (field, fieldState) => (
 						<div className="flex items-center space-x-2">
-							<input
-								type="checkbox"
-								id="skipLateFines"
-								checked={field.value}
-								onChange={(e) => field.onChange(e.target.checked)}
-								className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-							/>
+							<input type="checkbox" id="skipLateFines" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
 							<FormLabel className="text-gray-700 dark:text-gray-300" htmlFor="skipLateFines">
 								Skip Late Fines
 							</FormLabel>
@@ -830,13 +649,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 					label: "Skip Leave Fines",
 					renderCustomField: (field, fieldState) => (
 						<div className="flex items-center space-x-2">
-							<input
-								type="checkbox"
-								id="skipLeaveFines"
-								checked={field.value}
-								onChange={(e) => field.onChange(e.target.checked)}
-								className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-							/>
+							<input type="checkbox" id="skipLeaveFines" checked={field.value} onChange={(e) => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
 							<FormLabel className="text-gray-700 dark:text-gray-300" htmlFor="skipLeaveFines">
 								Skip Leave Fines
 							</FormLabel>
@@ -851,9 +664,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 	const handleTabChange = async (newTab) => {
 		if (newTab === activeTab) return;
 
-		const requiredFields = formConfig[activeTab]
-			.filter((field) => field.required)
-			.map((field) => field.name);
+		const requiredFields = formConfig[activeTab].filter((field) => field.required).map((field) => field.name);
 
 		if (requiredFields.length > 0) {
 			const results = await Promise.all(requiredFields.map((field) => trigger(field)));
@@ -906,15 +717,11 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 						setAlertState({
 							open: true,
 							title: "Error",
-							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${
-								error.message || error
-							}`,
+							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
 							variant: "destructive",
 						});
 						toast("Error", {
-							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${
-								error.message || error
-							}`,
+							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
 							variant: "destructive",
 						});
 					}
@@ -954,48 +761,15 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 
 	return (
 		<div className="w-full max-w-5xl mx-auto p-4">
-			<ShiftScheduleModal
-				isOpen={isShiftModalOpen}
-				onClose={() => setIsShiftModalOpen(false)}
-				onSave={(shift) => handleAddItem("shiftSchedules", shift)}
-			/>
-			<SimpleModal
-				isOpen={isDepartmentModalOpen}
-				onClose={() => setIsDepartmentModalOpen(false)}
-				onSave={(dept) => handleAddItem("departments", dept)}
-				title="Add New Department"
-				label="Department Name"
-				placeholder="e.g., Human Resources"
-				itemType="departments"
-			/>
-			<SimpleModal
-				isOpen={isPositionModalOpen}
-				onClose={() => setIsPositionModalOpen(false)}
-				onSave={(pos) => handleAddItem("positions", pos)}
-				title="Add New Position"
-				label="Position Name"
-				placeholder="e.g., Science Teacher"
-				itemType="positions"
-			/>
-			<BranchModal
-				isOpen={isBranchModalOpen}
-				onClose={() => setIsBranchModalOpen(false)}
-				onSave={(branch) => handleAddItem("branches", branch)}
-			/>
+			<ShiftScheduleModal isOpen={isShiftModalOpen} onClose={() => setIsShiftModalOpen(false)} onSave={(shift) => handleAddItem("shiftSchedules", shift)} />
+			<SimpleModal isOpen={isDepartmentModalOpen} onClose={() => setIsDepartmentModalOpen(false)} onSave={(dept) => handleAddItem("departments", dept)} title="Add New Department" label="Department Name" placeholder="e.g., Human Resources" itemType="departments" />
+			<SimpleModal isOpen={isPositionModalOpen} onClose={() => setIsPositionModalOpen(false)} onSave={(pos) => handleAddItem("positions", pos)} title="Add New Position" label="Position Name" placeholder="e.g., Science Teacher" itemType="positions" />
+			<BranchModal isOpen={isBranchModalOpen} onClose={() => setIsBranchModalOpen(false)} onSave={(branch) => handleAddItem("branches", branch)} />
 
-			<AlertDialog
-				open={alertState.open}
-				onOpenChange={(open) => setAlertState((prev) => ({ ...prev, open }))}
-			>
-				<AlertDialogContent
-					className={alertState.variant === "destructive" ? "border-red-500" : ""}
-				>
+			<AlertDialog open={alertState.open} onOpenChange={(open) => setAlertState((prev) => ({ ...prev, open }))}>
+				<AlertDialogContent className={alertState.variant === "destructive" ? "border-red-500" : ""}>
 					<AlertDialogHeader>
-						<AlertDialogTitle
-							className={alertState.variant === "destructive" ? "text-red-500" : ""}
-						>
-							{alertState.title}
-						</AlertDialogTitle>
+						<AlertDialogTitle className={alertState.variant === "destructive" ? "text-red-500" : ""}>{alertState.title}</AlertDialogTitle>
 						<AlertDialogDescription>{alertState.description}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -1006,24 +780,14 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 
 			<Card className="p-7">
 				<CardHeader>
-					<CardTitle className="text-2xl">
-						{mode === "add" ? "Add New Employee" : "Edit Employee Details"}
-					</CardTitle>
-					<CardDescription>
-						{mode === "add"
-							? "Enter employee details for the school payroll system"
-							: "Update employee details for the school payroll system"}
-					</CardDescription>
+					<CardTitle className="text-2xl">{mode === "add" ? "Add New Employee" : "Edit Employee Details"}</CardTitle>
+					<CardDescription>{mode === "add" ? "Enter employee details for the school payroll system" : "Update employee details for the school payroll system"}</CardDescription>
 				</CardHeader>
 
 				<Form {...form}>
 					<form onSubmit={handleSubmit(onSubmit)}>
 						<Tabs value={activeTab} onValueChange={handleTabChange}>
-							<TabsList
-								className={`grid ${
-									shouldShowAdvanceSettings ? "grid-cols-4" : "grid-cols-3"
-								} w-full`}
-							>
+							<TabsList className={`grid ${shouldShowAdvanceSettings ? "grid-cols-4" : "grid-cols-3"} w-full`}>
 								{tabOrder.map((tabId) => {
 									if (tabId === "advanceSettings" && !shouldShowAdvanceSettings) {
 										return null;
@@ -1031,9 +795,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 									return (
 										<TabsTrigger key={tabId} value={tabId} className="relative">
 											{tabId.charAt(0).toUpperCase() + tabId.slice(1)} Details
-											{hasTabErrors(tabId) && (
-												<span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-											)}
+											{hasTabErrors(tabId) && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />}
 										</TabsTrigger>
 									);
 								})}
@@ -1046,16 +808,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 									<TabsContent key={tabId} value={tabId} className="space-y-4 p-6">
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 											{formConfig[tabId].map((field) => (
-												<FormFieldWrapper
-													key={field.name}
-													control={form.control}
-													name={field.name}
-													label={field.label}
-													type={field.type || "text"}
-													options={field.options || []}
-													required={field.required}
-													renderCustomField={field.renderCustomField}
-												/>
+												<FormFieldWrapper key={field.name} control={form.control} name={field.name} label={field.label} type={field.type || "text"} options={field.options || []} required={field.required} renderCustomField={field.renderCustomField} />
 											))}
 										</div>
 									</TabsContent>
@@ -1091,11 +844,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 									</Button>
 								) : (
 									<Button type="submit" disabled={loading}>
-										{loading
-											? "Submitting..."
-											: mode === "add"
-											? "Add Employee"
-											: "Update Employee"}
+										{loading ? "Submitting..." : mode === "add" ? "Add Employee" : "Update Employee"}
 									</Button>
 								)}
 							</CardFooter>

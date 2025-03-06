@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { addEmployeeToBranch } from "@/store/employees/employees.slice.js";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { selectCurrentUser } from "@/store/user/user.selector";
+import AddItemDialog from "@/components/AddItemDialog.component";
+import AddItemForm from "@/components/AddItemForm.component";
 
 // Validation schemas
 const personalSchema = z.object({
@@ -120,7 +122,7 @@ const SimpleModal = ({ isOpen, onClose, onSave, title, label, placeholder, itemT
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!value.trim()) {
-			toast("Validation Error", {
+			toast.error("Validation Error", {
 				description: `Please enter a ${label.toLowerCase()}`,
 				variant: "destructive",
 			});
@@ -166,7 +168,7 @@ const BranchModal = ({ isOpen, onClose, onSave }) => {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!branch.name) {
-			toast("Validation Error", {
+			toast.error("Validation Error", {
 				description: "Please enter a branch name",
 				variant: "destructive",
 			});
@@ -234,7 +236,7 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!shift.name) {
-			toast("Validation Error", {
+			toast.error("Validation Error", {
 				description: "Please enter a shift name",
 				variant: "destructive",
 			});
@@ -242,7 +244,7 @@ const ShiftScheduleModal = ({ isOpen, onClose, onSave }) => {
 		}
 
 		if (shift.days.length === 0) {
-			toast("Validation Error", {
+			toast.error("Validation Error", {
 				description: "Please select at least one day",
 				variant: "destructive",
 			});
@@ -459,12 +461,12 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 
 					const itemTypeLabel = itemType === "shiftSchedules" ? "shift schedule" : itemType.slice(0, -1);
 
-					toast("Success", {
+					toast.success("Success", {
 						description: `New ${itemTypeLabel} "${itemName}" added successfully`,
 					});
 				})
 				.catch((error) => {
-					toast("Error", {
+					toast.error("Error", {
 						description: `Failed to add new ${itemType.slice(0, -1)}`,
 						variant: "destructive",
 					});
@@ -673,7 +675,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			if (!isCurrentTabValid) {
 				setActiveTab(newTab);
 
-				toast("Validation Error", {
+				toast.error("Validation Error", {
 					description: "Please complete all required fields before proceeding",
 					variant: "destructive",
 					icon: <Info />,
@@ -698,7 +700,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			dispatch(addEmployeeToBranch({ branchId, employeeData }))
 				.unwrap()
 				.then(() => {
-					toast("Success", {
+					toast.success("Success", {
 						description: `Employee ${mode === "add" ? "added" : "updated"} successfully`,
 					});
 					form.reset(getDefaultValues());
@@ -720,7 +722,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
 							variant: "destructive",
 						});
-						toast("Error", {
+						toast.error("Error", {
 							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
 							variant: "destructive",
 						});
@@ -728,7 +730,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				});
 		} catch (error) {
 			console.error("Form submission error:", error);
-			toast("Error", {
+			toast.error("Error", {
 				description: `Failed to ${mode === "add" ? "add" : "update"} employee`,
 				variant: "destructive",
 			});

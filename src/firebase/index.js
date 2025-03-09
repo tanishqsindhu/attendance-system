@@ -10,7 +10,7 @@ export { logError, documentExists, generateId, timeStringToMinutes, getMonthsBet
 export { OrganizationSettingsService } from "./organization-service";
 
 // Employee Management
-export { addEmployeeDetails, getEmployees, getEmployeeDetails, addEmployeeToBranch } from "./employee-service";
+export { getEmployees, getEmployeeDetails, addEmployeeToBranch, deleteEmployee, updateEmployeeDetails, getActiveEmployees } from "./employee-service";
 
 // Attendance Management
 export { checkAttendanceExists, saveAttendanceData, getAttendanceLogs, saveProcessedAttendance, addCollectionAndDocuments, getAvailableAttendancePeriods, getEmployeeAttendanceLogs, processAttendanceWithRules } from "./attendance-service";

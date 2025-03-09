@@ -37,20 +37,16 @@ const OrganizationSettings = () => {
 	return (
 		<div className="container mx-auto px-4 py-6">
 			<Card>
-				<CardContent className="p-0">
+				<CardContent className="p-0 ">
 					<div className="flex flex-col">
-						<div className="border-b">
+						<div>
 							<h1 className="text-xl font-semibold px-6 py-4">Organization Settings</h1>
 						</div>
 
-						<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-							<TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+						<Tabs value={activeTab} className="max-w-full" onValueChange={setActiveTab}>
+							<TabsList className="grid w-full grid-cols-4">
 								{tabItems.map((tab) => (
-									<TabsTrigger
-										key={tab.value}
-										value={tab.value}
-										className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700 data-[state=active]:shadow-sm"
-									>
+									<TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700 data-[state=active]:shadow-sm">
 										<tab.icon className="w-4 h-4" />
 										<span className="hidden md:inline">{tab.label}</span>
 									</TabsTrigger>

@@ -1162,7 +1162,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^4.1.2":
+"@hookform/resolvers@npm:^4.1.3":
   version: 4.1.3
   resolution: "@hookform/resolvers@npm:4.1.3"
   dependencies:
@@ -3315,7 +3315,7 @@ __metadata:
     "@clerk/react-router": "npm:^1.1.0"
     "@clerk/themes": "npm:^2.2.20"
     "@eslint/js": "npm:^9.19.0"
-    "@hookform/resolvers": "npm:^4.1.2"
+    "@hookform/resolvers": "npm:^4.1.3"
     "@radix-ui/react-alert-dialog": "npm:^1.1.6"
     "@radix-ui/react-avatar": "npm:^1.1.3"
     "@radix-ui/react-checkbox": "npm:^1.1.4"

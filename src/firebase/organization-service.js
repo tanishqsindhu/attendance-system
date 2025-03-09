@@ -1,14 +1,9 @@
-import { useSelector } from "react-redux";
 import { db } from "./firebase-config";
 import { documentExists, logError } from "./firebase-utils";
-import { selectAllEmployees } from "@/store/employees/employees.slice";
 import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction, where, updateDoc } from "firebase/firestore";
 
 export const OrganizationSettingsService = {
-	/**
-	 * Get organization settings
-	 * @returns {Promise<Object>} - Organization settings
-	 */
+	// Existing methods remain unchanged...
 	async getSettings() {
 		try {
 			const settingsRef = doc(db, "settings", "organizationSettings");
@@ -20,11 +15,6 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Get next ID for a counter
-	 * @param {string} counterName - Name of the counter
-	 * @returns {Promise<number>} - Next ID
-	 */
 	async getNextId(counterName) {
 		if (!counterName) {
 			throw new Error("counterName is required");
@@ -45,42 +35,19 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Get prefix for an item type
-	 * @param {string} itemType - Type of item
-	 * @returns {string} - Prefix for the item type
-	 */
 	getItemPrefix(itemType) {
 		const prefixes = { branches: "B", departments: "D", positions: "P", shiftSchedules: "S" };
 		return prefixes[itemType] || "X";
 	},
 
-	/**
-	 * Format an ID with a prefix and padding
-	 * @param {string} prefix - Prefix for the ID
-	 * @param {number} numericId - Numeric ID
-	 * @returns {string} - Formatted ID
-	 */
 	formatId(prefix, numericId) {
 		return `${prefix}${numericId.toString().padStart(3, "0")}`;
 	},
 
-	/**
-	 * Check if an ID exists in an array of items
-	 * @param {Array} items - Array of items
-	 * @param {string} id - ID to check
-	 * @returns {boolean} - Whether the ID exists
-	 */
 	idExists(items, id) {
 		return items.some((item) => (typeof item === "object" ? item.id === id : item === id));
 	},
 
-	/**
-	 * Add an item to an organization settings collection
-	 * @param {string} itemType - Type of item
-	 * @param {Object|string} newItem - Item to add
-	 * @returns {Promise<Array>} - Updated array of items
-	 */
 	async addItem(itemType, newItem) {
 		if (!itemType || !newItem) {
 			throw new Error("itemType and newItem are required");
@@ -157,12 +124,6 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Update a shift schedule with date overrides
-	 * @param {string} scheduleId - ID of the shift schedule
-	 * @param {Object} dateOverride - Object containing the date and schedule override
-	 * @returns {Promise<Array>} - Updated array of shift schedules
-	 */
 	async addShiftScheduleDateOverride(scheduleId, dateOverride) {
 		if (!scheduleId || !dateOverride || !dateOverride.date) {
 			throw new Error("scheduleId and dateOverride with date are required");
@@ -213,49 +174,43 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Remove a date override from a shift schedule
-	 * @param {string} scheduleId - ID of the shift schedule
-	 * @param {string} date - Date to remove override for (ISO string)
-	 * @returns {Promise<Array>} - Updated array of shift schedules
-	 */
 	async removeShiftScheduleDateOverride(scheduleId, date) {
 		if (!scheduleId || !date) {
 			throw new Error("scheduleId and date are required");
 		}
-	
+
 		try {
 			const settingsRef = doc(db, "settings", "organizationSettings");
 			const docSnap = await getDoc(settingsRef);
-	
+
 			if (!docSnap.exists()) {
 				throw new Error("Organization settings not found");
 			}
-	
+
 			const settings = docSnap.data();
 			const shiftSchedules = [...(settings.shiftSchedules || [])];
-	
+
 			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
 			if (scheduleIndex === -1) {
 				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
 			}
-	
+
 			// Create a deep copy of the schedule to modify
 			const updatedSchedule = JSON.parse(JSON.stringify(shiftSchedules[scheduleIndex]));
-	
+
 			// Check if dateOverrides exists and the specific date exists
 			if (updatedSchedule.dateOverrides && updatedSchedule.dateOverrides[date]) {
 				// Remove the date override
 				const { [date]: removed, ...remainingOverrides } = updatedSchedule.dateOverrides;
 				updatedSchedule.dateOverrides = remainingOverrides;
-	
+
 				// Update the schedule in the array
 				shiftSchedules[scheduleIndex] = updatedSchedule;
-	
+
 				// Update the database with only the modified field
 				await updateDoc(settingsRef, { shiftSchedules: shiftSchedules });
 			}
-	
+
 			return shiftSchedules;
 		} catch (error) {
 			logError("removeShiftScheduleDateOverride", error);
@@ -263,11 +218,102 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Get employees for a branch
-	 * @param {string} branchId - Branch ID
-	 * @returns {Promise<Array>} - Array of employees
-	 */
+	// NEW METHOD: Add day override to shift schedule
+	async addShiftScheduleDayOverride(scheduleId, dayOverride) {
+		if (!scheduleId || !dayOverride || !dayOverride.day) {
+			throw new Error("scheduleId and dayOverride with day property are required");
+		}
+
+		try {
+			const settingsRef = doc(db, "settings", "organizationSettings");
+			const docSnap = await getDoc(settingsRef);
+
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const shiftSchedules = [...(settings.shiftSchedules || [])];
+
+			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
+			if (scheduleIndex === -1) {
+				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
+			}
+
+			// Create a deep copy of the schedule to modify
+			const updatedSchedule = JSON.parse(JSON.stringify(shiftSchedules[scheduleIndex]));
+
+			// Initialize dayOverrides if it doesn't exist
+			if (!updatedSchedule.dayOverrides) {
+				updatedSchedule.dayOverrides = {};
+			}
+
+			// Add or update the day override
+			updatedSchedule.dayOverrides[dayOverride.day] = {
+				start: dayOverride.start || updatedSchedule.defaultTimes.start,
+				end: dayOverride.end || updatedSchedule.defaultTimes.end,
+				isWorkDay: dayOverride.isWorkDay !== undefined ? dayOverride.isWorkDay : true,
+				description: dayOverride.description || "",
+			};
+
+			// Update the schedule in the array
+			shiftSchedules[scheduleIndex] = updatedSchedule;
+
+			// Update the database
+			await updateDoc(settingsRef, { shiftSchedules: shiftSchedules });
+
+			return shiftSchedules;
+		} catch (error) {
+			logError("addShiftScheduleDayOverride", error);
+			throw error;
+		}
+	},
+
+	// NEW METHOD: Remove day override from shift schedule
+	async removeShiftScheduleDayOverride(scheduleId, day) {
+		if (!scheduleId || !day) {
+			throw new Error("scheduleId and day are required");
+		}
+
+		try {
+			const settingsRef = doc(db, "settings", "organizationSettings");
+			const docSnap = await getDoc(settingsRef);
+
+			if (!docSnap.exists()) {
+				throw new Error("Organization settings not found");
+			}
+
+			const settings = docSnap.data();
+			const shiftSchedules = [...(settings.shiftSchedules || [])];
+
+			const scheduleIndex = shiftSchedules.findIndex((schedule) => schedule.id === scheduleId);
+			if (scheduleIndex === -1) {
+				throw new Error(`Shift schedule with ID ${scheduleId} not found`);
+			}
+
+			// Create a deep copy of the schedule to modify
+			const updatedSchedule = JSON.parse(JSON.stringify(shiftSchedules[scheduleIndex]));
+
+			// Check if dayOverrides exists and the specific day exists
+			if (updatedSchedule.dayOverrides && updatedSchedule.dayOverrides[day]) {
+				// Remove the day override
+				const { [day]: removed, ...remainingOverrides } = updatedSchedule.dayOverrides;
+				updatedSchedule.dayOverrides = remainingOverrides;
+
+				// Update the schedule in the array
+				shiftSchedules[scheduleIndex] = updatedSchedule;
+
+				// Update the database
+				await updateDoc(settingsRef, { shiftSchedules: shiftSchedules });
+			}
+
+			return shiftSchedules;
+		} catch (error) {
+			logError("removeShiftScheduleDayOverride", error);
+			throw error;
+		}
+	},
+
 	async getEmployeesByBranch(branchId) {
 		if (!branchId) {
 			throw new Error("branchId is required");
@@ -283,13 +329,6 @@ export const OrganizationSettingsService = {
 		}
 	},
 
-	/**
-	 * Delete an item from organization settings
-	 * @param {string} itemType - Type of item (departments, positions, branches, shiftSchedules)
-	 * @param {string} itemId - ID of the item to delete
-	 * @param {Array} employees - Array of all employees to check for item usage
-	 * @returns {Promise<Array>} - Updated array of items
-	 */
 	async deleteItem(itemType, itemId, employees) {
 		if (!itemType || !itemId || !employees) {
 			throw new Error("itemType, itemId, and employees are required");
@@ -341,13 +380,7 @@ export const OrganizationSettingsService = {
 			throw error;
 		}
 	},
-	/**
-	 * Update an item in an organization settings collection
-	 * @param {string} itemType - Type of item
-	 * @param {string} itemId - ID of the item to update
-	 * @param {Object} updatedItem - Updated item data
-	 * @returns {Promise<Array>} - Updated array of items
-	 */
+
 	async updateItem(itemType, itemId, updatedItem) {
 		if (!itemType || !itemId || !updatedItem) {
 			throw new Error("itemType, itemId, and updatedItem are required");
@@ -390,6 +423,22 @@ export const OrganizationSettingsService = {
 			return items;
 		} catch (error) {
 			logError(`updateItem for ${itemType}`, error);
+			throw error;
+		}
+	},
+
+	async deleteShiftSchedule(scheduleId, employees) {
+		if (!scheduleId || !employees) {
+			throw new Error("scheduleId and employees are required");
+		}
+		const isSettingInUse = employees.some((employee) => employee.employment?.shiftId === scheduleId);
+		if (isSettingInUse) {
+			throw new Error(`Cannot delete Shift Schedule with ID ${scheduleId} as it is currently in use by one or more employees.`);
+		}
+		try {
+			return await this.deleteItem("shiftSchedules", scheduleId, employees);
+		} catch (error) {
+			logError("deleteShiftSchedule", error);
 			throw error;
 		}
 	},

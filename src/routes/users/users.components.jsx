@@ -7,7 +7,7 @@ const Users = () => {
 	return (
 		<Routes>
 			<Route index element={<UserProfilePage />} />
-			<Route path="login" element={<LoginPage />} />
+			<Route path="/login" element={<LoginPage />} />
 		</Routes>
 	);
 };

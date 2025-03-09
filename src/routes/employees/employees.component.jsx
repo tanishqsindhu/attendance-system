@@ -31,7 +31,7 @@ const Employees = () => {
 		<Routes>
 			<Route index element={<EmployeesList />} />
 			<Route
-				path="add"
+				path="/add"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "viewEmployees"]}>
 						<EmployeeAdd />
@@ -39,7 +39,7 @@ const Employees = () => {
 				}
 			/>
 			<Route
-				path="attendance-process"
+				path="/attendance-process"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "processEmployees"]}>
 						<ProcessAttendance />
@@ -47,7 +47,7 @@ const Employees = () => {
 				}
 			/>
 			<Route
-				path="upload-data"
+				path="/upload-data"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "uploadAttendance"]}>
 						<AttendanceUpload />
@@ -55,9 +55,10 @@ const Employees = () => {
 				}
 			/>
 			<Route
-				path=":empId"
+				path="/:empId"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "viewEmployee"]}>
+					
 						<EmployeeProfile />
 					</ProtectedRoute>
 				}

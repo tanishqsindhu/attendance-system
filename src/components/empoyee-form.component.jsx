@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { selectCurrentUser } from "@/store/user/user.selector";
 import AddItemDialog from "@/components/AddItemDialog.component";
 import AddItemForm from "@/components/AddItemForm.component";
+import { updateEmployee } from "../store/employees/employees.slice";
 
 // Validation schemas
 const personalSchema = z.object({
@@ -535,7 +536,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				},
 				{ name: "personal.email", label: "Email", type: "email", required: true },
 				{ name: "personal.phone", label: "Phone Number", type: "tel", required: true },
-				{ name: "personal.dob", label: "Date of Birth", type: "date", required: true },
+				{ name: "personal.dob", label: "Date of Birth", type: "date" },
 				{
 					name: "personal.bloodGroup",
 					label: "Blood Group",
@@ -692,47 +693,87 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 
 			const employeeData = {
 				personal: data.personal,
-				employment: { ...data.employment, createdAt: new Date() },
+				employment: { ...data.employment, ...(mode === "add" ? { createdAt: new Date() } : {}) },
 				banking: data.banking,
 				advanceSettings: data.advanceSettings,
 			};
 
-			dispatch(addEmployeeToBranch({ branchId, employeeData }))
-				.unwrap()
-				.then(() => {
-					toast.success("Success", {
-						description: `Employee ${mode === "add" ? "added" : "updated"} successfully`,
+			// If in edit mode, use updateEmployee action
+			if (mode === "edit" && initialValues?.id) {
+				branchId;
+				dispatch(
+					updateEmployee({
+						branchId,
+						employeeId: initialValues.id,
+						employeeData,
+					})
+				)
+					.unwrap()
+					.then(() => {
+						toast.success("Success", {
+							description: "Employee updated successfully",
+						});
+						// Don't reset form in edit mode
+						setActiveTab("personal");
+						setAlertState({ open: false });
+					})
+					.catch((error) => {
+						if (error.code === "DUPLICATE_EMPLOYEE_ID") {
+							setAlertState({
+								open: true,
+								title: "Employee ID Error",
+								description: "This employee ID already exists. Please use a unique ID.",
+								variant: "destructive",
+							});
+						} else {
+							setAlertState({
+								open: true,
+								title: "Error",
+								description: `Failed to update employee: ${error.message || error}`,
+								variant: "destructive",
+							});
+							toast.error("Error", {
+								description: `Failed to update employee: ${error.message || error}`,
+							});
+						}
 					});
-					form.reset(getDefaultValues());
-					setActiveTab("personal");
-					setAlertState({ open: false });
-				})
-				.catch((error) => {
-					if (error.code === "DUPLICATE_EMPLOYEE_ID") {
-						setAlertState({
-							open: true,
-							title: "Employee ID Error",
-							description: "This employee ID already exists. Please use a unique ID.",
-							variant: "destructive",
+			} else {
+				// Original code for adding new employee
+				dispatch(addEmployeeToBranch({ branchId, employeeData }))
+					.unwrap()
+					.then(() => {
+						toast.success("Success", {
+							description: "Employee added successfully",
 						});
-					} else {
-						setAlertState({
-							open: true,
-							title: "Error",
-							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
-							variant: "destructive",
-						});
-						toast.error("Error", {
-							description: `Failed to ${mode === "add" ? "add" : "update"} employee: ${error.message || error}`,
-							variant: "destructive",
-						});
-					}
-				});
+						form.reset(getDefaultValues());
+						setActiveTab("personal");
+						setAlertState({ open: false });
+					})
+					.catch((error) => {
+						if (error.code === "DUPLICATE_EMPLOYEE_ID") {
+							setAlertState({
+								open: true,
+								title: "Employee ID Error",
+								description: "This employee ID already exists. Please use a unique ID.",
+								variant: "destructive",
+							});
+						} else {
+							setAlertState({
+								open: true,
+								title: "Error",
+								description: `Failed to add employee: ${error.message || error}`,
+								variant: "destructive",
+							});
+							toast.error("Error", {
+								description: `Failed to add employee: ${error.message || error}`,
+							});
+						}
+					});
+			}
 		} catch (error) {
 			console.error("Form submission error:", error);
 			toast.error("Error", {
 				description: `Failed to ${mode === "add" ? "add" : "update"} employee`,
-				variant: "destructive",
 			});
 		}
 	};

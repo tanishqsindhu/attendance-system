@@ -1,39 +1,14 @@
 "use client";
 
 import * as React from "react";
-import {
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function DataTable({
 	data,
@@ -52,16 +27,16 @@ export function DataTable({
 	getRowClassName = null,
 	// Custom components
 	emptyState = null,
+	// Initial sorting
+	initialSorting = [],
 }) {
-	const [sorting, setSorting] = React.useState([]);
+	const [sorting, setSorting] = React.useState(initialSorting || []);
 	const [columnFilters, setColumnFilters] = React.useState([]);
 	const [columnVisibility, setColumnVisibility] = React.useState({});
 	const [rowSelection, setRowSelection] = React.useState({});
 	const [pageSize, setPageSize] = React.useState(initialPageSize);
 	const [pageIndex, setPageIndex] = React.useState(0);
-	const [activeFilterColumn, setActiveFilterColumn] = React.useState(
-		filterableColumns.length > 0 ? filterableColumns[0] : null
-	);
+	const [activeFilterColumn, setActiveFilterColumn] = React.useState(filterableColumns.length > 0 ? filterableColumns[0] : null);
 	const [filterValue, setFilterValue] = React.useState("");
 
 	const table = useReactTable({
@@ -89,13 +64,19 @@ export function DataTable({
 		},
 		onPaginationChange: pagination
 			? (updater) => {
-					const newState =
-						typeof updater === "function" ? updater({ pageIndex, pageSize }) : updater;
+					const newState = typeof updater === "function" ? updater({ pageIndex, pageSize }) : updater;
 					setPageIndex(newState.pageIndex);
 					setPageSize(newState.pageSize);
 			  }
 			: undefined,
 	});
+
+	// Set initial sorting if provided
+	React.useEffect(() => {
+		if (initialSorting && initialSorting.length > 0) {
+			setSorting(initialSorting);
+		}
+	}, [initialSorting]);
 
 	// Update pagination when page size changes
 	React.useEffect(() => {
@@ -141,10 +122,7 @@ export function DataTable({
 						<div className="flex items-center gap-2">
 							<Select value={activeFilterColumn} onValueChange={setActiveFilterColumn}>
 								<SelectTrigger className="h-9 w-[180px]">
-									<SelectValue placeholder="Select column">
-										{activeFilterColumn &&
-											activeFilterColumn.charAt(0).toUpperCase() + activeFilterColumn.slice(1)}
-									</SelectValue>
+									<SelectValue placeholder="Select column">{activeFilterColumn && activeFilterColumn.charAt(0).toUpperCase() + activeFilterColumn.slice(1)}</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									{filterableColumns.map((column) => (
@@ -156,12 +134,7 @@ export function DataTable({
 							</Select>
 							<div className="relative">
 								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-								<Input
-									placeholder={filterPlaceholder}
-									value={filterValue}
-									onChange={handleFilterChange}
-									className="pl-8 max-w-sm"
-								/>
+								<Input placeholder={filterPlaceholder} value={filterValue} onChange={handleFilterChange} className="pl-8 max-w-sm" />
 							</div>
 						</div>
 					)}
@@ -180,12 +153,7 @@ export function DataTable({
 								.filter((column) => column.getCanHide())
 								.map((column) => {
 									return (
-										<DropdownMenuCheckboxItem
-											key={column.id}
-											className="capitalize"
-											checked={column.getIsVisible()}
-											onCheckedChange={(value) => column.toggleVisibility(!!value)}
-										>
+										<DropdownMenuCheckboxItem key={column.id} className="capitalize" checked={column.getIsVisible()} onCheckedChange={(value) => column.toggleVisibility(!!value)}>
 											{column.id}
 										</DropdownMenuCheckboxItem>
 									);
@@ -201,10 +169,12 @@ export function DataTable({
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => {
 									return (
-										<TableHead key={header.id}>
-											{header.isPlaceholder
-												? null
-												: flexRender(header.column.columnDef.header, header.getContext())}
+										<TableHead key={header.id} className="relative">
+											{header.isPlaceholder ? null : (
+												<div className="flex items-center space-x-1">
+													<div className="flex-1">{flexRender(header.column.columnDef.header, header.getContext())}</div>
+												</div>
+											)}
 										</TableHead>
 									);
 								})}
@@ -214,17 +184,9 @@ export function DataTable({
 					<TableBody>
 						{table.getRowModel().rows?.length
 							? table.getRowModel().rows.map((row) => (
-									<TableRow
-										key={row.id}
-										data-state={row.getIsSelected() && "selected"}
-										className={getRowClassName ? getRowClassName(row.original, row) : ""}
-										onClick={() => handleRowClick(row)}
-										style={{ cursor: onRowClick ? "pointer" : "default" }}
-									>
+									<TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className={getRowClassName ? getRowClassName(row.original, row) : ""} onClick={() => handleRowClick(row)} style={{ cursor: onRowClick ? "pointer" : "default" }}>
 										{row.getVisibleCells().map((cell) => (
-											<TableCell key={cell.id}>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
+											<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
 										))}
 									</TableRow>
 							  ))
@@ -256,29 +218,18 @@ export function DataTable({
 						</Select>
 					</div>
 					<div className="flex-1 text-sm text-muted-foreground">
-						{table.getFilteredSelectedRowModel().rows.length} of{" "}
-						{table.getFilteredRowModel().rows.length} row(s) selected.
+						{table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
 					</div>
 					<div className="flex items-center space-x-6">
 						<div className="text-sm text-muted-foreground">
 							Page {pageIndex + 1} of {table.getPageCount() || 1}
 						</div>
 						<div className="flex items-center space-x-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.previousPage()}
-								disabled={!table.getCanPreviousPage()}
-							>
+							<Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
 								<ChevronLeft className="h-4 w-4" />
 								<span className="sr-only">Previous page</span>
 							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.nextPage()}
-								disabled={!table.getCanNextPage()}
-							>
+							<Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
 								<ChevronRight className="h-4 w-4" />
 								<span className="sr-only">Next page</span>
 							</Button>

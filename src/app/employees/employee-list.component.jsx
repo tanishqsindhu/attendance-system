@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpDown, Download, MoreHorizontal, Plus, Trash } from "lucide-react";
+import { ArrowUpDown, Download, MoreHorizontal, Plus, Trash, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -114,6 +114,16 @@ export default function EmployeesList() {
 		);
 	};
 
+	// Then create a reusable SortableHeader component
+	const SortableHeader = ({ column, title }) => {
+		return (
+			<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+				{title}
+				{column.getIsSorted() === "asc" ? <ArrowUp className="ml-2 h-4 w-4" /> : column.getIsSorted() === "desc" ? <ArrowDown className="ml-2 h-4 w-4" /> : <ArrowUpDown className="ml-2 h-4 w-4" />}
+			</Button>
+		);
+	};
+
 	// Column definitions for employee data
 	const columns = [
 		{
@@ -132,32 +142,25 @@ export default function EmployeesList() {
 		},
 		{
 			accessorKey: "name",
-			header: ({ column }) => {
-				return (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						Name
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
+			accessorFn: (row) => {
+				const firstName = row.personal?.firstName || "";
+				const lastName = row.personal?.lastName || "";
+				return `${firstName} ${lastName}`.trim();
 			},
+			header: ({ column }) => <SortableHeader column={column} title="Name" />,
 			cell: ({ row }) => {
 				const personal = row.original.personal;
 				const firstName = personal?.firstName || "";
 				const lastName = personal?.lastName || "";
 				const fullName = [firstName, lastName].filter(Boolean).join(" ") || "-";
-				return <div className="font-medium">{fullName}</div>;
+				return <div className="font-medium px-3">{fullName}</div>;
 			},
 		},
 		{
-			accessorKey: "personal.email",
-			header: ({ column }) => {
-				return (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						Email
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			// Email without sorting
+			id: "email",
+			accessorFn: (row) => row.personal?.email || "",
+			header: "Email",
 			cell: ({ row }) => {
 				const personal = row.original.personal;
 				return <div className="lowercase">{personal?.email || "-"}</div>;
@@ -172,56 +175,63 @@ export default function EmployeesList() {
 			},
 		},
 		{
-			accessorKey: "employment.department",
-			header: "Department",
+			id: "department",
+			accessorFn: (row) => {
+				const departmentId = row.employment?.department;
+				return departmentId ? departmentMap[departmentId] || departmentId : "";
+			},
+			header: ({ column }) => <SortableHeader column={column} title="Department" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
 				const departmentId = employment?.department;
 				const departmentName = departmentId ? departmentMap[departmentId] : null;
-				return <div>{departmentName || departmentId || "-"}</div>;
+				return <div className="px-3">{departmentName || departmentId || "-"}</div>;
 			},
 		},
 		{
-			accessorKey: "employment.position",
-			header: "Position",
+			id: "position",
+			accessorFn: (row) => {
+				const positionId = row.employment?.position;
+				return positionId ? positionMap[positionId] || positionId : "";
+			},
+			header: ({ column }) => <SortableHeader column={column} title="Position" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
 				const positionId = employment?.position;
 				const positionName = positionId ? positionMap[positionId] : null;
-				return <div>{positionName || positionId || "-"}</div>;
+				return <div className="px-3">{positionName || positionId || "-"}</div>;
 			},
 		},
 		{
-			accessorKey: "employment.shiftId",
-			header: "Shift",
+			id: "shift",
+			accessorFn: (row) => {
+				const shiftId = row.employment?.shiftId;
+				return shiftId ? shiftMap[shiftId] || shiftId : "";
+			},
+			header: ({ column }) => <SortableHeader column={column} title="Shift" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
 				const shiftId = employment?.shiftId;
 				const shiftTime = shiftId ? shiftMap[shiftId] : null;
-				return <div>{shiftTime || shiftId || "-"}</div>;
+				return <div className="px-3">{shiftTime || shiftId || "-"}</div>;
 			},
 		},
 		{
-			accessorKey: "employment.employmentStatus",
-			header: "Status",
+			id: "status",
+			accessorFn: (row) => row.employment?.employmentStatus || "",
+			header: ({ column }) => <SortableHeader column={column} title="Status" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
-				return employment?.employmentStatus ? <StatusBadge status={employment.employmentStatus} /> : <div>-</div>;
+				return employment?.employmentStatus ? <StatusBadge className="px-3" status={employment.employmentStatus} /> : <div className="px-3">-</div>;
 			},
 		},
 		{
-			accessorKey: "employment.joiningDate",
-			header: ({ column }) => {
-				return (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						Join Date
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				);
-			},
+			id: "joiningDate",
+			accessorFn: (row) => (row.employment?.joiningDate ? new Date(row.employment.joiningDate).getTime() : 0),
+			header: ({ column }) => <SortableHeader column={column} title="Join Date" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
-				if (!employment?.joiningDate) return <div>-</div>;
+				if (!employment?.joiningDate) return <div className="px-3">-</div>;
 
 				// Format date
 				try {
@@ -231,19 +241,20 @@ export default function EmployeesList() {
 						month: "short",
 						day: "numeric",
 					}).format(date);
-					return <div>{formatted}</div>;
+					return <div className="px-3">{formatted}</div>;
 				} catch (error) {
-					return <div>{employment.joiningDate || "-"}</div>;
+					return <div className="px-3">{employment.joiningDate || "-"}</div>;
 				}
 			},
 		},
 		{
-			accessorKey: "employment.salaryAmount",
-			header: () => <div className="text-right">Salary</div>,
+			id: "salary",
+			accessorFn: (row) => parseFloat(row.employment?.salaryAmount || 0),
+			header: ({ column }) => <SortableHeader column={column} title="Salary" />,
 			cell: ({ row }) => {
 				const employment = row.original.employment;
 				if (!employment?.salaryAmount && employment?.salaryAmount !== 0) {
-					return <div className="text-right">-</div>;
+					return <div className="px-3">-</div>;
 				}
 
 				const amount = parseFloat(employment.salaryAmount);
@@ -252,12 +263,13 @@ export default function EmployeesList() {
 					currency: "INR",
 				}).format(amount);
 
-				return <div className="text-right font-medium">{formatted}</div>;
+				return <div className="font-medium px-3">{formatted}</div>;
 			},
 		},
 		{
 			id: "actions",
 			enableHiding: false,
+			header: "Actions",
 			cell: ({ row }) => {
 				const employee = row.original;
 
@@ -344,7 +356,7 @@ export default function EmployeesList() {
 				</CardHeader>
 				<CardContent>
 					{/* Edit Employee Modal */}
-					<EditEmployeeModal isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employees[selectedEmployeeId]} />
+					<EditEmployeeModal isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employees.find((emp) => emp.id === selectedEmployeeId) || {}} />
 					<div className="space-y-4">
 						<DataTable
 							data={employees || []}

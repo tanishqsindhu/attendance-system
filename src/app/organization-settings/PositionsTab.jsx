@@ -38,7 +38,7 @@ const PositionsTab = () => {
 			});
 		} catch (error) {
 			toast.error("Deletion Failed", {
-				description: error.message || "An unexpected error occurred",
+				description: error || "An unexpected error occurred",
 				variant: "destructive",
 			});
 		} finally {

@@ -10,15 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getEmployeeDetails } from "@/firebase/index.js";
-import { selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
-// import { fetchEmployeeTransactions, addTransaction, clearTransactionsError } from "@/store/employeeTransactions/employeeTransactions.reducer.js";
-// import { selectTransactionsByEmployee, selectIsTransactionsLoading, selectTransactionsError } from "@/store/employeeTransactions/employeeTransactions.selector.js";
+import { selectAllDepartments, selectAllPositions, selectAllBranches, selectAllShiftSchedules, selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
 import { Mail, Phone, MapPin, Briefcase, Calendar, User, CreditCard, Clock } from "lucide-react";
 import { EditEmployeeModal } from "../../components/EditEmployeeModal";
-import TransactionTable from "../../components/transcation-table.component";
 import AttendanceTable from "../../components/attendance-table.comonent";
 import femaleTeacher from "@/assets/female teacher.png?url";
 import maleTeacher from "@/assets/teacher.png?url";
+import ManualAttendanceForm from "../../components/ManualAttendanceForm.component";
+import { toast } from "sonner";
+
 // The main component
 const EmployeeProfile = () => {
 	const { empId } = useParams();
@@ -30,9 +30,19 @@ const EmployeeProfile = () => {
 	const [monthYear, setMonthYear] = useState("");
 	const [activeTab, setActiveTab] = useState("personal");
 	const branchId = useSelector(selectActiveBranch);
-	// const transactions = useSelector(selectEmployeeTransactions);
-	// const transactionsLoading = useSelector(selectTransactionsLoading);
-	// const transactionsError = useSelector(selectTransactionsError);
+
+	// Add this state in the EmployeeProfile component
+	const [showManualForm, setShowManualForm] = useState(false);
+
+	// Add this function to handle saving manual attendance
+	const handleSaveManualAttendance = async (monthYearKey) => {
+		console.log(monthYearKey);
+		const data = await getEmployeeDetails(branchId.id, empId);
+		if (!data) throw new Error("No Employee Data Found");
+		setEmployee(data);
+		setMonthYear(monthYearKey);
+		setShowManualForm(false);
+	};
 
 	// Fetch employee details
 	const fetchEmployeeDetails = useCallback(async () => {
@@ -48,42 +58,61 @@ const EmployeeProfile = () => {
 
 				// Set default month to the most recent one
 				if (months.length > 0) {
-					const sortedMonths = [...months].sort().reverse();
+					const sortedMonths = [...months].sort((a, b) => {
+						const [monthA, yearA] = a.split("-").map(Number);
+						const [monthB, yearB] = b.split("-").map(Number);
+
+						if (yearA !== yearB) {
+							return yearB - yearA; // Sort by year descending
+						}
+						return monthB - monthA; // Within same year, sort by month descending
+					});
+
 					setMonthYear(sortedMonths[0]);
 					setAttendance(data.attendance[sortedMonths[0]] || {});
 				}
 			}
 		} catch (error) {
 			console.error("Error fetching employee details:", error);
-			alert(error.message);
+			toast.error(error.message);
 		}
 	}, [branchId, empId]);
 
-	// // Fetch employee transactions using Redux-Toolkit thunk
-	// const fetchEmployeeTransactions = useCallback(() => {
-	// 	if (branchId?.id && empId) {
-	// 		dispatch(fetchEmployeeTransactions({ branchId: branchId.id, employeeId: empId }));
-	// 	}
-	// }, [branchId, empId, dispatch]);
+	// Inside the EmployeeProfile component, add these selector hooks
+	const departments = useSelector(selectAllDepartments);
+	const positions = useSelector(selectAllPositions);
+	const branches = useSelector(selectAllBranches);
+	const shiftSchedules = useSelector(selectAllShiftSchedules);
 
-	// // Clean up transactions when component unmounts
-	// useEffect(() => {
-	// 	return () => {
-	// 		dispatch(clearTransactionsError());
-	// 	};
-	// }, [dispatch]);
+	// Add helper functions to map IDs to names
+	const getDepartmentName = (deptId) => {
+		const department = departments.find((dept) => dept.id === deptId);
+		return department ? department.name : deptId;
+	};
+
+	const getPositionName = (posId) => {
+		const position = positions.find((pos) => pos.id === posId);
+		return position ? position.name : posId;
+	};
+
+	const getBranchName = (branchId) => {
+		const branch = branches.find((b) => b.id === branchId);
+		return branch ? branch.name : branchId;
+	};
+
+	const getShiftDetails = (shiftId) => {
+		const shift = shiftSchedules.find((s) => s.id === shiftId);
+		if (!shift) return { name: shiftId, time: "N/A" };
+		return {
+			name: shift.name,
+			time: `${shift.defaultTimes.start} - ${shift.defaultTimes.end}`,
+		};
+	};
 
 	// Fetch employee details when branch or employee ID changes
 	useEffect(() => {
 		if (branchId?.id) fetchEmployeeDetails();
 	}, [branchId, empId, fetchEmployeeDetails]);
-
-	// // Fetch transactions when component mounts
-	// useEffect(() => {
-	// 	if (branchId?.id && empId) {
-	// 		fetchEmployeeTransactions();
-	// 	}
-	// }, [branchId, empId, fetchEmployeeTransactions]);
 
 	// Update attendance data when month changes
 	useEffect(() => {
@@ -91,19 +120,6 @@ const EmployeeProfile = () => {
 			setAttendance(employee.attendance[monthYear] || {});
 		}
 	}, [employee, monthYear]);
-
-	// Handle adding a new transaction
-	// const handleAddTransaction = (transaction) => {
-	// 	if (branchId?.id && empId) {
-	// 		dispatch(
-	// 			addTransactio({
-	// 				branchId: branchId.id,
-	// 				employeeId: empId,
-	// 				transaction,
-	// 			})
-	// 		);
-	// 	}
-	// };
 
 	// Generate month options for the Select component from available months
 	const monthOptions = useMemo(() => {
@@ -181,7 +197,7 @@ const EmployeeProfile = () => {
 									{employee.personal?.firstName} {employee.personal?.lastName}
 								</CardTitle>
 								<CardDescription className="text-center">
-									{employee.employment?.position} - {employee.employment?.department}
+									{getPositionName(employee.employment?.position)} - {getDepartmentName(employee.employment?.department)}
 								</CardDescription>
 								<div className="mt-2">{GetEmployeeStatusBadge(employee.employment?.employmentStatus)}</div>
 							</CardHeader>
@@ -207,7 +223,7 @@ const EmployeeProfile = () => {
 									</div>
 									<div className="flex items-center">
 										<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">Shift: {employee.employment?.shiftId}</span>
+										<span className="text-sm">Shift: {employee.employment?.shiftId ? `${getShiftDetails(employee.employment.shiftId).name} (${getShiftDetails(employee.employment.shiftId).time})` : "Not assigned"}</span>
 									</div>
 								</div>
 							</CardContent>
@@ -307,12 +323,18 @@ const EmployeeProfile = () => {
 												<h3 className="text-lg font-medium mb-4">Employment Details</h3>
 												<div className="space-y-3">
 													<div className="grid grid-cols-2">
-														<div className="text-sm text-muted-foreground">Department</div>
-														<div className="text-sm font-medium">{employee.employment?.department}</div>
+														<div className="text-sm text-muted-foreground">Branch</div>
+														<div className="text-sm font-medium">{getBranchName(branchId?.id) || "Not assigned"}</div>
 													</div>
+
+													<div className="grid grid-cols-2">
+														<div className="text-sm text-muted-foreground">Department</div>
+														<div className="text-sm font-medium">{getDepartmentName(employee.employment?.department)}</div>
+													</div>
+
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Position</div>
-														<div className="text-sm font-medium">{employee.employment?.position}</div>
+														<div className="text-sm font-medium">{getPositionName(employee.employment?.position)}</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Employment Type</div>
@@ -375,6 +397,9 @@ const EmployeeProfile = () => {
 							<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 								<CardTitle>Attendance Records</CardTitle>
 								<div className="flex items-center gap-2">
+									<Button variant={showManualForm ? "secondary" : "default"} onClick={() => setShowManualForm(!showManualForm)}>
+										{showManualForm ? "Cancel" : "Add Manual Entry"}
+									</Button>
 									<Label htmlFor="select-month">Select Month:</Label>
 									<Select id="select-month" value={monthYear} onValueChange={setMonthYear} disabled={availableMonths.length === 0}>
 										<SelectTrigger className="w-[240px]">
@@ -392,86 +417,20 @@ const EmployeeProfile = () => {
 							</div>
 						</CardHeader>
 						<CardContent>
-							<AttendanceTable
-								attendanceData={attendanceData}
-								monthOptions={monthOptions}
-								monthYear={monthYear}
-								onMonthChange={setMonthYear}
-								loading={false} // Pass loading state if available
-								error={null} // Pass error state if available
-							/>
+							{showManualForm ? (
+								<ManualAttendanceForm employee={employee} onSave={handleSaveManualAttendance} />
+							) : (
+								<AttendanceTable
+									attendanceData={attendanceData}
+									monthOptions={monthOptions}
+									monthYear={monthYear}
+									onMonthChange={setMonthYear}
+									loading={false} // Pass loading state if available
+									error={null} // Pass error state if available
+								/>
+							)}
 						</CardContent>
 					</Card>
-
-					{/* Transactions Section */}
-					{/* <Card>
-						<CardHeader>
-							<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-								<CardTitle>Transaction History</CardTitle>
-								<Button
-									onClick={() => {
-										// Logic to add a new transaction
-										const newTransaction = {
-											type: "salary",
-											amount: 10000,
-											status: "pending",
-											description: "Monthly salary",
-											date: new Date(),
-										};
-										handleAddTransaction(newTransaction);
-									}}
-								>
-									Add Transaction
-								</Button>
-							</div>
-						</CardHeader>
-						<CardContent>
-							{transactionsError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">Error: {transactionsError}</div>}
-							<TransactionTable
-								transactions={[
-									{
-										date: { seconds: 1698768000 }, // 31 Oct 2023
-										type: "salary",
-										amount: 50000,
-										status: "paid",
-										description: "Monthly salary for October 2023",
-									},
-									{
-										date: { seconds: 1696118400 }, // 30 Sep 2023
-										type: "advance",
-										amount: 10000,
-										status: "paid",
-										description: "Advance payment for September 2023",
-									},
-									{
-										date: { seconds: 1693526400 }, // 31 Aug 2023
-										type: "salary",
-										amount: 45000,
-										status: "pending",
-										description: "Monthly salary for August 2023",
-									},
-									{
-										date: { seconds: 1690848000 }, // 31 Jul 2023
-										type: "deduction",
-										amount: 5000,
-										status: "paid",
-										description: "Deduction for late attendance",
-									},
-									{
-										date: { seconds: 1688169600 }, // 30 Jun 2023
-										type: "salary",
-										amount: 50000,
-										status: "paid",
-										description: "Monthly salary for June 2023",
-									},
-								]}
-								loading={transactionsLoading}
-								error={transactionsError}
-								onAddTransaction={handleAddTransaction}
-								onRefresh={fetchEmployeeTransactions}
-							/>
-						</CardContent>
-					</Card> */}
 				</>
 			) : (
 				<Card className="w-full p-6">

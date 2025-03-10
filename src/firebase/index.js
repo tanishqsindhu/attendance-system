@@ -13,7 +13,7 @@ export { OrganizationSettingsService } from "./organization-service";
 export { getEmployees, getEmployeeDetails, addEmployeeToBranch, deleteEmployee, updateEmployeeDetails, getActiveEmployees } from "./employee-service";
 
 // Attendance Management
-export { checkAttendanceExists, saveAttendanceData, getAttendanceLogs, saveProcessedAttendance, addCollectionAndDocuments, getAvailableAttendancePeriods, getEmployeeAttendanceLogs, processAttendanceWithRules } from "./attendance-service";
+export { checkAttendanceExists, saveAttendanceData, getAttendanceLogs, saveProcessedAttendance, addCollectionAndDocuments, getAvailableAttendancePeriods, getEmployeeAttendanceLogs } from "./attendance-service";
 
 // Holiday Management
 export { HolidayService } from "./holiday-service";
@@ -21,5 +21,3 @@ export { HolidayService } from "./holiday-service";
 // Attendance Rules
 export { AttendanceRulesService } from "./attendance-rules-service";
 
-// Payroll Management
-export { PayrollService } from "./payroll-service";

@@ -1,0 +1,82 @@
+{
+  "id": "3",
+  "personal": {
+    "city": "",
+    "gender": "male",
+    "pincode": "",
+    "email": "test@gmail.com",
+    "phone": "9999999999",
+    "bloodGroup": "",
+    "state": "",
+    "lastName": "",
+    "aadhar": "",
+    "dob": {
+      "seconds": 1740960000,
+      "nanoseconds": 0
+    },
+    "address": "",
+    "firstName": "test"
+  },
+  "advanceSettings": {
+    "skipLeaveFines": false,
+    "skipLateFines": false
+  },
+  "attendance": {
+    "11-2024": {
+      "2024-11-21": {
+        "deduction": 0,
+        "workingHours": "8h 16m",
+        "firstIn": "7:22:22 AM",
+        "lastOut": "3:38:47 PM",
+        "logs": [
+          {
+            "mode": "FP",
+            "time": "7:22:22 AM",
+            "inOut": "DutyOn"
+          },
+          {
+            "mode": "FP",
+            "time": "3:38:47 PM",
+            "inOut": "DutyOff"
+          }
+        ],
+        "status": "On Time"
+      },
+      "2024-11-22": {
+        "logs": [
+          {
+            "time": "6:58:07 AM",
+            "mode": "FP",
+            "inOut": "DutyOn"
+          }
+        ],
+        "workingHours": "0h 0m",
+        "firstIn": "6:58:07 AM",
+        "status": "Missing Punch",
+        "deduction": 1,
+        "lastOut": null
+      }
+    }
+  },
+  "employment": {
+    "joiningDate": "2025-03-01",
+    "branchId": "B001",
+    "shiftId": "S011",
+    "paySchedule": "monthly",
+    "employeeId": "3",
+    "employmentType": "full-time",
+    "employmentStatus": "active",
+    "salaryAmount": 1,
+    "supervisor": "",
+    "department": "D002",
+    "position": "P001"
+  },
+  "banking": {
+    "pan": "",
+    "accountNumber": "1",
+    "ifscCode": "SBIN0123456",
+    "accountType": "salary",
+    "bankName": "1"
+  },
+  "updatedAt": "2025-03-09T20:38:31.385Z"
+}

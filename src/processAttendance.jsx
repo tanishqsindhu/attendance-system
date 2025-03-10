@@ -22,7 +22,7 @@ export default function ProcessAttendance() {
 	const currentUser = useSelector(selectCurrentUser);
 
 	const allowedBranches = branches.filter((branch) => currentUser.roles.includes(branch.id) || currentUser.roles.includes("bothBranches"));
-	// console.log(availablePeriods);
+
 	// Fetch available periods when branch changes
 	useEffect(() => {
 		if (branchId) {
@@ -39,7 +39,7 @@ export default function ProcessAttendance() {
 		setIsLoading(true);
 		try {
 			const periods = await getAvailableAttendancePeriods(branchId);
-			console.log(periods);
+
 			setAvailablePeriods(periods);
 
 			// Auto-select most recent year if available

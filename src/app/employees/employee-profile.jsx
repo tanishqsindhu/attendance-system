@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import SalaryTransactions from "../../components/salaryTransactions.component";
 import female from "@/assets/woman.png?url";
 import male from "@/assets/man.png?url";
+import { LeaveManagement } from "../../components/leave-management.component";
 
 // The main component
 const EmployeeProfile = () => {
@@ -182,7 +183,7 @@ const EmployeeProfile = () => {
 			{/* Edit Employee Modal */}
 			<div className="w-full max-w-full mx-4">
 				{/* Edit Employee Modal */}
-				<EditEmployeeModal isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employee } />
+				<EditEmployeeModal isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employee} />
 				{/* <EditEmployeeModal className="sm:w-[800px] md:w-[1000px] lg:w-[4000px]" isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employee} /> */}
 			</div>
 			{employee ? (
@@ -443,6 +444,7 @@ const EmployeeProfile = () => {
 						</CardContent>
 					</Card>
 					<SalaryTransactions employee={employee} />
+					<LeaveManagement branchId={branchId.id} />
 				</>
 			) : (
 				<Card className="w-full p-6">

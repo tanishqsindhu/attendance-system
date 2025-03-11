@@ -6,6 +6,7 @@ import organizationReducer from "@/store/organization-settings/organization-sett
 import holidayReducer from "@/store/holiday/holiday.slice";
 import attendanceRulesReducer from "@/store/attendance-rules/attendance-rules.slice";
 import transactionsReducer from "@/store/transactions/transaction.slice";
+import leaveReducer from "@/store/leave/leave.slice";
 
 export const rootReducer = combineReducers({
 	user: userReducer,
@@ -14,4 +15,5 @@ export const rootReducer = combineReducers({
 	holidays: holidayReducer,
 	attendanceRules: attendanceRulesReducer,
 	transactions: transactionsReducer,
+	leaves: leaveReducer,
 });

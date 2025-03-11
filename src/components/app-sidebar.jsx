@@ -58,6 +58,10 @@ export function AppSidebar({ ...props }) {
 						title: "Upload Attendance",
 						url: "/employees/upload-data",
 					},
+					{
+						title: "Leaves",
+						url: "/employees/leaves",
+					},
 				],
 			},
 			{

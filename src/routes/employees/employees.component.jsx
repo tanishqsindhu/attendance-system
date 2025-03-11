@@ -10,6 +10,7 @@ import EmployeeAdd from "@/app/employees/addEmployee";
 import { fetchEmployeesByBranch, selectEmployeesByBranch } from "@/store/employees/employees.slice.js";
 import { selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
 import ProtectedRoute from "@/components/protected-routes";
+import LeaveManagementPage from "../../components/leave-management-page.component";
 
 const Employees = () => {
 	const dispatch = useDispatch();
@@ -46,6 +47,7 @@ const Employees = () => {
 					</ProtectedRoute>
 				}
 			/>
+			LeaveManagementPage
 			<Route
 				path="/upload-data"
 				element={
@@ -55,10 +57,17 @@ const Employees = () => {
 				}
 			/>
 			<Route
+				path="/leaves"
+				element={
+					<ProtectedRoute allowedRoles={["admin", "uploadAttendance"]}>
+						<LeaveManagementPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
 				path="/:empId"
 				element={
 					<ProtectedRoute allowedRoles={["admin", "viewEmployee"]}>
-					
 						<EmployeeProfile />
 					</ProtectedRoute>
 				}

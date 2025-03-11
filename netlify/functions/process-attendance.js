@@ -1,8 +1,8 @@
-const { getAttendanceLogs, getEmployees, saveProcessedAttendance, OrganizationSettingsService } = require("@/firebase/index");
+const { getAttendanceLogs, getEmployees, saveProcessedAttendance, OrganizationSettingsService,HolidayService } = require("@/firebase/index");
 
 /**
  * Serverless function to process attendance data from raw logs
- * Uses attendance rules and shift schedules to calculate deductions in rupees
+ * Uses attendance rules, holidays, and shift schedules to calculate deductions
  */
 exports.handler = async (event) => {
 	// Validate HTTP method
@@ -25,8 +25,16 @@ exports.handler = async (event) => {
 
 		console.log(`Processing attendance for branch: ${branchId}, input month-year: ${monthYear}`);
 
-		// Fetch attendance logs, employees, and settings in parallel
-		const [attendanceLogs, employees, settings] = await Promise.all([getAttendanceLogs(branchId, monthYear), getEmployees(branchId), OrganizationSettingsService.getSettings()]);
+		// Extract year and month from monthYear
+		const [month, year] = monthYear.split("-").map(Number);
+
+		// Fetch attendance logs, employees, settings, and holidays in parallel
+		const [attendanceLogs, employees, settings, holidays] = await Promise.all([
+			getAttendanceLogs(branchId, monthYear),
+			getEmployees(branchId),
+			OrganizationSettingsService.getSettings(),
+			HolidayService.getHolidaysByYear(year), // Fetch holidays for the year
+		]);
 
 		// Extract needed settings
 		const { shiftSchedules } = settings;
@@ -41,8 +49,19 @@ exports.handler = async (event) => {
 					deductPerMinute: 0.5,
 					enabled: true,
 				},
+				leaveRules: {
+					unsanctionedMultiplier: 2, // Multiplier for unsanctioned leaves (2x daily wage)
+				},
 			},
 		};
+
+		// Create a map of holidays for quick lookup
+		const holidayMap = {};
+		holidays.forEach((holiday) => {
+			holidayMap[holiday.date] = holiday;
+		});
+
+		console.log(`Found ${holidays.length} holidays for year ${year}`);
 
 		// Validate data existence
 		if (!attendanceLogs || Object.keys(attendanceLogs).length === 0) {
@@ -65,17 +84,18 @@ exports.handler = async (event) => {
 		// Process attendance grouped by month-year derived from timestamps
 		const processedAttendance = {};
 
-		// Iterate through each employee's logs
-		for (const [employeeId, logs] of Object.entries(attendanceLogs)) {
-			// Skip if employee not found in employees collection
-			if (!employees[employeeId]) {
-				console.log(`Skipping employee ${employeeId} - not found in employee records`);
-				continue;
-			}
+		// Calculate all dates in the month for complete attendance processing
+		const daysInMonth = new Date(year, month, 0).getDate();
+		const allDatesInMonth = [];
+		for (let day = 1; day <= daysInMonth; day++) {
+			const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+			allDatesInMonth.push(date);
+		}
 
+		// Iterate through each employee
+		for (const [employeeId, employee] of Object.entries(employees)) {
 			// Get employee shift details
-			const employee = employees[employeeId];
-			const shiftId = employee.employment.shiftId;
+			const shiftId = employee.employment?.shiftId;
 			const shift = shiftSchedules.find((s) => s.id === shiftId);
 
 			if (!shift) {
@@ -83,8 +103,11 @@ exports.handler = async (event) => {
 				continue;
 			}
 
-			// Process each employee's attendance logs
-			processEmployeeLogs(employeeId, logs, shift, attendanceRules.lateDeductions, processedAttendance, employee);
+			// Get employee's attendance logs
+			const employeeLogs = attendanceLogs[employeeId] || { logs: [] };
+
+			// Process attendance for all days in the month
+			processEmployeeAttendance(employeeId, employee, employeeLogs, shift, attendanceRules, processedAttendance, allDatesInMonth, holidayMap, monthYear);
 		}
 
 		// Store processed attendance in Firestore - one call per month-year
@@ -121,88 +144,129 @@ exports.handler = async (event) => {
 };
 
 /**
- * Process an employee's attendance logs and organize by month-year
+ * Process an employee's attendance for the entire month
  *
  * @param {string} employeeId - The employee ID
- * @param {Object} logs - The employee's attendance logs
- * @param {Object} shift - Employee's shift schedule
- * @param {Object} lateDeductions - Late deduction rules
- * @param {Object} processedAttendance - Output object to store processed data
  * @param {Object} employee - The employee object containing salary info
+ * @param {Object} employeeLogs - The employee's attendance logs
+ * @param {Object} shift - Employee's shift schedule
+ * @param {Object} attendanceRules - Attendance rules
+ * @param {Object} processedAttendance - Output object to store processed data
+ * @param {Array} allDates - All dates in the month to process
+ * @param {Object} holidayMap - Map of holidays for quick lookup
+ * @param {string} monthYear - Month-year being processed
  */
-function processEmployeeLogs(employeeId, logs, shift, lateDeductions, processedAttendance, employee) {
-	if (!logs.logs || !Array.isArray(logs.logs) || logs.logs.length === 0) {
-		console.log(`No logs found for employee ${employeeId}`);
-		return;
-	}
-
-	// Group logs by month-year derived from actual timestamps
-	const groupedLogs = {};
-
-	// First pass - group logs by date and month-year
-	logs.logs.forEach(({ dateTime, mode, inOut }) => {
-		// Convert Firestore timestamp to JavaScript Date
-		const timestamp = dateTime.seconds ? new Date(dateTime.seconds * 1000) : new Date(dateTime);
-
-		// Extract date components
-		const year = timestamp.getFullYear();
-		const month = String(timestamp.getMonth() + 1).padStart(2, "0");
-		const monthYear = `${month}-${year}`;
-		const date = timestamp.toISOString().split("T")[0];
-		const dayOfWeek = timestamp.toLocaleString("en-US", { weekday: "long" });
-
-		// Initialize month-year and date structures if they don't exist
-		if (!groupedLogs[monthYear]) {
-			groupedLogs[monthYear] = {};
-		}
-
-		if (!groupedLogs[monthYear][date]) {
-			groupedLogs[monthYear][date] = {
-				logs: [],
-				status: "",
-				attendanceDeduction: 0, // For attendance record purposes
-				deductionAmount: 0, // Actual monetary deduction in rupees
-				deductionRemarks: "",
-				workingHours: "0h 0m",
-				dayOfWeek,
-			};
-		}
-
-		// Add the log entry
-		groupedLogs[monthYear][date].logs.push({
-			time: timestamp,
-			inOut,
-			mode,
-			formattedTime: timestamp.toLocaleTimeString(), // For readability
-		});
-	});
-
-	// Get the employee's salary for percentage calculations
+function processEmployeeAttendance(employeeId, employee, employeeLogs, shift, attendanceRules, processedAttendance, allDates, holidayMap, monthYear) {
+	// Get the employee's salary for calculations
 	const monthlySalary = employee.employment?.salaryAmount || 0;
 
-	console.log(`Processing employee ${employeeId} with salary: ${monthlySalary}`);
+	// Get the number of days in the month for daily salary calculation
+	const [month, year] = monthYear.split("-").map(Number);
+	const daysInMonth = new Date(year, month, 0).getDate();
+	const dailySalary = monthlySalary / daysInMonth;
 
-	// Second pass - process each day's logs by month-year
-	for (const [monthYear, dailyLogs] of Object.entries(groupedLogs)) {
-		// Get actual days in this month for accurate daily salary calculation
-		const [month, year] = monthYear.split("-").map(Number);
-		const daysInMonth = new Date(year, month, 0).getDate();
-		const dailySalary = monthlySalary / daysInMonth; // Accurate daily salary
+	console.log(`Processing employee ${employeeId} with salary: ${monthlySalary}, daily: ${dailySalary.toFixed(2)}`);
 
-		console.log(`Month ${monthYear} has ${daysInMonth} days, daily salary: ${dailySalary.toFixed(2)}`);
+	// Create a map of logs by date for easy lookup
+	const logsByDate = {};
 
-		// Process each date in this month-year
-		for (const date of Object.keys(dailyLogs)) {
-			processDailyAttendance(date, dailyLogs[date], shift, lateDeductions, dailySalary);
+	if (employeeLogs.logs && Array.isArray(employeeLogs.logs)) {
+		employeeLogs.logs.forEach(({ dateTime, mode, inOut }) => {
+			// Convert Firestore timestamp to JavaScript Date
+			const timestamp = dateTime.seconds ? new Date(dateTime.seconds * 1000) : new Date(dateTime);
+			const date = timestamp.toISOString().split("T")[0];
+
+			if (!logsByDate[date]) {
+				logsByDate[date] = [];
+			}
+
+			logsByDate[date].push({
+				time: timestamp,
+				inOut,
+				mode,
+				formattedTime: timestamp.toLocaleTimeString(),
+			});
+		});
+	}
+
+	// Initialize the output structure if it doesn't exist
+	if (!processedAttendance[monthYear]) {
+		processedAttendance[monthYear] = {};
+	}
+
+	if (!processedAttendance[monthYear][employeeId]) {
+		processedAttendance[monthYear][employeeId] = {};
+	}
+
+	// Process each date in the month
+	for (const date of allDates) {
+		const dayOfWeek = new Date(date).toLocaleString("en-US", { weekday: "long" });
+		const logs = logsByDate[date] || [];
+
+		// Initialize the day record
+		const dayRecord = {
+			logs: logs.map((log) => ({
+				time: log.formattedTime,
+				inOut: log.inOut,
+				mode: log.mode,
+			})),
+			status: "",
+			attendanceDeduction: 0,
+			deductionAmount: 0,
+			deductionRemarks: "",
+			workingHours: "0h 0m",
+			dayOfWeek,
+			sanctioned: false, // New field to track if a leave has been sanctioned
+		};
+
+		// Check if the date is a holiday
+		if (holidayMap[date]) {
+			const holiday = holidayMap[date];
+			dayRecord.status = `Holiday: ${holiday.name}`;
+			dayRecord.attendanceDeduction = 0;
+			dayRecord.deductionAmount = 0;
+			dayRecord.deductionRemarks = `No deduction - ${holiday.type} holiday: ${holiday.name}`;
+
+			// Store the holiday details
+			dayRecord.holiday = {
+				name: holiday.name,
+				type: holiday.type || "full",
+			};
+		}
+		// Check if it's a scheduled work day
+		else if (shift.days.includes(dayOfWeek)) {
+			// Get shift times for this day
+			const { startTime, endTime } = getShiftTimesForDay(date, dayOfWeek, shift);
+
+			// If no logs for this date, mark as absent (unsanctioned leave)
+			if (logs.length === 0) {
+				dayRecord.status = "Absent: Unsanctioned Leave";
+				dayRecord.attendanceDeduction = 1; // Full day attendance deduction
+
+				// Apply double deduction for unsanctioned leaves
+				const multiplier = attendanceRules.leaveRules?.unsanctionedMultiplier || 2;
+				dayRecord.deductionAmount = dailySalary * multiplier;
+				dayRecord.deductionRemarks = `₹${dayRecord.deductionAmount.toFixed(2)} deduction (${multiplier}x daily salary) - Unsanctioned leave`;
+
+				// Store shift times
+				dayRecord.shiftStart = startTime;
+				dayRecord.shiftEnd = endTime;
+			}
+			// Process attendance for days with logs
+			else {
+				processDailyAttendance(date, dayRecord, logs, shift, attendanceRules.lateDeductions, dailySalary, attendanceRules.leaveRules?.unsanctionedMultiplier || 2);
+			}
+		}
+		// Not a working day according to shift
+		else {
+			dayRecord.status = "Off Day";
+			dayRecord.attendanceDeduction = 0;
+			dayRecord.deductionAmount = 0;
+			dayRecord.deductionRemarks = "No deduction - Not scheduled to work";
 		}
 
-		// Ensure we have a structure to store data for this month-year
-		if (!processedAttendance[monthYear]) {
-			processedAttendance[monthYear] = {};
-		}
-
-		// Store employee's attendance for this month-year
-		processedAttendance[monthYear][employeeId] = dailyLogs;
+		// Store the processed record
+		processedAttendance[monthYear][employeeId][date] = dayRecord;
 	}
 }
 
@@ -210,14 +274,16 @@ function processEmployeeLogs(employeeId, logs, shift, lateDeductions, processedA
  * Process a single day's attendance for an employee
  *
  * @param {string} date - The date (YYYY-MM-DD)
- * @param {Object} dayRecord - The day's attendance record
+ * @param {Object} dayRecord - The day's attendance record to be updated
+ * @param {Array} shifts - The day's attendance log entries
  * @param {Object} shift - Employee's shift schedule
  * @param {Object} lateDeductions - Late deduction rules
- * @param {number} dailySalary - Employee's daily salary for percentage calculations
+ * @param {number} dailySalary - Employee's daily salary for calculations
+ * @param {number} unsanctionedMultiplier - Multiplier for unsanctioned leaves
  */
-function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySalary) {
+function processDailyAttendance(date, dayRecord, shifts, shift, lateDeductions, dailySalary, unsanctionedMultiplier) {
 	// Sort logs chronologically
-	const shifts = dayRecord.logs.sort((a, b) => a.time - b.time);
+	shifts = shifts.sort((a, b) => a.time - b.time);
 	const dayOfWeek = dayRecord.dayOfWeek;
 
 	// Get the appropriate shift times for this day
@@ -253,10 +319,6 @@ function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySal
 		dayRecord.workingHours = `${hours}h ${minutes}m`;
 	}
 
-	// Check if shift applies to this day (is in the specified days array)
-	const isWorkingDay = shift.days.includes(dayOfWeek);
-
-	// Determine attendance status and calculate deductions
 	try {
 		// Create Date objects for shift times - this is critical for correct time comparison
 		let shiftStartTime, shiftEndTime;
@@ -283,21 +345,12 @@ function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySal
 			shiftEndTime = new Date(`${date}T${endTime}:00`);
 		}
 
-		if (!isWorkingDay) {
-			status = "Off Day";
-			attendanceDeduction = 0;
-			deductionAmount = 0;
-			deductionRemarks = "Not scheduled to work";
-		} else if (shifts.length === 0) {
-			status = "Absent";
-			attendanceDeduction = 1; // Full day deduction
-			deductionAmount = dailySalary; // Full day salary deduction
-			deductionRemarks = "Absent - No attendance records";
-		} else if (!firstIn || !lastOut) {
-			status = "Missing Punch";
-			attendanceDeduction = 0.5; // Half day deduction for missing punch
-			deductionAmount = dailySalary * 0.5; // Half day salary deduction
-			deductionRemarks = "Missing entry or exit record";
+		// Check for missing punch - now treated as unsanctioned leave with double deduction
+		if (!firstIn || !lastOut) {
+			status = "Absent: Missing Punch (Unsanctioned)";
+			attendanceDeduction = 1; // Full day attendance deduction
+			deductionAmount = dailySalary * unsanctionedMultiplier; // Double daily salary deduction for unsanctioned
+			deductionRemarks = `₹${deductionAmount.toFixed(2)} deduction (${unsanctionedMultiplier}x daily salary) - Unsanctioned leave due to missing ${!firstIn ? "entry" : "exit"} record`;
 		} else {
 			// Calculate grace period if enabled
 			let effectiveStartTime = new Date(shiftStartTime);
@@ -316,17 +369,17 @@ function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySal
 					// Apply deduction rules for late arrival
 					if (lateDeductions.enabled) {
 						if (minutesLate >= lateDeductions.absentThreshold) {
-							// Marked as absent
-							status = `Absent (Late ${minutesLate} min)`;
+							// Marked as absent - now unsanctioned leave
+							status = `Absent: Late ${minutesLate} min (Unsanctioned)`;
 							attendanceDeduction = 1;
-							deductionAmount = dailySalary; // Full day salary deduction
-							deductionRemarks = `Marked absent - Late by ${minutesLate} minutes (exceeds threshold of ${lateDeductions.absentThreshold} minutes)`;
+							deductionAmount = dailySalary * unsanctionedMultiplier; // Double deduction for unsanctioned
+							deductionRemarks = `₹${deductionAmount.toFixed(2)} deduction (${unsanctionedMultiplier}x daily salary) - Unsanctioned leave due to excessive lateness (${minutesLate} minutes exceeds threshold of ${lateDeductions.absentThreshold} minutes)`;
 						} else if (minutesLate >= lateDeductions.halfDayThreshold) {
 							// Half day deduction
 							status = `Half Day (Late ${minutesLate} min)`;
 							attendanceDeduction = 0.5;
 							deductionAmount = dailySalary * 0.5; // Half day salary deduction
-							deductionRemarks = `Half day deduction - Late by ${minutesLate} minutes (exceeds threshold of ${lateDeductions.halfDayThreshold} minutes)`;
+							deductionRemarks = `₹${deductionAmount.toFixed(2)} deduction (0.5x daily salary) - Half day due to lateness (${minutesLate} minutes exceeds threshold of ${lateDeductions.halfDayThreshold} minutes)`;
 						} else {
 							// Calculate minute-based deduction
 							const deductionMinutes = Math.min(minutesLate, lateDeductions.maxDeductionTime);
@@ -385,15 +438,16 @@ function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySal
 					// Apply similar rules as late arrival for early departure
 					if (lateDeductions.enabled) {
 						if (minutesEarly >= lateDeductions.absentThreshold) {
-							status = `Absent (Early ${minutesEarly} min)`;
+							// Now unsanctioned leave
+							status = `Absent: Early ${minutesEarly} min (Unsanctioned)`;
 							attendanceDeduction = 1;
-							deductionAmount = dailySalary; // Full day salary deduction
-							deductionRemarks = `Marked absent - Left early by ${minutesEarly} minutes (exceeds threshold of ${lateDeductions.absentThreshold} minutes)`;
+							deductionAmount = dailySalary * unsanctionedMultiplier; // Double deduction for unsanctioned
+							deductionRemarks = `₹${deductionAmount.toFixed(2)} deduction (${unsanctionedMultiplier}x daily salary) - Unsanctioned leave due to leaving early (${minutesEarly} minutes exceeds threshold of ${lateDeductions.absentThreshold} minutes)`;
 						} else if (minutesEarly >= lateDeductions.halfDayThreshold) {
 							status = `Half Day (Early ${minutesEarly} min)`;
 							attendanceDeduction = 0.5;
 							deductionAmount = dailySalary * 0.5; // Half day salary deduction
-							deductionRemarks = `Half day deduction - Left early by ${minutesEarly} minutes (exceeds threshold of ${lateDeductions.halfDayThreshold} minutes)`;
+							deductionRemarks = `₹${deductionAmount.toFixed(2)} deduction (0.5x daily salary) - Half day due to leaving early (${minutesEarly} minutes exceeds threshold of ${lateDeductions.halfDayThreshold} minutes)`;
 						} else {
 							// Calculate minute-based deduction
 							const deductionMinutes = Math.min(minutesEarly, lateDeductions.maxDeductionTime);
@@ -439,13 +493,6 @@ function processDailyAttendance(date, dayRecord, shift, lateDeductions, dailySal
 	dayRecord.lastOut = lastOut ? lastOut.toLocaleTimeString() : null;
 	dayRecord.shiftStart = startTime;
 	dayRecord.shiftEnd = endTime;
-
-	// Keep only the formatted logs for storage efficiency
-	dayRecord.logs = shifts.map((log) => ({
-		time: log.formattedTime,
-		inOut: log.inOut,
-		mode: log.mode,
-	}));
 }
 
 /**
@@ -485,3 +532,55 @@ function getShiftTimesForDay(date, dayOfWeek, shift) {
 
 	return { startTime, endTime };
 }
+
+/**
+ * Function to handle sanctioning a leave - can be called after initial processing
+ *
+ * @param {string} branchId - Branch ID
+ * @param {string} monthYear - Month-year format (MM-YYYY)
+ * @param {string} employeeId - Employee ID
+ * @param {string} date - Date to sanction leave for (YYYY-MM-DD)
+ * @returns {Promise<Object>} - Updated attendance record
+ */
+async function sanctionLeave(branchId, monthYear, employeeId, date) {
+	try {
+		// Fetch current attendance data
+		const attendanceData = await getProcessedAttendance(branchId, monthYear);
+
+		if (!attendanceData || !attendanceData[employeeId] || !attendanceData[employeeId][date]) {
+			throw new Error("Attendance record not found");
+		}
+
+		const record = attendanceData[employeeId][date];
+
+		// Check if this is an unsanctioned leave that can be sanctioned
+		if (!record.status.includes("Unsanctioned")) {
+			throw new Error("This record is not an unsanctioned leave");
+		}
+
+		// Get employee salary info for recalculation
+		const employee = await getEmployee(branchId, employeeId);
+		const monthlySalary = employee.employment?.salaryAmount || 0;
+		const [month, year] = monthYear.split("-").map(Number);
+		const daysInMonth = new Date(year, month, 0).getDate();
+		const dailySalary = monthlySalary / daysInMonth;
+
+		// Update to sanctioned leave (single day deduction)
+		record.status = record.status.replace("Unsanctioned", "Sanctioned");
+		record.sanctioned = true;
+		record.deductionAmount = dailySalary; // Reduce to 1x daily salary
+		record.deductionRemarks = record.deductionRemarks.replace(/\(2x daily salary\)/, "(1x daily salary)") + " - Leave sanctioned on " + new Date().toISOString().split("T")[0];
+
+		// Save the updated record
+		attendanceData[employeeId][date] = record;
+		await saveProcessedAttendance(branchId, monthYear, { [employeeId]: { [date]: record } });
+
+		return record;
+	} catch (error) {
+		console.error("Error sanctioning leave:", error);
+		throw error;
+	}
+}
+
+// Export the sanctioning function to make it available to other modules
+exports.sanctionLeave = sanctionLeave;

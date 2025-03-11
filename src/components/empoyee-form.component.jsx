@@ -686,6 +686,7 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 		}
 		setActiveTab(newTab);
 	};
+	console.log(initialValues);
 
 	const onSubmit = async (data) => {
 		try {
@@ -697,14 +698,14 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 				banking: data.banking,
 				advanceSettings: data.advanceSettings,
 			};
-
 			// If in edit mode, use updateEmployee action
-			if (mode === "edit" && initialValues?.id) {
+			if (mode === "edit" && initialValues?.employment.employeeId) {
+
 				branchId;
 				dispatch(
 					updateEmployee({
 						branchId,
-						employeeId: initialValues.id,
+						employeeId: initialValues?.employment.employeeId,
 						employeeData,
 					})
 				)

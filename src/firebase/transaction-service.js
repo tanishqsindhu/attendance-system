@@ -71,7 +71,7 @@ export const getEmployeeTransactions = async (branchId, employeeId) => {
 
 		// Execute the query
 		const querySnapshot = await getDocs(q);
-		console.log(querySnapshot, q);
+
 		// Map the document data to an array
 		const transactions = [];
 		querySnapshot.forEach((doc) => {

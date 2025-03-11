@@ -1,36 +1,35 @@
+// store.js
 import { configureStore } from "@reduxjs/toolkit";
-import { persistStore, persistReducer } from "redux-persist";
-import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
+import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from "redux-persist";
+import storage from "redux-persist/lib/storage";
+import { rootReducer } from "./root-reducer";
+// For development environment only
 import logger from "redux-logger";
 
-import { rootReducer } from "./root-reducer";
-
-// Middleware configuration
-const middleWares = [process.env.NODE_ENV === "development" && logger].filter(Boolean);
-
-// Persist configuration
 const persistConfig = {
-	key: "root", // key for the persist
-	storage, // storage engine (localStorage by default)
-	blacklist: ["user"], // optional: blacklist specific reducers
+	key: "root",
+	storage,
+	blacklist: ["user"], // Excluded from persistence
 };
 
-// Create a persisted reducer
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-// Configure the store with the persisted reducer
+// Prepare middlewares based on environment
+const middlewares = [];
+if (process.env.NODE_ENV === "development") {
+	middlewares.push(logger);
+}
+
 export const store = configureStore({
-	reducer: persistedReducer, // Use the persisted reducer
+	reducer: persistedReducer,
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
-			// Disable serializable check for redux-persist
 			serializableCheck: {
-				ignoredActions: ["persist/PERSIST", "persist/REHYDRATE", "meta.arg", "payload.timestamp"],
+				ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
 				ignoredPaths: ["items.dates"],
 			},
-		}).concat(middleWares), // Add custom middleware
-	devTools: process.env.NODE_ENV !== "production", // Enable Redux DevTools in development
+		}).concat(middlewares),
+	devTools: process.env.NODE_ENV !== "production",
 });
 
-// Create the persistor
 export const persistor = persistStore(store);

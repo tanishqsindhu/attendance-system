@@ -1,145 +1,121 @@
 // store/transactions/transaction.slice.js
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { addTransaction, getEmployeeTransactions, updateTransaction } from "@/firebase";
+import { addTransaction, getEmployeeTransactions, updateTransaction } from "@/firebase/transaction-service";
 
 // New thunk to calculate and generate salary payment
-export const generateSalaryPayment = createAsyncThunk(
-	"transactions/generateSalaryPayment",
-	async (
-		{ branchId, employee, month, year, additionalDeductions = 0 },
-		{ rejectWithValue, getState }
-	) => {
-		try {
-			const attendanceKey = `${month}-${year}`;
-			const monthAttendance = employee?.attendance?.[attendanceKey] || {};
+export const generateSalaryPayment = createAsyncThunk("transactions/generateSalaryPayment", async ({ branchId, employee, month, year, additionalDeductions = 0 }, { rejectWithValue, getState }) => {
+	try {
+		const attendanceKey = `${month}-${year}`;
+		const monthAttendance = employee?.attendance?.[attendanceKey] || {};
 
-			// Calculate base salary amount
-			const baseSalary = employee?.employment?.salaryAmount || 0;
+		// Calculate base salary amount
+		const baseSalary = employee?.employment?.salaryAmount || 0;
 
-			// For debugging
-			console.log(`Generating salary for ${month}/${year} with base salary: ${baseSalary}`);
+		// For debugging
+		console.log(`Generating salary for ${month}/${year} with base salary: ${baseSalary}`);
 
-			// Calculate deductions from attendance
-			let totalDeductions = 0;
-			let daysPresent = 0;
-			let daysMissingPunch = 0;
-			let daysAbsent = 0;
+		// Calculate deductions from attendance
+		let totalDeductions = 0;
+		let daysPresent = 0;
+		let daysMissingPunch = 0;
+		let daysAbsent = 0;
 
-			// Count the days in the given month
-			const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+		// Count the days in the given month
+		const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
 
-			// Log days in month for debugging
-			console.log(`Days in month: ${daysInMonth}`);
+		// Log days in month for debugging
+		console.log(`Days in month: ${daysInMonth}`);
 
-			// Calculate attendance stats
-			Object.keys(monthAttendance).forEach((date) => {
-				const dayData = monthAttendance[date];
+		// Calculate attendance stats
+		Object.keys(monthAttendance).forEach((date) => {
+			const dayData = monthAttendance[date];
 
-				if (dayData.status === "On Time" || dayData.status === "Late") {
-					daysPresent++;
-				} else if (dayData.status === "Missing Punch") {
-					daysMissingPunch++;
-					totalDeductions += dayData.deduction || 0;
-				} else if (dayData.status === "Absent") {
-					daysAbsent++;
-					totalDeductions += 1; // Full day deduction for absence
-				}
-			});
+			if (dayData.status === "On Time" || dayData.status === "Late") {
+				daysPresent++;
+			} else if (dayData.status === "Missing Punch") {
+				daysMissingPunch++;
+				totalDeductions += dayData.deduction || 0;
+			} else if (dayData.status === "Absent") {
+				daysAbsent++;
+				totalDeductions += 1; // Full day deduction for absence
+			}
+		});
 
-			// Add any additional deductions (advances, etc.)
-			totalDeductions += parseFloat(additionalDeductions) || 0;
+		// Add any additional deductions (advances, etc.)
+		totalDeductions += parseFloat(additionalDeductions) || 0;
 
-			// Calculate daily pay rate
-			const dailyRate = daysInMonth > 0 ? baseSalary / daysInMonth : 0;
+		// Calculate daily pay rate
+		const dailyRate = daysInMonth > 0 ? baseSalary / daysInMonth : 0;
 
-			// Calculate final salary amount
-			const deductionAmount = dailyRate * totalDeductions;
-			const finalSalaryAmount = Math.max(0, baseSalary - deductionAmount); // Ensure salary isn't negative
+		// Calculate final salary amount
+		const deductionAmount = dailyRate * totalDeductions;
+		const finalSalaryAmount = Math.max(0, baseSalary - deductionAmount); // Ensure salary isn't negative
 
-			// Log calculation details for debugging
-			console.log(
-				`Attendance: Present ${daysPresent}, Missing ${daysMissingPunch}, Absent ${daysAbsent}`
-			);
-			console.log(
-				`Total deductions: ${totalDeductions} days at ${dailyRate}/day = ${deductionAmount}`
-			);
-			console.log(`Final salary: ${finalSalaryAmount}`);
+		// Log calculation details for debugging
+		console.log(`Attendance: Present ${daysPresent}, Missing ${daysMissingPunch}, Absent ${daysAbsent}`);
+		console.log(`Total deductions: ${totalDeductions} days at ${dailyRate}/day = ${deductionAmount}`);
+		console.log(`Final salary: ${finalSalaryAmount}`);
 
-			// Get current user info to track who generated the salary
-			const state = getState();
-			const currentUser = state.user?.currentUser || { id: "System", fullName: "System" };
+		// Get current user info to track who generated the salary
+		const state = getState();
+		const currentUser = state.user?.currentUser || { id: "System", fullName: "System" };
 
-			// Create transaction data
-			const transactionData = {
-				employeeId: employee.id,
-				type: "salary",
-				amount: finalSalaryAmount,
-				description: `Salary payment for ${month}/${year} (${daysPresent} days present, ${daysMissingPunch} missing punches, ${daysAbsent} absences)`,
-				date: new Date().toISOString(),
-				status: "completed",
-				createdBy: `${currentUser.fullName} #${currentUser.id}`,
-				deductions: {
-					totalDeductionDays: totalDeductions,
-					deductionAmount,
-					baseSalary,
-					period: `${month}/${year}`,
-					daysInMonth,
-					dailyRate,
-				},
-			};
+		// Create transaction data
+		const transactionData = {
+			employeeId: employee.id,
+			type: "salary",
+			amount: finalSalaryAmount,
+			description: `Salary payment for ${month}/${year} (${daysPresent} days present, ${daysMissingPunch} missing punches, ${daysAbsent} absences)`,
+			date: new Date().toISOString(),
+			status: "completed",
+			createdBy: `${currentUser.fullName} #${currentUser.id}`,
+			deductions: {
+				totalDeductionDays: totalDeductions,
+				deductionAmount,
+				baseSalary,
+				period: `${month}/${year}`,
+				daysInMonth,
+				dailyRate,
+			},
+		};
 
-			// Save the transaction
-			const transaction = await addTransaction(branchId, employee.id, transactionData);
-			return transaction;
-		} catch (error) {
-			console.error("Error generating salary payment:", error);
-			return rejectWithValue(error.message);
-		}
+		// Save the transaction
+		const transaction = await addTransaction(branchId, employee.id, transactionData);
+		return transaction;
+	} catch (error) {
+		console.error("Error generating salary payment:", error);
+		return rejectWithValue(error.message);
 	}
-);
+});
 
 // Existing thunks
-export const fetchEmployeeTransactions = createAsyncThunk(
-	"transactions/fetchEmployeeTransactions",
-	async ({ branchId, employeeId }, { rejectWithValue }) => {
-		try {
-			const transactions = await getEmployeeTransactions(branchId, employeeId);
-			return transactions;
-		} catch (error) {
-			return rejectWithValue(error.message);
-		}
+export const fetchEmployeeTransactions = createAsyncThunk("transactions/fetchEmployeeTransactions", async ({ branchId, employeeId }, { rejectWithValue }) => {
+	try {
+		const transactions = await getEmployeeTransactions(branchId, employeeId);
+		return transactions;
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
-export const createTransaction = createAsyncThunk(
-	"transactions/createTransaction",
-	async ({ branchId, employeeId, transactionData }, { rejectWithValue }) => {
-		try {
-			// Adjust receiving transactions to be negative
-			if (transactionData.type === "receiving") {
-				transactionData.amount = -Math.abs(transactionData.amount);
-			}
-
-			const transaction = await addTransaction(branchId, employeeId, transactionData);
-			return transaction;
-		} catch (error) {
-			return rejectWithValue(error.message);
-		}
+export const createTransaction = createAsyncThunk("transactions/createTransaction", async ({ branchId, employeeId, transactionData }, { rejectWithValue }) => {
+	try {
+		const transaction = await addTransaction(branchId, employeeId, transactionData);
+		return transaction;
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
-export const modifyTransaction = createAsyncThunk(
-	"transactions/modifyTransaction",
-	async ({ branchId, transactionId, updateData }, { rejectWithValue }) => {
-		try {
-			await updateTransaction(branchId, transactionId, updateData);
-			return { id: transactionId, ...updateData };
-		} catch (error) {
-			return rejectWithValue(error.message);
-		}
+export const modifyTransaction = createAsyncThunk("transactions/modifyTransaction", async ({ branchId, transactionId, updateData }, { rejectWithValue }) => {
+	try {
+		await updateTransaction(branchId, transactionId, updateData);
+		return { id: transactionId, ...updateData };
+	} catch (error) {
+		return rejectWithValue(error.message);
 	}
-);
+});
 
 const transactionsSlice = createSlice({
 	name: "transactions",
@@ -174,23 +150,20 @@ const transactionsSlice = createSlice({
 		updateSummary: (state) => {
 			const totalAdvance = state.transactions
 				.filter((t) => t.type === "advance")
-				.reduce((sum, t) => sum + t.amount, 0);
+				.reduce((sum, t) => {
+					console.log(sum, t);
+					return sum + t.amount, 0;
+				});
 
-			const totalPayments = state.transactions
-				.filter((t) => t.type === "payment")
-				.reduce((sum, t) => sum + t.amount, 0);
+			const totalPayments = state.transactions.filter((t) => t.type === "payment").reduce((sum, t) => sum + t.amount, 0);
 
-			const totalReceiving = state.transactions
-				.filter((t) => t.type === "receiving")
-				.reduce((sum, t) => sum + t.amount, 0);
+			const totalReceiving = state.transactions.filter((t) => t.type === "receiving").reduce((sum, t) => sum + t.amount, 0);
 
-			const totalSalary = state.transactions
-				.filter((t) => t.type === "salary")
-				.reduce((sum, t) => sum + t.amount, 0);
+			const totalSalary = state.transactions.filter((t) => t.type === "salary").reduce((sum, t) => sum + t.amount, 0);
 
 			// Receiving is now negative, so we add it to the balance
-			const balance = totalAdvance + totalReceiving - totalPayments + totalSalary;
-
+			const balance = totalAdvance + totalPayments - totalReceiving;
+			console.log(totalAdvance, totalPayments, totalReceiving, totalSalary, balance);
 			state.summary = { totalAdvance, totalPayments, totalReceiving, totalSalary, balance };
 		},
 	},
@@ -207,24 +180,16 @@ const transactionsSlice = createSlice({
 				state.currentEmployeeId = action.meta.arg.employeeId;
 
 				// Update summary
-				const totalAdvance = action.payload
-					.filter((t) => t.type === "advance")
-					.reduce((sum, t) => sum + t.amount, 0);
+				const totalAdvance = action.payload.filter((t) => t.type === "advance").reduce((sum, t) => sum + t.amount, 0);
 
-				const totalPayments = action.payload
-					.filter((t) => t.type === "payment")
-					.reduce((sum, t) => sum + t.amount, 0);
+				const totalPayments = action.payload.filter((t) => t.type === "payment").reduce((sum, t) => sum + t.amount, 0);
 
-				const totalReceiving = action.payload
-					.filter((t) => t.type === "receiving")
-					.reduce((sum, t) => sum + t.amount, 0);
+				const totalReceiving = action.payload.filter((t) => t.type === "receiving").reduce((sum, t) => sum + t.amount, 0);
 
-				const totalSalary = action.payload
-					.filter((t) => t.type === "salary")
-					.reduce((sum, t) => sum + t.amount, 0);
+				const totalSalary = action.payload.filter((t) => t.type === "salary").reduce((sum, t) => sum + t.amount, 0);
 
 				// Receiving is now negative, so we add it to the balance
-				const balance = totalAdvance + totalReceiving - totalPayments + totalSalary;
+				const balance = totalAdvance + totalPayments - totalReceiving;
 
 				state.summary = { totalAdvance, totalPayments, totalReceiving, totalSalary, balance };
 			})
@@ -254,11 +219,7 @@ const transactionsSlice = createSlice({
 				}
 
 				// Recalculate balance (receiving is negative)
-				state.summary.balance =
-					state.summary.totalAdvance +
-					state.summary.totalReceiving -
-					state.summary.totalPayments +
-					state.summary.totalSalary;
+				state.summary.balance = state.summary.totalAdvance + state.summary.totalPayments - state.summary.totalReceiving;
 			})
 			.addCase(createTransaction.rejected, (state, action) => {
 				state.loading = false;
@@ -278,11 +239,7 @@ const transactionsSlice = createSlice({
 				state.summary.totalSalary += action.payload.amount;
 
 				// Recalculate balance
-				state.summary.balance =
-					state.summary.totalAdvance +
-					state.summary.totalReceiving -
-					state.summary.totalPayments +
-					state.summary.totalSalary;
+				state.summary.balance = state.summary.totalAdvance + state.summary.totalPayments - state.summary.totalReceiving;
 			})
 			.addCase(generateSalaryPayment.rejected, (state, action) => {
 				state.loading = false;
@@ -307,11 +264,7 @@ const transactionsSlice = createSlice({
 					};
 
 					// Create a new array with the updated transaction
-					state.transactions = [
-						...state.transactions.slice(0, index),
-						updatedTransaction,
-						...state.transactions.slice(index + 1),
-					];
+					state.transactions = [...state.transactions.slice(0, index), updatedTransaction, ...state.transactions.slice(index + 1)];
 
 					// Update the summary if necessary
 					if (action.payload.status === "cancelled") {
@@ -327,11 +280,7 @@ const transactionsSlice = createSlice({
 						}
 
 						// Recalculate balance
-						state.summary.balance =
-							state.summary.totalAdvance +
-							state.summary.totalReceiving -
-							state.summary.totalPayments +
-							state.summary.totalSalary;
+						state.summary.balance = state.summary.totalAdvance + state.summary.totalPayments - state.summary.totalReceiving;
 					}
 				}
 			})
@@ -346,8 +295,7 @@ export const { clearTransactions, setCurrentEmployeeId, updateSummary } = transa
 
 // Selectors
 export const selectAllTransactions = (state) => state.transactions.transactions;
-export const selectTransactionsByType = (type) => (state) =>
-	state.transactions.transactions.filter((t) => t.type === type);
+export const selectTransactionsByType = (type) => (state) => state.transactions.transactions.filter((t) => t.type === type);
 export const selectTransactionSummary = (state) => state.transactions.summary;
 export const selectTransactionsLoading = (state) => state.transactions.loading;
 export const selectTransactionsError = (state) => state.transactions.error;

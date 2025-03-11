@@ -2,6 +2,9 @@ import { db } from "./firebase-config";
 import { documentExists, logError, timeStringToMinutes } from "./firebase-utils";
 import { doc, getDoc, setDoc, collection, writeBatch, query, getDocs, updateDoc, Timestamp } from "firebase/firestore";
 
+import { processDateAttendance } from "@/lib/single-attendance-processor";
+import { OrganizationSettingsService } from "./organization-service";
+
 /**
  * Check if attendance data exists for a branch and month
  * @param {string} branchId - Branch ID
@@ -466,7 +469,3 @@ export const processManualAttendance = async (branchId, employeeId, dateKey) => 
 		throw error;
 	}
 };
-
-// Import the processDateAttendance function from the first file
-import { processDateAttendance } from "@/lib/single-attendance-processor";import { OrganizationSettingsService } from "./organization-service";
-

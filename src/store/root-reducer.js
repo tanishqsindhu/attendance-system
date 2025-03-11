@@ -1,5 +1,5 @@
+// root-reducer.js
 import { combineReducers } from "@reduxjs/toolkit";
-
 import { userReducer } from "@/store/user/user.reducer";
 import employeesReducer from "@/store/employees/employees.slice";
 import organizationReducer from "@/store/organization-settings/organization-settings.slice";

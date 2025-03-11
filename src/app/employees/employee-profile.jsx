@@ -3,14 +3,33 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { getEmployeeDetails } from "@/firebase/index.js";
-import { selectAllDepartments, selectAllPositions, selectAllBranches, selectAllShiftSchedules, selectActiveBranch } from "@/store/organization-settings/organization-settings.slice.js";
+import {
+	selectAllDepartments,
+	selectAllPositions,
+	selectAllBranches,
+	selectAllShiftSchedules,
+	selectActiveBranch,
+} from "@/store/organization-settings/organization-settings.slice.js";
 import { Mail, Phone, MapPin, Briefcase, Calendar, User, CreditCard, Clock } from "lucide-react";
 import { EditEmployeeModal } from "../../components/EditEmployeeModal";
 import AttendanceTable from "../../components/attendance-table.comonent";
@@ -18,6 +37,9 @@ import femaleTeacher from "@/assets/female teacher.png?url";
 import maleTeacher from "@/assets/teacher.png?url";
 import ManualAttendanceForm from "../../components/ManualAttendanceForm.component";
 import { toast } from "sonner";
+import SalaryTransactions from "../../components/salaryTransactions.component";
+import female from "@/assets/woman.png?url";
+import male from "@/assets/man.png?url";
 
 // The main component
 const EmployeeProfile = () => {
@@ -36,7 +58,6 @@ const EmployeeProfile = () => {
 
 	// Add this function to handle saving manual attendance
 	const handleSaveManualAttendance = async (monthYearKey) => {
-		console.log(monthYearKey);
 		const data = await getEmployeeDetails(branchId.id, empId);
 		if (!data) throw new Error("No Employee Data Found");
 		setEmployee(data);
@@ -179,7 +200,12 @@ const EmployeeProfile = () => {
 		<div className="container mx-auto py-6 space-y-6">
 			{/* Edit Employee Modal */}
 			<div className="w-full max-w-full mx-4">
-				<EditEmployeeModal className="sm:w-[800px] md:w-[1000px] lg:w-[4000px]" isOpen={isEditModalOpen} onClose={handleCloseEditModal} employeeData={employee} />
+				<EditEmployeeModal
+					className="sm:w-[800px] md:w-[1000px] lg:w-[4000px]"
+					isOpen={isEditModalOpen}
+					onClose={handleCloseEditModal}
+					employeeData={employee}
+				/>
 			</div>
 			{employee ? (
 				<>
@@ -187,7 +213,23 @@ const EmployeeProfile = () => {
 						<Card className="w-full md:w-1/3">
 							<CardHeader className="flex flex-col items-center">
 								<Avatar className="w-24 h-24 mb-4">
-									<AvatarImage src={employee.personal?.gender == "male" ? maleTeacher : ""} alt={employee.personal?.gender == "female" ? femaleTeacher : ""} />
+									<AvatarImage
+										src={
+											getDepartmentName(employee.employment?.department) == "Teacher" ||
+											getDepartmentName(employee.employment?.department) == "Teaching"
+												? employee.personal?.gender == "male"
+													? maleTeacher
+													: femaleTeacher
+												: employee.personal?.gender == "male"
+												? male
+												: female
+										}
+										alt={
+											employee.personal?.gender == "female"
+												? "Female Avatar"
+												: "Male Avatar"
+										}
+									/>
 									<AvatarFallback className="text-xl">
 										{employee.personal?.firstName?.charAt(0)}
 										{employee.personal?.lastName?.charAt(0)}
@@ -197,9 +239,12 @@ const EmployeeProfile = () => {
 									{employee.personal?.firstName} {employee.personal?.lastName}
 								</CardTitle>
 								<CardDescription className="text-center">
-									{getPositionName(employee.employment?.position)} - {getDepartmentName(employee.employment?.department)}
+									{getPositionName(employee.employment?.position)} -{" "}
+									{getDepartmentName(employee.employment?.department)}
 								</CardDescription>
-								<div className="mt-2">{GetEmployeeStatusBadge(employee.employment?.employmentStatus)}</div>
+								<div className="mt-2">
+									{GetEmployeeStatusBadge(employee.employment?.employmentStatus)}
+								</div>
 							</CardHeader>
 							<CardContent>
 								<div className="space-y-4">
@@ -211,19 +256,35 @@ const EmployeeProfile = () => {
 									</div>
 									<div className="flex items-center">
 										<Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">{employee.personal?.email || "No email provided"}</span>
+										<span className="text-sm">
+											{employee.personal?.email || "No email provided"}
+										</span>
 									</div>
 									<div className="flex items-center">
 										<Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">{employee.personal?.phone || "No phone provided"}</span>
+										<span className="text-sm">
+											{employee.personal?.phone || "No phone provided"}
+										</span>
 									</div>
 									<div className="flex items-center">
 										<Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">Joined: {employee.employment?.joiningDate ? format(new Date(employee.employment.joiningDate), "dd MMM yyyy") : "Unknown"}</span>
+										<span className="text-sm">
+											Joined:{" "}
+											{employee.employment?.joiningDate
+												? format(new Date(employee.employment.joiningDate), "dd MMM yyyy")
+												: "Unknown"}
+										</span>
 									</div>
 									<div className="flex items-center">
 										<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-										<span className="text-sm">Shift: {employee.employment?.shiftId ? `${getShiftDetails(employee.employment.shiftId).name} (${getShiftDetails(employee.employment.shiftId).time})` : "Not assigned"}</span>
+										<span className="text-sm">
+											Shift:{" "}
+											{employee.employment?.shiftId
+												? `${getShiftDetails(employee.employment.shiftId).name} (${
+														getShiftDetails(employee.employment.shiftId).time
+												  })`
+												: "Not assigned"}
+										</span>
 									</div>
 								</div>
 							</CardContent>
@@ -253,6 +314,7 @@ const EmployeeProfile = () => {
 										<TabsTrigger value="personal">Personal</TabsTrigger>
 										<TabsTrigger value="employment">Employment</TabsTrigger>
 										<TabsTrigger value="documents">Documents</TabsTrigger>
+										{/* <TabsTrigger value="transactions">Transactions</TabsTrigger> */}
 									</TabsList>
 
 									<TabsContent value="personal" className="space-y-6">
@@ -272,15 +334,26 @@ const EmployeeProfile = () => {
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Date of Birth</div>
-														<div className="text-sm font-medium">{employee.personal?.dob ? format(new Date(employee.personal.dob.seconds * 1000), "dd MMM yyyy") : "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.dob
+																? format(
+																		new Date(employee.personal.dob.seconds * 1000),
+																		"dd MMM yyyy"
+																  )
+																: "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Blood Group</div>
-														<div className="text-sm font-medium">{employee.personal?.bloodGroup || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.bloodGroup || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Aadhar Number</div>
-														<div className="text-sm font-medium">{employee.personal?.aadhar || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.aadhar || "Not provided"}
+														</div>
 													</div>
 												</div>
 											</div>
@@ -290,27 +363,39 @@ const EmployeeProfile = () => {
 												<div className="space-y-3">
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Email</div>
-														<div className="text-sm font-medium">{employee.personal?.email || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.email || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Phone</div>
-														<div className="text-sm font-medium">{employee.personal?.phone || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.phone || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Address</div>
-														<div className="text-sm font-medium">{employee.personal?.address || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.address || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">City</div>
-														<div className="text-sm font-medium">{employee.personal?.city || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.city || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">State</div>
-														<div className="text-sm font-medium">{employee.personal?.state || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.state || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Pincode</div>
-														<div className="text-sm font-medium">{employee.personal?.pincode || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.personal?.pincode || "Not provided"}
+														</div>
 													</div>
 												</div>
 											</div>
@@ -324,29 +409,41 @@ const EmployeeProfile = () => {
 												<div className="space-y-3">
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Branch</div>
-														<div className="text-sm font-medium">{getBranchName(branchId?.id) || "Not assigned"}</div>
+														<div className="text-sm font-medium">
+															{getBranchName(branchId?.id) || "Not assigned"}
+														</div>
 													</div>
 
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Department</div>
-														<div className="text-sm font-medium">{getDepartmentName(employee.employment?.department)}</div>
+														<div className="text-sm font-medium">
+															{getDepartmentName(employee.employment?.department)}
+														</div>
 													</div>
 
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Position</div>
-														<div className="text-sm font-medium">{getPositionName(employee.employment?.position)}</div>
+														<div className="text-sm font-medium">
+															{getPositionName(employee.employment?.position)}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Employment Type</div>
-														<div className="text-sm font-medium">{employee.employment?.employmentType}</div>
+														<div className="text-sm font-medium">
+															{employee.employment?.employmentType}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Salary</div>
-														<div className="text-sm font-medium">₹{employee.employment?.salaryAmount?.toLocaleString("en-IN") || 0}</div>
+														<div className="text-sm font-medium">
+															₹{employee.employment?.salaryAmount?.toLocaleString("en-IN") || 0}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Pay Schedule</div>
-														<div className="text-sm font-medium">{employee.employment?.paySchedule}</div>
+														<div className="text-sm font-medium">
+															{employee.employment?.paySchedule}
+														</div>
 													</div>
 												</div>
 											</div>
@@ -356,23 +453,33 @@ const EmployeeProfile = () => {
 												<div className="space-y-3">
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Bank Name</div>
-														<div className="text-sm font-medium">{employee.banking?.bankName || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.banking?.bankName || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Account Type</div>
-														<div className="text-sm font-medium">{employee.banking?.accountType || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.banking?.accountType || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Account Number</div>
-														<div className="text-sm font-medium">{employee.banking?.accountNumber || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.banking?.accountNumber || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">IFSC Code</div>
-														<div className="text-sm font-medium">{employee.banking?.ifscCode || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.banking?.ifscCode || "Not provided"}
+														</div>
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">PAN</div>
-														<div className="text-sm font-medium">{employee.banking?.pan || "Not provided"}</div>
+														<div className="text-sm font-medium">
+															{employee.banking?.pan || "Not provided"}
+														</div>
 													</div>
 												</div>
 											</div>
@@ -382,9 +489,14 @@ const EmployeeProfile = () => {
 									<TabsContent value="documents">
 										<div className="p-6 text-center">
 											<h3 className="text-lg font-medium mb-2">Documents</h3>
-											<p className="text-muted-foreground mb-4">Employee documents will be displayed here.</p>
+											<p className="text-muted-foreground mb-4">
+												Employee documents will be displayed here.
+											</p>
 											<Button>Upload Document</Button>
 										</div>
+									</TabsContent>
+									<TabsContent value="transactions">
+										<SalaryTransactions employee={employee} />
 									</TabsContent>
 								</Tabs>
 							</CardContent>
@@ -397,13 +509,25 @@ const EmployeeProfile = () => {
 							<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 								<CardTitle>Attendance Records</CardTitle>
 								<div className="flex items-center gap-2">
-									<Button variant={showManualForm ? "secondary" : "default"} onClick={() => setShowManualForm(!showManualForm)}>
+									<Button
+										variant={showManualForm ? "secondary" : "default"}
+										onClick={() => setShowManualForm(!showManualForm)}
+									>
 										{showManualForm ? "Cancel" : "Add Manual Entry"}
 									</Button>
 									<Label htmlFor="select-month">Select Month:</Label>
-									<Select id="select-month" value={monthYear} onValueChange={setMonthYear} disabled={availableMonths.length === 0}>
+									<Select
+										id="select-month"
+										value={monthYear}
+										onValueChange={setMonthYear}
+										disabled={availableMonths.length === 0}
+									>
 										<SelectTrigger className="w-[240px]">
-											<SelectValue placeholder={availableMonths.length === 0 ? "No attendance data" : "Select month"} />
+											<SelectValue
+												placeholder={
+													availableMonths.length === 0 ? "No attendance data" : "Select month"
+												}
+											/>
 										</SelectTrigger>
 										<SelectContent position="popper">
 											{monthOptions.map((option) => (
@@ -431,6 +555,7 @@ const EmployeeProfile = () => {
 							)}
 						</CardContent>
 					</Card>
+					<SalaryTransactions employee={employee} />
 				</>
 			) : (
 				<Card className="w-full p-6">

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { LeaveManagement } from "@/components/leave-management.component";
+import { EmployeeLeaveManagement } from "@/components/leave-management.component";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { selectAllBranches } from "@/store/organization-settings/organization-settings.slice.js";
@@ -48,7 +48,7 @@ export default function LeaveManagementPage() {
 					<CardHeader>
 						<CardTitle>Employee Leave Records</CardTitle>
 					</CardHeader>
-					<CardContent>{selectedBranch ? <LeaveManagement branchId={selectedBranch} /> : <div className="text-center p-8 text-muted-foreground">Please select a branch to view leave records.</div>}</CardContent>
+					<CardContent>{selectedBranch ? <EmployeeLeaveManagement branchId={selectedBranch} /> : <div className="text-center p-8 text-muted-foreground">Please select a branch to view leave records.</div>}</CardContent>
 				</Card>
 			</div>
 		</div>

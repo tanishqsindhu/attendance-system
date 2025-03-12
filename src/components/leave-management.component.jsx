@@ -1,4 +1,4 @@
-// components/LeaveManagement.jsx
+// components/EmployeeLeaveManagement.jsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -11,16 +11,24 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, X, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table.component";
-import { fetchEmployeeLeaves, updateLeaveSanctionStatus, selectAllLeaves, selectLeavesLoading, selectLeavesError } from "@/store/leave/leave.slice";
+import {
+	fetchEmployeeLeaves,
+	updateLeaveSanctionStatus,
+	selectAllLeaves,
+	selectLeavesLoading,
+	selectLeavesError,
+} from "@/store/leave/leave.slice";
 
-export function LeaveManagement({ branchId }) {
+export function EmployeeLeaveManagement({ branchId, employeeId }) {
+	console.log(branchId, employeeId);
 	const dispatch = useDispatch();
-	const leaves = useSelector(selectAllLeaves);
+	const allLeaves = useSelector(selectAllLeaves);
 	const loading = useSelector(selectLeavesLoading);
 	const error = useSelector(selectLeavesError);
 
 	// For filtering
 	const [statusFilter, setStatusFilter] = useState("all"); // all, sanctioned, unsanctioned
+	const [employeeName, setEmployeeName] = useState("");
 
 	useEffect(() => {
 		if (branchId) {
@@ -28,12 +36,27 @@ export function LeaveManagement({ branchId }) {
 		}
 	}, [dispatch, branchId]);
 
-	// Filter leaves based on status
-	const filteredLeaves = leaves.filter((leave) => {
-		if (statusFilter === "all") return true;
-		if (statusFilter === "sanctioned") return leave.sanctioned;
-		if (statusFilter === "unsanctioned") return !leave.sanctioned;
-		return true;
+	// Filter leaves for specific employee and based on status
+	const filteredLeaves = allLeaves.filter((leave) => {
+		// First filter by employee ID if provided
+		const employeeMatch = employeeId ? leave.employeeId === employeeId : true;
+
+		// Then filter by status
+		const statusMatch =
+			statusFilter === "all"
+				? true
+				: statusFilter === "sanctioned"
+				? leave.sanctioned
+				: statusFilter === "unsanctioned"
+				? !leave.sanctioned
+				: true;
+
+		// Set employee name for the first matching leave
+		if (employeeMatch && employeeId && !employeeName && leave.employeeName) {
+			setEmployeeName(leave.employeeName);
+		}
+
+		return employeeMatch && statusMatch;
 	});
 
 	// Handle sanctioned status toggle
@@ -55,12 +78,17 @@ export function LeaveManagement({ branchId }) {
 
 	// Define columns for DataTable
 	const columns = [
-		{
-			id: "employeeName",
-			header: "Employee",
-			accessorKey: "employeeName",
-			cell: ({ row }) => <div className="font-medium">{row.original.employeeName}</div>,
-		},
+		// Only show employee name column if no specific employee is selected
+		...(!employeeId
+			? [
+					{
+						id: "employeeName",
+						header: "Employee",
+						accessorKey: "employeeName",
+						cell: ({ row }) => <div className="font-medium">{row.original.employeeName}</div>,
+					},
+			  ]
+			: []),
 		{
 			id: "date",
 			header: "Date",
@@ -88,14 +116,20 @@ export function LeaveManagement({ branchId }) {
 					color = "bg-orange-100 text-orange-800";
 				}
 
-				return <div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-block`}>{status}</div>;
+				return (
+					<div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-block`}>
+						{status}
+					</div>
+				);
 			},
 		},
 		{
 			id: "deduction",
 			header: "Deduction",
 			accessorKey: "deductionAmount",
-			cell: ({ row }) => <div className="text-right">₹{row.original.deductionAmount.toFixed(2)}</div>,
+			cell: ({ row }) => (
+				<div className="text-right">₹{row.original.deductionAmount.toFixed(2)}</div>
+			),
 		},
 		{
 			id: "sanctioned",
@@ -105,7 +139,13 @@ export function LeaveManagement({ branchId }) {
 				const sanctioned = row.original.sanctioned;
 				return (
 					<div className="flex items-center justify-center space-x-2">
-						<Switch checked={sanctioned} onCheckedChange={() => handleSanctionToggle(row.original.employeeId, row.original.date, sanctioned)} disabled={loading} />
+						<Switch
+							checked={sanctioned}
+							onCheckedChange={() =>
+								handleSanctionToggle(row.original.employeeId, row.original.date, sanctioned)
+							}
+							disabled={loading}
+						/>
 						<Label>{sanctioned ? "Yes" : "No"}</Label>
 					</div>
 				);
@@ -115,7 +155,9 @@ export function LeaveManagement({ branchId }) {
 			id: "remarks",
 			header: "Remarks",
 			accessorKey: "remarks",
-			cell: ({ row }) => <div className="max-w-md text-sm text-gray-500 truncate">{row.original.remarks}</div>,
+			cell: ({ row }) => (
+				<div className="max-w-md text-sm text-gray-500 truncate">{row.original.remarks}</div>
+			),
 		},
 	];
 
@@ -123,13 +165,28 @@ export function LeaveManagement({ branchId }) {
 	const tableActions = (
 		<div className="flex items-center space-x-2">
 			<div className="flex items-center space-x-1">
-				<Button variant="outline" size="sm" onClick={() => setStatusFilter("all")} className={statusFilter === "all" ? "bg-primary text-primary-foreground" : ""}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setStatusFilter("all")}
+					className={statusFilter === "all" ? "bg-primary text-primary-foreground" : ""}
+				>
 					All
 				</Button>
-				<Button variant="outline" size="sm" onClick={() => setStatusFilter("sanctioned")} className={statusFilter === "sanctioned" ? "bg-primary text-primary-foreground" : ""}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setStatusFilter("sanctioned")}
+					className={statusFilter === "sanctioned" ? "bg-primary text-primary-foreground" : ""}
+				>
 					<Check className="mr-1 h-4 w-4" /> Sanctioned
 				</Button>
-				<Button variant="outline" size="sm" onClick={() => setStatusFilter("unsanctioned")} className={statusFilter === "unsanctioned" ? "bg-primary text-primary-foreground" : ""}>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setStatusFilter("unsanctioned")}
+					className={statusFilter === "unsanctioned" ? "bg-primary text-primary-foreground" : ""}
+				>
 					<X className="mr-1 h-4 w-4" /> Unsanctioned
 				</Button>
 			</div>
@@ -143,7 +200,9 @@ export function LeaveManagement({ branchId }) {
 	return (
 		<div className="space-y-4">
 			<div className="flex justify-between items-center">
-				<h2 className="text-3xl font-bold tracking-tight">Leave Management</h2>
+				<h2 className="text-3xl font-bold tracking-tight">
+					{employeeId ? `Leave Records: ${employeeName || "Employee"}` : "Leave Management"}
+				</h2>
 				<Badge variant="outline" className="px-3 py-1">
 					{filteredLeaves.length} Leaves
 				</Badge>
@@ -160,7 +219,7 @@ export function LeaveManagement({ branchId }) {
 			<DataTable
 				data={filteredLeaves}
 				columns={columns}
-				filterableColumns={["employeeName", "status", "date"]}
+				filterableColumns={employeeId ? ["status", "date"] : ["employeeName", "status", "date"]}
 				tableActions={tableActions}
 				initialPageSize={10}
 				pagination={true}
@@ -172,6 +231,8 @@ export function LeaveManagement({ branchId }) {
 									<RefreshCw className="h-6 w-6 animate-spin mr-2" />
 									Loading leave data...
 								</div>
+							) : employeeId ? (
+								"No leave records found for this employee."
 							) : (
 								"No leave records found."
 							)}

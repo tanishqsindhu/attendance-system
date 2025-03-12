@@ -1,4 +1,4 @@
-// features/leaves/leavesSlice.js
+// store/leave/leave.slice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { updateEmployeeDetails } from "@/firebase/index";
 

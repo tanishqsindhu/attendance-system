@@ -171,7 +171,7 @@ export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ e
 export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", async ({ employeeId, date, leaveType, reason, duration, branchId, sanctionedBy, sanctionedAt }, { getState, rejectWithValue }) => {
 	try {
 		// Get employee from firebase directly
-		const employee = await getEmployee(branchId, employeeId);
+		const employee = await getEmployeeDetails(branchId, employeeId);
 
 		if (!employee) {
 			return rejectWithValue("Employee not found");

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { sanctionLeave } from "@/store/leave/leave.slice";
+import { selectCurrentUser } from "../store/user/user.selector";
 
 const leaveTypes = [
 	{ id: "sick", label: "Sick Leave" },
@@ -22,7 +23,7 @@ const leaveTypes = [
 
 export function SanctionLeaveForm({ leave, branchId, onComplete }) {
 	const dispatch = useDispatch();
-	const currentUser = useSelector((state) => state.auth.user);
+	const currentUser = useSelector(selectCurrentUser);
 
 	const [leaveType, setLeaveType] = useState(leave.leaveType || "sick");
 	const [reason, setReason] = useState(leave.reason || "");

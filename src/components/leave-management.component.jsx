@@ -169,7 +169,7 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 			id: "deduction",
 			header: "Deduction",
 			accessorKey: "deductionAmount",
-			cell: ({ row }) => <div className="text-right">₹{row.original.deductionAmount.toFixed(2)}</div>,
+			cell: ({ row }) => <div>₹{row.original.deductionAmount.toFixed(2)}</div>,
 		},
 		{
 			id: "sanctioned",

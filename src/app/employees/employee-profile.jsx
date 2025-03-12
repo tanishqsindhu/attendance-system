@@ -281,7 +281,7 @@ const EmployeeProfile = () => {
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Date of Birth</div>
-														<div className="text-sm font-medium">{employee.personal?.dob ? format(new Date(employee.personal.dob.seconds * 1000), "dd MMM yyyy") : "Not provided"}</div>
+														{/* <div className="text-sm font-medium">{employee.personal?.dob ? format(new Date(employee.personal.dob.seconds * 1000), "dd MMM yyyy") : "Not provided"}</div> */}
 													</div>
 													<div className="grid grid-cols-2">
 														<div className="text-sm text-muted-foreground">Blood Group</div>

@@ -1,9 +1,6 @@
 import { db } from "./firebase-config";
-import { documentExists, logError, timeStringToMinutes } from "./firebase-utils";
-import { doc, getDoc, setDoc, collection, writeBatch, query, getDocs, updateDoc, Timestamp } from "firebase/firestore";
-
-import { processDateAttendance } from "@/lib/single-attendance-processor";
-import { OrganizationSettingsService } from "./organization-service";
+import { documentExists, logError} from "./firebase-utils";
+import { doc, getDoc, setDoc, collection, writeBatch, query, getDocs, updateDoc } from "firebase/firestore";
 
 /**
  * Check if attendance data exists for a branch and month
@@ -225,7 +222,30 @@ export const getEmployeeAttendanceLogs = async (branchId, employeeId, monthYear)
 };
 
 /**
- * Save a single manual attendance punch for an employee
+ * Sanitize an object by removing undefined values and converting them to null
+ * Firebase Firestore does not accept undefined values
+ *
+ * @param {Object} obj - Object to sanitize
+ * @returns {Object} - Sanitized object
+ */
+function sanitizeObject(obj) {
+	if (!obj || typeof obj !== "object") return obj;
+
+	Object.keys(obj).forEach((key) => {
+		if (obj[key] === undefined) {
+			// Replace undefined with null
+			obj[key] = null;
+		} else if (typeof obj[key] === "object" && obj[key] !== null) {
+			// Recursively sanitize nested objects
+			sanitizeObject(obj[key]);
+		}
+	});
+
+	return obj;
+}
+
+/**
+ * Save a single manual attendance punch for an employee and optionally process it
  *
  * @param {string} branchId - Branch ID
  * @param {string} employeeId - Employee ID
@@ -233,9 +253,10 @@ export const getEmployeeAttendanceLogs = async (branchId, employeeId, monthYear)
  * @param {string} punchType - Either 'DutyOn' or 'DutyOff'
  * @param {string} punchTime - Time in format 'HH:MM'
  * @param {string} notes - Optional notes for the entry
+ * @param {boolean} processAttendance - Whether to process the attendance after saving
  * @returns {Promise<object>} - Updated employee object with the new attendance data
  */
-export const saveSingleManualPunch = async (branchId, employeeId, date, punchType, punchTime, notes = "") => {
+export const saveSingleManualPunch = async (branchId, employeeId, date, punchType, punchTime, notes = "", processAttendance = false) => {
 	if (!branchId || !employeeId || !date || !punchType || !punchTime) {
 		throw new Error("Required parameters missing: branchId, employeeId, date, punchType, and punchTime are required");
 	}
@@ -269,7 +290,7 @@ export const saveSingleManualPunch = async (branchId, employeeId, date, punchTyp
 
 		const employeeData = employeeSnap.data();
 
-		// Create or update attendance object
+		// Create or update attendance object with null checks at each step
 		const currentAttendance = employeeData.attendance || {};
 		const monthAttendance = currentAttendance[monthYearKey] || {};
 		const dateAttendance = monthAttendance[dateKey] || {
@@ -277,7 +298,7 @@ export const saveSingleManualPunch = async (branchId, employeeId, date, punchTyp
 			logs: [],
 		};
 
-		// Create new attendance log entry
+		// Create new attendance log entry with only safe properties
 		const newLog = {
 			time: formattedTime,
 			inOut: punchType,
@@ -285,26 +306,36 @@ export const saveSingleManualPunch = async (branchId, employeeId, date, punchTyp
 			notes: notes || "Manual entry",
 		};
 
-		// Add the new log to the attendance logs
-		dateAttendance.logs = [...(dateAttendance.logs || []), newLog];
+		// Add the new log to the attendance logs - safely
+		const existingLogs = Array.isArray(dateAttendance.logs) ? dateAttendance.logs : [];
+		const updatedLogs = [...existingLogs, newLog];
 
 		// Update firstIn and lastOut based on the punch type
+		let updatedFirstIn = dateAttendance.firstIn || null;
+		let updatedLastOut = dateAttendance.lastOut || null;
+
 		if (punchType === "DutyOn") {
-			// If there's no firstIn or this is earlier, update firstIn
-			if (!dateAttendance.firstIn || punchDateTime < new Date(dateAttendance.firstIn)) {
-				dateAttendance.firstIn = formattedTime;
+			// For duty on, always set firstIn if not already set
+			if (!updatedFirstIn) {
+				updatedFirstIn = formattedTime;
 			}
 		} else if (punchType === "DutyOff") {
-			// If there's no lastOut or this is later, update lastOut
-			if (!dateAttendance.lastOut || punchDateTime > new Date(dateAttendance.lastOut)) {
-				dateAttendance.lastOut = formattedTime;
-			}
+			// For duty off, always set lastOut
+			updatedLastOut = formattedTime;
 		}
 
-		// Create updated attendance object
+		// Create safe updated attendance object - with null checks at every level
+		const updatedDateAttendance = {
+			...dateAttendance,
+			logs: updatedLogs,
+			firstIn: updatedFirstIn,
+			lastOut: updatedLastOut,
+			updatedAt: new Date().toISOString(),
+		};
+
 		const updatedMonthAttendance = {
 			...monthAttendance,
-			[dateKey]: dateAttendance,
+			[dateKey]: updatedDateAttendance,
 		};
 
 		const updatedAttendance = {
@@ -312,34 +343,62 @@ export const saveSingleManualPunch = async (branchId, employeeId, date, punchTyp
 			[monthYearKey]: updatedMonthAttendance,
 		};
 
-		// Update the document
+		// Sanitize the entire object to remove any undefined values
+		const sanitizedAttendance = sanitizeObject(updatedAttendance);
+
+		// Update the document with sanitized data
 		await updateDoc(employeeRef, {
-			attendance: updatedAttendance,
+			attendance: sanitizedAttendance,
 			updatedAt: new Date().toISOString(),
 		});
 
-		// Add this log entry to the main attendance logs collection for this branch
-		// This will make it easier to query all attendance for a specific date
-		const attendanceLogRef = doc(db, `branches/${branchId}/attendanceLogs`, monthYearKey);
-		const attendanceLogSnap = await getDoc(attendanceLogRef);
+		// Update the attendance logs collection with sanitized data
+		try {
+			const attendanceLogRef = doc(db, `branches/${branchId}/attendanceLogs`, monthYearKey);
+			const attendanceLogSnap = await getDoc(attendanceLogRef);
 
-		if (attendanceLogSnap.exists()) {
-			const attendanceLogData = attendanceLogSnap.data();
-			const updatedLogData = {
-				...attendanceLogData,
-				[dateKey]: {
-					...(attendanceLogData[dateKey] || {}),
-					[employeeId]: dateAttendance,
-				},
-			};
+			if (attendanceLogSnap.exists()) {
+				const attendanceLogData = attendanceLogSnap.data() || {};
 
-			await updateDoc(attendanceLogRef, updatedLogData);
+				// Safely construct the updated log data
+				const currentDateData = attendanceLogData[dateKey] || {};
+				const updatedLogData = {
+					...attendanceLogData,
+					[dateKey]: {
+						...currentDateData,
+						[employeeId]: sanitizeObject(updatedDateAttendance),
+					},
+				};
+
+				await updateDoc(attendanceLogRef, updatedLogData);
+			} else {
+				// Create the document if it doesn't exist
+				await setDoc(attendanceLogRef, {
+					[dateKey]: {
+						[employeeId]: sanitizeObject(updatedDateAttendance),
+					},
+				});
+			}
+		} catch (logError) {
+			console.error("Error updating attendance logs collection:", logError);
+			// Continue anyway as the employee document was already updated
+		}
+
+		// Process the attendance if requested - using processManualAttendance
+		if (processAttendance) {
+			try {
+				const { processManualAttendance } = await import("./attendance-service");
+				await processManualAttendance(branchId, employeeId, dateKey);
+			} catch (processError) {
+				console.error("Error processing attendance:", processError);
+				// Continue anyway as the punch was saved
+			}
 		}
 
 		// Return updated employee object
 		return {
 			...employeeData,
-			attendance: updatedAttendance,
+			attendance: sanitizedAttendance,
 			updatedAt: new Date().toISOString(),
 		};
 	} catch (error) {
@@ -349,123 +408,43 @@ export const saveSingleManualPunch = async (branchId, employeeId, date, punchTyp
 };
 
 /**
- * Process the attendance for a specific date after a manual entry
- * Using the more comprehensive attendance processing logic
+ * Process attendance for a single date using the unified attendance processing logic
  *
  * @param {string} branchId - Branch ID
- * @param {string} employeeId - Employee ID
+ * @param {string} employeeId - Employee ID or array of employee IDs
  * @param {string} dateKey - Date in YYYY-MM-DD format
- * @returns {Promise<object>} - Processed attendance data
+ * @returns {Promise<Object>} - Result of processing
  */
-export const processManualAttendance = async (branchId, employeeId, dateKey) => {
-	if (!branchId || !employeeId || !dateKey) {
-		throw new Error("Required parameters missing: branchId, employeeId, and dateKey are required");
-	}
-
+export const processSingleDateAttendance = async (branchId, employeeId, dateKey) => {
 	try {
-		// Extract month-year from date (YYYY-MM-DD to MM-YYYY format)
 		const [year, month, day] = dateKey.split("-");
 		const monthYear = `${month}-${year}`;
 
-		// Get employee data
-		const employeeRef = doc(db, `branches/${branchId}/employees`, employeeId);
-		const employeeSnap = await getDoc(employeeRef);
+		// Create a date range with just this single date
+		const startDate = dateKey;
+		const endDate = dateKey;
 
-		if (!employeeSnap.exists()) {
-			throw new Error(`Employee with ID ${employeeId} not found`);
-		}
-
-		const employee = employeeSnap.data();
-
-		// Get organization settings
-		const settings = await OrganizationSettingsService.getSettings();
-		const { shiftSchedules } = settings;
-		const attendanceRules = settings.attendanceRules || {
-			rules: {
-				lateDeductions: {
-					halfDayThreshold: 120,
-					fixedAmountPerMinute: 40,
-					absentThreshold: 240,
-					deductionType: "percentage",
-					maxDeductionTime: 90,
-					deductPerMinute: 0.5,
-					enabled: true,
-				},
-			},
-		};
-
-		// Process the attendance for this date
-		const processedAttendance = await processDateAttendance(employee, branchId, employeeId, dateKey, shiftSchedules, attendanceRules.rules.lateDeductions);
-
-		if (!processedAttendance.processed) {
-			throw new Error(processedAttendance.reason || "Failed to process attendance");
-		}
-
-		// Update employee record with processed attendance data
-		const updatedMonthAttendance = {
-			...employee.attendance?.[monthYear],
-			[dateKey]: {
-				...employee.attendance?.[monthYear]?.[dateKey],
-				status: processedAttendance.status,
-				firstIn: processedAttendance.firstIn,
-				lastOut: processedAttendance.lastOut,
-				workingHours: processedAttendance.workingHours,
-				deduction: processedAttendance.deduction,
-				deductionAmount: processedAttendance.deductionAmount,
-				deductionRemarks: processedAttendance.remarks,
-				logs: processedAttendance.logs,
-				shiftStart: processedAttendance.shiftStart,
-				shiftEnd: processedAttendance.shiftEnd,
-				isWorkingDay: processedAttendance.isWorkingDay,
-				updatedAt: new Date().toISOString(),
-			},
-		};
-
-		const updatedAttendance = {
-			...employee.attendance,
-			[monthYear]: updatedMonthAttendance,
-		};
-
-		// Update the employee document
-		await updateDoc(employeeRef, {
-			attendance: updatedAttendance,
-			updatedAt: new Date().toISOString(),
+		// Call the serverless function directly
+		const response = await fetch("/.netlify/functions/attendance-processing", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				branchId,
+				startDate,
+				endDate,
+				employeeIds: Array.isArray(employeeId) ? employeeId : [employeeId],
+			}),
 		});
 
-		// Update the attendance logs collection as well
-		const attendanceLogRef = doc(db, `branches/${branchId}/attendanceLogs`, monthYear);
-		const attendanceLogSnap = await getDoc(attendanceLogRef);
-
-		if (attendanceLogSnap.exists()) {
-			const attendanceLogData = attendanceLogSnap.data();
-			const updatedLogData = {
-				...attendanceLogData,
-				[dateKey]: {
-					...(attendanceLogData[dateKey] || {}),
-					[employeeId]: {
-						...employee.attendance?.[monthYear]?.[dateKey],
-						status: processedAttendance.status,
-						firstIn: processedAttendance.firstIn,
-						lastOut: processedAttendance.lastOut,
-						workingHours: processedAttendance.workingHours,
-						deduction: processedAttendance.deduction,
-						deductionAmount: processedAttendance.deductionAmount,
-						deductionRemarks: processedAttendance.remarks,
-						logs: processedAttendance.logs,
-						shiftStart: processedAttendance.shiftStart,
-						shiftEnd: processedAttendance.shiftEnd,
-						isWorkingDay: processedAttendance.isWorkingDay,
-						updatedAt: new Date().toISOString(),
-					},
-				},
-			};
-
-			await updateDoc(attendanceLogRef, updatedLogData);
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(errorData.message || "Failed to process attendance");
 		}
 
-		return processedAttendance;
+		const result = await response.json();
+		return result;
 	} catch (error) {
-		console.error("Error processing manual attendance:", error);
+		console.error("Error processing single date attendance:", error);
 		throw error;
 	}
 };

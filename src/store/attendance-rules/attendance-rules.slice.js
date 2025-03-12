@@ -2,40 +2,21 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { AttendanceRulesService } from "@/firebase/attendance-rules-service";
 
 // Async thunks
-export const getAttendanceRules = createAsyncThunk(
-	"attendanceRules/getAttendanceRules",
-	async (branchId, { rejectWithValue }) => {
-		try {
-			return await AttendanceRulesService.getAttendanceRules(branchId);
-		} catch (error) {
-			return rejectWithValue(error.message || "Failed to fetch attendance rules");
-		}
+export const getAttendanceRules = createAsyncThunk("attendanceRules/getAttendanceRules", async (branchId, { rejectWithValue }) => {
+	try {
+		return await AttendanceRulesService.getAttendanceRules(branchId);
+	} catch (error) {
+		return rejectWithValue(error.message || "Failed to fetch attendance rules");
 	}
-);
+});
 
-export const saveAttendanceRules = createAsyncThunk(
-	"attendanceRules/saveAttendanceRules",
-	async ({ branchId, rules }, { rejectWithValue }) => {
-		try {
-			return await AttendanceRulesService.saveAttendanceRules(branchId, rules);
-		} catch (error) {
-			return rejectWithValue(error.message || "Failed to save attendance rules");
-		}
+export const saveAttendanceRules = createAsyncThunk("attendanceRules/saveAttendanceRules", async ({ branchId, rules, user }, { rejectWithValue }) => {
+	try {
+		return await AttendanceRulesService.saveAttendanceRules(branchId, rules, user);
+	} catch (error) {
+		return rejectWithValue(error.message || "Failed to save attendance rules");
 	}
-);
-
-// Default rules structure
-const defaultRules = {
-	lateDeductions: {
-		enabled: false,
-		deductionType: "percentage", // 'percentage' or 'fixed'
-		deductPerMinute: 0, // Percentage value
-		fixedAmountPerMinute: 0, // Rupees amount
-		maxDeductionTime: 60,
-		halfDayThreshold: 120,
-		absentThreshold: 240,
-	},
-};
+});
 
 // Attendance rules slice
 const attendanceRulesSlice = createSlice({

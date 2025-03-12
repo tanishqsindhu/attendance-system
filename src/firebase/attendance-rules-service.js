@@ -13,7 +13,7 @@ export const AttendanceRulesService = {
 	 * @returns {Promise<Object>} - Updated rules with timestamp
 	 */
 
-	async saveAttendanceRules(branchId, rules) {
+	async saveAttendanceRules(branchId, rules, user) {
 		if (!branchId || !rules) {
 			throw new Error("branchId and rules are required");
 		}
@@ -21,15 +21,14 @@ export const AttendanceRulesService = {
 			// Fix: Correctly construct the document reference
 			const rulesRef = doc(db, "branches", branchId, "settings", "attendanceRules");
 
-			// Get current user ID from session storage or local variable
-			// This avoids the n.indexOf error by not accessing auth directly
-			// let currentUserId = user.fullName || user.id;
+			// Get current user ID 
+			let currentUserId = user.fullName || user.id;
 
 			// Add metadata
 			const rulesWithMetadata = {
 				...rules,
 				updatedAt: serverTimestamp(),
-				// updatedBy: currentUserId,
+				updatedBy: currentUserId,
 			};
 
 			await setDoc(rulesRef, rulesWithMetadata, { merge: true });
@@ -67,6 +66,9 @@ export const AttendanceRulesService = {
 						halfDayThreshold: 120,
 						absentThreshold: 240,
 					},
+					leaveRules: {
+						unsanctionedMultiplier: 2, // Multiplier for unsanctioned leaves (2x daily wage)
+					},
 					createdAt: serverTimestamp(),
 				};
 			}
@@ -76,55 +78,5 @@ export const AttendanceRulesService = {
 			logError("getAttendanceRules", error);
 			throw new Error(`Failed to get attendance rules: ${error.message}`);
 		}
-	},
-
-	/**
-	 * Calculate deduction amount based on late minutes and rules
-	 * @param {number} lateMinutes - Minutes employee was late
-	 * @param {Object} rules - Attendance rules
-	 * @param {number} dailyWage - Employee's daily wage in rupees
-	 * @returns {Object} - Deduction information
-	 */
-	calculateDeduction(lateMinutes, rules, dailyWage) {
-		if (!rules?.lateDeductions?.enabled) {
-			return { deductionAmount: 0, deductionReason: "No deduction" };
-		}
-
-		// Check if employee is absent based on threshold
-		if (lateMinutes >= rules.lateDeductions.absentThreshold) {
-			return {
-				deductionAmount: dailyWage,
-				deductionReason: "Absent (Late by " + lateMinutes + " minutes)",
-				deductionPercentage: 100,
-			};
-		}
-
-		// Check if employee is half-day based on threshold
-		if (lateMinutes >= rules.lateDeductions.halfDayThreshold) {
-			return {
-				deductionAmount: dailyWage * 0.5,
-				deductionReason: "Half-day (Late by " + lateMinutes + " minutes)",
-				deductionPercentage: 50,
-			};
-		}
-
-		// Calculate per-minute deduction up to max deduction time
-		const deductibleMinutes = Math.min(lateMinutes, rules.lateDeductions.maxDeductionTime);
-		let deductionAmount = 0;
-
-		if (rules.lateDeductions.deductionType === "percentage") {
-			// Percentage-based deduction
-			const percentageDeduction = deductibleMinutes * rules.lateDeductions.deductPerMinute;
-			deductionAmount = (dailyWage * percentageDeduction) / 100;
-		} else {
-			// Fixed amount deduction in rupees
-			deductionAmount = deductibleMinutes * rules.lateDeductions.fixedAmountPerMinute;
-		}
-
-		return {
-			deductionAmount,
-			deductionReason: "Late by " + lateMinutes + " minutes",
-			deductionPercentage: (deductionAmount / dailyWage) * 100,
-		};
 	},
 };

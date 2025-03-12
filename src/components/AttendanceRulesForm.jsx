@@ -34,6 +34,9 @@ const AttendanceRulesForm = () => {
 			halfDayThreshold: 120,
 			absentThreshold: 240,
 		},
+		leaveRules: {
+			unsanctionedMultiplier: 2, // Multiplier for unsanctioned leaves (2x daily wage)
+		},
 	});
 
 	useEffect(() => {
@@ -73,13 +76,22 @@ const AttendanceRulesForm = () => {
 			},
 		});
 	};
+	const handleLeaveRuleChange = (field, value) => {
+		setRules({
+			...rules,
+			leaveRules: {
+				...rules.leaveRules,
+				[field]: parseFloat(value),
+			},
+		});
+	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setLoading(true);
 
 		try {
-			await dispatch(saveAttendanceRules({ branchId: activeBranch.id, rules })).unwrap();
+			await dispatch(saveAttendanceRules({ branchId: activeBranch.id, rules, currentUser })).unwrap();
 			toast.success("Attendance rules saved successfully");
 		} catch (error) {
 			toast.error(`Failed to save rules: ${error.message}`);
@@ -150,6 +162,13 @@ const AttendanceRulesForm = () => {
 											<p className="text-sm text-muted-foreground">Example: ₹5 means ₹5 will be deducted per minute late</p>
 										</div>
 									)}
+									<div className="mt-6">
+										<div className="space-y-2">
+											<Label htmlFor="unsanctionedMultiplier">Unsanctioned Leave Multiplier (x daily wage)</Label>
+											<Input id="unsanctionedMultiplier" type="number" value={rules.leaveRules?.unsanctionedMultiplier || 2} onChange={(e) => handleLeaveRuleChange("unsanctionedMultiplier", e.target.value)} min="1" step="0.1" />
+											<p className="text-sm text-muted-foreground">Example: 2 means 2x daily wage will be deducted for unsanctioned leaves</p>
+										</div>
+									</div>
 								</TabsContent>
 
 								<TabsContent value="thresholds" className="pt-4">
@@ -179,7 +198,7 @@ const AttendanceRulesForm = () => {
 				</form>
 			</CardContent>
 			<CardFooter>
-				<Button type="submit" onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
+				<Button type="submit" onClick={handleSubmit} disabled={loading} className="w-full md:w-auto">
 					{loading ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...

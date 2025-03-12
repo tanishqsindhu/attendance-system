@@ -66,7 +66,7 @@ export default function ProcessAttendance() {
 		setIsProcessing(true);
 
 		try {
-			const response = await fetch("/.netlify/functions/process-attendance", {
+			const response = await fetch("/.netlify/functions/attendance-assignment", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ branchId, monthYear }),

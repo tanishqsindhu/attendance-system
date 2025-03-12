@@ -29,9 +29,12 @@ const personalSchema = z.object({
 	bloodGroup: z.string().optional(),
 	email: z.string().email("Invalid email format"),
 	phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits"),
-	dob: z.coerce.date().refine((date) => date <= new Date(), {
-		message: "Date of birth must be a valid past date",
-	}),
+	dob: z.coerce
+		.date()
+		.refine((date) => date <= new Date(), {
+			message: "Date of birth must be a valid past date",
+		})
+		.optional(),
 	aadhar: z.string().optional(),
 	address: z.string().optional(),
 	city: z.string().optional(),
@@ -700,7 +703,6 @@ const EmployeeAddForm = ({ mode = "add", initialValues = null }) => {
 			};
 			// If in edit mode, use updateEmployee action
 			if (mode === "edit" && initialValues?.employment.employeeId) {
-
 				branchId;
 				dispatch(
 					updateEmployee({

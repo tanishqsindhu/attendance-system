@@ -1,4 +1,4 @@
-const { getAttendanceLogs, getEmployees, saveProcessedAttendance, OrganizationSettingsService,HolidayService } = require("@/firebase/index");
+const { getAttendanceLogs, getEmployees, saveProcessedAttendance, OrganizationSettingsService, HolidayService, AttendanceRulesService } = require("@/firebase/index");
 
 /**
  * Serverless function to process attendance data from raw logs
@@ -29,31 +29,17 @@ exports.handler = async (event) => {
 		const [month, year] = monthYear.split("-").map(Number);
 
 		// Fetch attendance logs, employees, settings, and holidays in parallel
-		const [attendanceLogs, employees, settings, holidays] = await Promise.all([
+		const [attendanceLogs, employees, settings, attendanceRules, holidays] = await Promise.all([
 			getAttendanceLogs(branchId, monthYear),
 			getEmployees(branchId),
 			OrganizationSettingsService.getSettings(),
+			AttendanceRulesService.getAttendanceRules(branchId),
 			HolidayService.getHolidaysByYear(year), // Fetch holidays for the year
 		]);
 
 		// Extract needed settings
 		const { shiftSchedules } = settings;
-		const { rules: attendanceRules } = settings.attendanceRules || {
-			rules: {
-				lateDeductions: {
-					halfDayThreshold: 120,
-					fixedAmountPerMinute: 40,
-					absentThreshold: 240,
-					deductionType: "percentage",
-					maxDeductionTime: 90,
-					deductPerMinute: 0.5,
-					enabled: true,
-				},
-				leaveRules: {
-					unsanctionedMultiplier: 2, // Multiplier for unsanctioned leaves (2x daily wage)
-				},
-			},
-		};
+		const  rules  = attendanceRules;
 
 		// Create a map of holidays for quick lookup
 		const holidayMap = {};
@@ -79,7 +65,7 @@ exports.handler = async (event) => {
 		}
 
 		console.log(`Found ${Object.keys(attendanceLogs).length} attendance records and ${Object.keys(employees).length} employees`);
-		console.log(`Using attendance rules:`, JSON.stringify(attendanceRules.lateDeductions, null, 2));
+		console.log(`Using attendance rules:`, JSON.stringify(rules.lateDeductions, null, 2));
 
 		// Process attendance grouped by month-year derived from timestamps
 		const processedAttendance = {};
@@ -107,7 +93,7 @@ exports.handler = async (event) => {
 			const employeeLogs = attendanceLogs[employeeId] || { logs: [] };
 
 			// Process attendance for all days in the month
-			processEmployeeAttendance(employeeId, employee, employeeLogs, shift, attendanceRules, processedAttendance, allDatesInMonth, holidayMap, monthYear);
+			processEmployeeAttendance(employeeId, employee, employeeLogs, shift, rules, processedAttendance, allDatesInMonth, holidayMap, monthYear);
 		}
 
 		// Store processed attendance in Firestore - one call per month-year

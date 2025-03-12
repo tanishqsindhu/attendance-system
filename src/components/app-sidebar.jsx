@@ -1,7 +1,7 @@
 import * as React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
-import { AudioWaveform, BookOpen, Bot, Command, Frame, GalleryVerticalEnd, Map, PieChart, Users, Settings2, SquareTerminal, LogIn } from "lucide-react";
+import { BookOpen, Users, Settings2, LogIn, CalendarCheck } from "lucide-react";
 
 import sisLogoUrl from "@/assets/scottish white Logo.png?url";
 import sisLogoColorUrl from "@/assets/scottish logo.svg?url";
@@ -50,6 +50,13 @@ export function AppSidebar({ ...props }) {
 						title: "Add Employee",
 						url: "/employees/add",
 					},
+				],
+			},
+			{
+				title: "Attendance",
+				url: "#",
+				icon: CalendarCheck,
+				items: [
 					{
 						title: "Process Data",
 						url: "/employees/attendance-process",
@@ -62,24 +69,9 @@ export function AppSidebar({ ...props }) {
 						title: "Leaves",
 						url: "/employees/leaves",
 					},
-				],
-			},
-			{
-				title: "Models",
-				url: "#",
-				icon: Bot,
-				items: [
 					{
-						title: "Genesis",
-						url: "#",
-					},
-					{
-						title: "Explorer",
-						url: "#",
-					},
-					{
-						title: "Quantum",
-						url: "#",
+						title: "Holidays Manager",
+						url: "/settings/holiday-manager",
 					},
 				],
 			},
@@ -131,10 +123,6 @@ export function AppSidebar({ ...props }) {
 					// 	title: "Shift Schedule",
 					// 	url: "/settings/shift-schedule",
 					// },
-					{
-						title: "Holidays Manager",
-						url: "/settings/holiday-manager",
-					},
 					{
 						title: "Attendance Rules",
 						url: "/settings/attendance-rules",

@@ -1,6 +1,6 @@
 // store/leave/leave.slice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { updateEmployeeDetails } from "@/firebase/index";
+import { updateEmployeeDetails, getEmployeeDetails } from "@/firebase/index";
 
 // Async thunk to fetch leaves from employee attendance data
 export const fetchEmployeeLeaves = createAsyncThunk("leaves/fetchEmployeeLeaves", async (branchId, { getState, rejectWithValue }) => {
@@ -32,6 +32,12 @@ export const fetchEmployeeLeaves = createAsyncThunk("leaves/fetchEmployeeLeaves"
 								deductionAmount: dayData.deductionAmount || 0,
 								sanctioned: dayData.sanctioned || false,
 								remarks: dayData.deductionRemarks || "",
+								reason: dayData.reason || "",
+								leaveType: dayData.leaveType || "",
+								sanctionedBy: dayData.sanctionedBy || null,
+								sanctionedByName: dayData.sanctionedByName || null,
+								sanctionedAt: dayData.sanctionedAt || null,
+								rejected: dayData.rejected || false,
 							});
 						}
 					});
@@ -66,6 +72,15 @@ export const updateLeaveSanctionStatus = createAsyncThunk("leaves/updateSanction
 		// Update sanctioned status
 		if (updatedEmployee.attendance && updatedEmployee.attendance[monthKey] && updatedEmployee.attendance[monthKey][date]) {
 			updatedEmployee.attendance[monthKey][date].sanctioned = sanctioned;
+
+			// If unsanctioning, remove additional fields
+			if (!sanctioned) {
+				delete updatedEmployee.attendance[monthKey][date].sanctionedBy;
+				delete updatedEmployee.attendance[monthKey][date].sanctionedByName;
+				delete updatedEmployee.attendance[monthKey][date].sanctionedAt;
+				delete updatedEmployee.attendance[monthKey][date].leaveType;
+				delete updatedEmployee.attendance[monthKey][date].reason;
+			}
 		}
 
 		// Update in Firebase
@@ -75,6 +90,154 @@ export const updateLeaveSanctionStatus = createAsyncThunk("leaves/updateSanction
 			employeeId,
 			date,
 			sanctioned,
+			success: !!result,
+		};
+	} catch (error) {
+		return rejectWithValue(error.message);
+	}
+});
+
+// Async thunk to sanction a leave with additional details
+export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ employeeId, date, leaveType, reason, branchId, sanctionedBy, sanctionedByName, sanctionedAt }, { getState, rejectWithValue }) => {
+	try {
+		// Get employee from firebase directly to ensure fresh data
+		const employee = await getEmployeeDetails(branchId, employeeId);
+
+		if (!employee) {
+			return rejectWithValue("Employee not found");
+		}
+
+		// Find the month key in attendance
+		const [year, month, day] = date.split("-");
+		const monthKey = `${month}-${year}`;
+
+		// Create updated employee data
+		const updatedEmployee = { ...employee };
+
+		// Make sure attendance structure exists
+		if (!updatedEmployee.attendance) {
+			updatedEmployee.attendance = {};
+		}
+
+		if (!updatedEmployee.attendance[monthKey]) {
+			updatedEmployee.attendance[monthKey] = {};
+		}
+
+		if (!updatedEmployee.attendance[monthKey][date]) {
+			// If no existing record, create one based on system recognition of an absence
+			// In a real system, you would have more complex logic here
+			updatedEmployee.attendance[monthKey][date] = {
+				status: "Absent: Sanctioned Leave",
+				deductionAmount: 0, // No deduction for sanctioned leaves
+				workingHours: "0h 0m",
+				dayOfWeek: new Date(date).toLocaleString("en-IN", { weekday: "long" }),
+				logs: [],
+			};
+		}
+
+		// Update the leave with sanctioned details
+		updatedEmployee.attendance[monthKey][date] = {
+			...updatedEmployee.attendance[monthKey][date],
+			sanctioned: true,
+			leaveType,
+			reason,
+			sanctionedBy,
+			sanctionedByName,
+			sanctionedAt,
+			rejected: false,
+			status: updatedEmployee.attendance[monthKey][date].status.replace("Unsanctioned", "Sanctioned"),
+		};
+
+		// Update in Firebase
+		const result = await updateEmployeeDetails(branchId, employeeId, updatedEmployee);
+
+		return {
+			employeeId,
+			date,
+			leaveType,
+			reason,
+			sanctioned: true,
+			sanctionedBy,
+			sanctionedByName,
+			sanctionedAt,
+			success: !!result,
+		};
+	} catch (error) {
+		return rejectWithValue(error.message);
+	}
+});
+
+// Async thunk to add a new sanctioned leave
+export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", async ({ employeeId, date, leaveType, reason, duration, branchId, sanctionedBy, sanctionedAt }, { getState, rejectWithValue }) => {
+	try {
+		// Get employee from firebase directly
+		const employee = await getEmployee(branchId, employeeId);
+
+		if (!employee) {
+			return rejectWithValue("Employee not found");
+		}
+
+		// Find the month key in attendance
+		const [year, month, day] = date.split("-");
+		const monthKey = `${month}-${year}`;
+
+		// Create updated employee data
+		const updatedEmployee = { ...employee };
+
+		// Make sure attendance structure exists
+		if (!updatedEmployee.attendance) {
+			updatedEmployee.attendance = {};
+		}
+
+		if (!updatedEmployee.attendance[monthKey]) {
+			updatedEmployee.attendance[monthKey] = {};
+		}
+
+		// Determine status based on duration
+		let status = "Absent: Sanctioned Leave";
+		if (duration === "half_morning") {
+			status = "Half Day (Morning): Sanctioned Leave";
+		} else if (duration === "half_afternoon") {
+			status = "Half Day (Afternoon): Sanctioned Leave";
+		}
+
+		// Determine deduction amount based on employee salary
+		const monthlySalary = employee.employment?.salaryAmount || 0;
+		const daysInMonth = new Date(year, month, 0).getDate();
+		const dailySalary = monthlySalary / daysInMonth;
+
+		// Calculate deduction (0 for sanctioned leave typically, but could be a portion)
+		const deductionAmount = (duration.startsWith("half") ? dailySalary * 0.5 : dailySalary) * 0;
+
+		// Create leave record
+		updatedEmployee.attendance[monthKey][date] = {
+			status,
+			deductionAmount,
+			workingHours: "0h 0m",
+			dayOfWeek: new Date(date).toLocaleString("en-US", { weekday: "long" }),
+			logs: [],
+			sanctioned: true,
+			leaveType,
+			reason,
+			sanctionedBy,
+			sanctionedAt,
+			duration,
+			deductionRemarks: `Sanctioned leave: ${leaveType}`,
+			isWorkDay: true,
+		};
+
+		// Update in Firebase
+		const result = await updateEmployeeDetails(branchId, employeeId, updatedEmployee);
+
+		return {
+			employeeId,
+			date,
+			leaveType,
+			reason,
+			sanctioned: true,
+			sanctionedBy,
+			sanctionedAt,
+			duration,
 			success: !!result,
 		};
 	} catch (error) {
@@ -129,12 +292,76 @@ const leavesSlice = createSlice({
 				const { employeeId, date, sanctioned } = action.payload;
 				state.leaves = state.leaves.map((leave) => {
 					if (leave.employeeId === employeeId && leave.date === date) {
-						return { ...leave, sanctioned };
+						return {
+							...leave,
+							sanctioned,
+							// If unsanctioning, remove these fields from the UI as well
+							...(sanctioned
+								? {}
+								: {
+										sanctionedBy: undefined,
+										sanctionedByName: undefined,
+										sanctionedAt: undefined,
+										leaveType: undefined,
+										reason: undefined,
+								  }),
+						};
 					}
 					return leave;
 				});
 			})
 			.addCase(updateLeaveSanctionStatus.rejected, (state, action) => {
+				state.loading = false;
+				state.status = "failed";
+				state.error = action.payload;
+			})
+
+			// Sanction leave with details
+			.addCase(sanctionLeave.pending, (state) => {
+				state.loading = true;
+				state.status = "loading";
+			})
+			.addCase(sanctionLeave.fulfilled, (state, action) => {
+				state.loading = false;
+				state.status = "succeeded";
+
+				// Update the local state
+				const { employeeId, date, leaveType, reason, sanctioned, sanctionedBy, sanctionedByName, sanctionedAt } = action.payload;
+				state.leaves = state.leaves.map((leave) => {
+					if (leave.employeeId === employeeId && leave.date === date) {
+						return {
+							...leave,
+							sanctioned,
+							leaveType,
+							reason,
+							sanctionedBy,
+							sanctionedByName,
+							sanctionedAt,
+							status: leave.status.replace("Unsanctioned", "Sanctioned"),
+						};
+					}
+					return leave;
+				});
+			})
+			.addCase(sanctionLeave.rejected, (state, action) => {
+				state.loading = false;
+				state.status = "failed";
+				state.error = action.payload;
+			})
+
+			// Add new sanctioned leave
+			.addCase(addSanctionedLeave.pending, (state) => {
+				state.loading = true;
+				state.status = "loading";
+			})
+			.addCase(addSanctionedLeave.fulfilled, (state, action) => {
+				state.loading = false;
+				state.status = "succeeded";
+
+				// For new leaves, we'll let the fetchEmployeeLeaves handle updating the state
+				// to ensure we have all the correct data
+			})
+			.addCase(addSanctionedLeave.rejected, (state, action) => {
 				state.loading = false;
 				state.status = "failed";
 				state.error = action.payload;

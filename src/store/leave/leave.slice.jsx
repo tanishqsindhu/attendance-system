@@ -98,7 +98,7 @@ export const updateLeaveSanctionStatus = createAsyncThunk("leaves/updateSanction
 });
 
 // Async thunk to sanction a leave with additional details
-export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ employeeId, date, leaveType, reason, branchId, sanctionedBy, sanctionedByName, sanctionedAt }, { getState, rejectWithValue }) => {
+export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ employeeId, date, leaveType, reason, branchId, createdBy, sanctionedByName, sanctionedAt }, { getState, rejectWithValue }) => {
 	try {
 		// Get employee from firebase directly to ensure fresh data
 		const employee = await getEmployeeDetails(branchId, employeeId);
@@ -135,18 +135,26 @@ export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ e
 			};
 		}
 
+		// Sanitize parameters - replace undefined with null
+		const sanitizedParams = {
+			sanctioned: true,
+			leaveType: leaveType || null,
+			reason: reason || null,
+			createdBy: createdBy || null,
+			sanctionedByName: sanctionedByName || null,
+			sanctionedAt: sanctionedAt || null,
+			rejected: false,
+		};
+
 		// Update the leave with sanctioned details
 		updatedEmployee.attendance[monthKey][date] = {
 			...updatedEmployee.attendance[monthKey][date],
-			sanctioned: true,
-			leaveType,
-			reason,
-			sanctionedBy,
-			sanctionedByName,
-			sanctionedAt,
-			rejected: false,
+			...sanitizedParams,
 			status: updatedEmployee.attendance[monthKey][date].status.replace("Unsanctioned", "Sanctioned"),
 		};
+
+		// Sanitize the entire attendance object to prevent undefined values
+		sanitizeAttendanceObject(updatedEmployee.attendance);
 
 		// Update in Firebase
 		const result = await updateEmployeeDetails(branchId, employeeId, updatedEmployee);
@@ -154,12 +162,12 @@ export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ e
 		return {
 			employeeId,
 			date,
-			leaveType,
-			reason,
+			leaveType: sanitizedParams.leaveType,
+			reason: sanitizedParams.reason,
 			sanctioned: true,
-			sanctionedBy,
-			sanctionedByName,
-			sanctionedAt,
+			createdBy: sanitizedParams.createdBy,
+			sanctionedByName: sanitizedParams.sanctionedByName,
+			sanctionedAt: sanitizedParams.sanctionedAt,
 			success: !!result,
 		};
 	} catch (error) {
@@ -168,7 +176,7 @@ export const sanctionLeave = createAsyncThunk("leaves/sanctionLeave", async ({ e
 });
 
 // Async thunk to add a new sanctioned leave
-export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", async ({ employeeId, date, leaveType, reason, duration, branchId, sanctionedBy, sanctionedAt }, { getState, rejectWithValue }) => {
+export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", async ({ employeeId, date, leaveType, reason, duration, branchId, createdBy, sanctionedByName, sanctionedAt }, { getState, rejectWithValue }) => {
 	try {
 		// Get employee from firebase directly
 		const employee = await getEmployeeDetails(branchId, employeeId);
@@ -209,22 +217,29 @@ export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", 
 		// Calculate deduction (0 for sanctioned leave typically, but could be a portion)
 		const deductionAmount = (duration.startsWith("half") ? dailySalary * 0.5 : dailySalary) * 0;
 
-		// Create leave record
-		updatedEmployee.attendance[monthKey][date] = {
+		// Sanitize parameters - replace undefined with null
+		const sanitizedParams = {
 			status,
 			deductionAmount,
 			workingHours: "0h 0m",
-			dayOfWeek: new Date(date).toLocaleString("en-US", { weekday: "long" }),
+			dayOfWeek: new Date(date).toLocaleString("en-IN", { weekday: "long" }),
 			logs: [],
 			sanctioned: true,
-			leaveType,
-			reason,
-			sanctionedBy,
-			sanctionedAt,
-			duration,
-			deductionRemarks: `Sanctioned leave: ${leaveType}`,
+			leaveType: leaveType || null,
+			reason: reason || null,
+			createdBy: createdBy || null,
+			sanctionedByName: sanctionedByName || null,
+			sanctionedAt: sanctionedAt || null,
+			duration: duration || null,
+			deductionRemarks: `Sanctioned leave: ${leaveType || "Unknown"}`,
 			isWorkDay: true,
 		};
+
+		// Create leave record
+		updatedEmployee.attendance[monthKey][date] = sanitizedParams;
+
+		// Sanitize the entire attendance object to prevent undefined values
+		sanitizeAttendanceObject(updatedEmployee.attendance);
 
 		// Update in Firebase
 		const result = await updateEmployeeDetails(branchId, employeeId, updatedEmployee);
@@ -232,18 +247,32 @@ export const addSanctionedLeave = createAsyncThunk("leaves/addSanctionedLeave", 
 		return {
 			employeeId,
 			date,
-			leaveType,
-			reason,
+			leaveType: sanitizedParams.leaveType,
+			reason: sanitizedParams.reason,
 			sanctioned: true,
-			sanctionedBy,
-			sanctionedAt,
-			duration,
+			createdBy: sanitizedParams.createdBy,
+			sanctionedAt: sanitizedParams.sanctionedAt,
+			duration: sanitizedParams.duration,
 			success: !!result,
 		};
 	} catch (error) {
 		return rejectWithValue(error.message);
 	}
 });
+
+// Helper function to sanitize attendance object (recursively replace undefined with null)
+function sanitizeAttendanceObject(obj) {
+	if (!obj || typeof obj !== 'object') return;
+	
+	Object.keys(obj).forEach(key => {
+		if (obj[key] === undefined) {
+			obj[key] = null;
+		} else if (typeof obj[key] === 'object' && obj[key] !== null) {
+			sanitizeAttendanceObject(obj[key]);
+		}
+	});
+}
+
 
 const initialState = {
 	leaves: [],

@@ -8,7 +8,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,6 +43,9 @@ export function LeaveApplicationForm({ branchId }) {
 	const [leaveType, setLeaveType] = useState("sick");
 	const [leaveReason, setLeaveReason] = useState("");
 	const [leaveDuration, setLeaveDuration] = useState("full");
+	const [sanctionedBy, setSanctionedBy] = useState(
+		currentUser ? currentUser.displayName || "" : ""
+	);
 	const [loading, setLoading] = useState(false);
 	const [success, setSuccess] = useState(false);
 	const [error, setError] = useState(null);
@@ -66,7 +75,8 @@ export function LeaveApplicationForm({ branchId }) {
 				reason: leaveReason,
 				duration: leaveDuration,
 				sanctioned: true,
-				sanctionedBy: currentUser ? currentUser.uid : "Unknown",
+				createdBy: currentUser ? currentUser.uid : "Unknown",
+				sanctionedByName: sanctionedBy,
 				sanctionedAt: new Date().toISOString(),
 				branchId,
 			};
@@ -83,6 +93,7 @@ export function LeaveApplicationForm({ branchId }) {
 			setLeaveReason("");
 			setLeaveDuration("full");
 			setOtherLeaveType("");
+			setSanctionedBy(currentUser ? currentUser.displayName || "" : "");
 		} catch (err) {
 			setError(err.message || "Failed to process leave application");
 			toast.error("Failed to process leave application");
@@ -105,7 +116,9 @@ export function LeaveApplicationForm({ branchId }) {
 				<Alert className="bg-green-50 border-green-200">
 					<Check className="h-4 w-4 text-green-600" />
 					<AlertTitle className="text-green-800">Success</AlertTitle>
-					<AlertDescription className="text-green-700">Leave application has been successfully processed.</AlertDescription>
+					<AlertDescription className="text-green-700">
+						Leave application has been successfully processed.
+					</AlertDescription>
 				</Alert>
 			)}
 
@@ -159,14 +172,24 @@ export function LeaveApplicationForm({ branchId }) {
 					{leaveType === "other" && (
 						<div className="mt-3">
 							<Label htmlFor="otherLeaveType">Specify Leave Type</Label>
-							<Input id="otherLeaveType" value={otherLeaveType} onChange={(e) => setOtherLeaveType(e.target.value)} placeholder="Specify leave type" required />
+							<Input
+								id="otherLeaveType"
+								value={otherLeaveType}
+								onChange={(e) => setOtherLeaveType(e.target.value)}
+								placeholder="Specify leave type"
+								required
+							/>
 						</div>
 					)}
 				</div>
 
 				<div className="space-y-3">
 					<Label>Leave Duration</Label>
-					<RadioGroup value={leaveDuration} onValueChange={setLeaveDuration} className="flex space-x-6">
+					<RadioGroup
+						value={leaveDuration}
+						onValueChange={setLeaveDuration}
+						className="flex space-x-6"
+					>
 						<div className="flex items-center space-x-2">
 							<RadioGroupItem value="full" id="full" />
 							<Label htmlFor="full">Full Day</Label>
@@ -182,9 +205,26 @@ export function LeaveApplicationForm({ branchId }) {
 					</RadioGroup>
 				</div>
 
+				<div className="space-y-3">
+					<Label htmlFor="sanctionedBy">Approved By</Label>
+					<Input
+						id="sanctionedBy"
+						value={sanctionedBy}
+						onChange={(e) => setSanctionedBy(e.target.value)}
+						placeholder="Enter name of person who approved this leave"
+					/>
+				</div>
+
 				<div className="space-y-3 md:col-span-2">
 					<Label htmlFor="reason">Reason for Leave</Label>
-					<Textarea id="reason" value={leaveReason} onChange={(e) => setLeaveReason(e.target.value)} placeholder="Enter reason for leave" rows={3} required />
+					<Textarea
+						id="reason"
+						value={leaveReason}
+						onChange={(e) => setLeaveReason(e.target.value)}
+						placeholder="Enter reason for leave"
+						rows={3}
+						required
+					/>
 				</div>
 			</div>
 

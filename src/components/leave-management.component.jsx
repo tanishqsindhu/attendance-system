@@ -9,15 +9,34 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { AlertCircle, Check, X, RefreshCw, Calendar, Filter, Eye } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DataTable } from "@/components/data-table.component";
 import { Textarea } from "@/components/ui/textarea";
 import { SanctionLeaveForm } from "@/components/sanction-leave-form.component";
-import { fetchEmployeeLeaves, updateLeaveSanctionStatus, selectAllLeaves, selectLeavesLoading, selectLeavesError } from "@/store/leave/leave.slice";
+import {
+	fetchEmployeeLeaves,
+	updateLeaveSanctionStatus,
+	selectAllLeaves,
+	selectLeavesLoading,
+	selectLeavesError,
+} from "@/store/leave/leave.slice";
 import { selectCurrentUser } from "../store/user/user.selector";
 
 export function EmployeeLeaveManagement({ branchId, employeeId }) {
@@ -49,7 +68,9 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 	}, [dispatch, branchId]);
 
 	// Get all leave types from the data
-	const leaveTypes = [...new Set(allLeaves.filter((leave) => leave.leaveType).map((leave) => leave.leaveType))];
+	const leaveTypes = [
+		...new Set(allLeaves.filter((leave) => leave.leaveType).map((leave) => leave.leaveType)),
+	];
 
 	// Filter leaves based on criteria
 	const filteredLeaves = allLeaves.filter((leave) => {
@@ -57,13 +78,29 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 		const employeeMatch = employeeId ? leave.employeeId === employeeId : true;
 
 		// Then filter by status
-		const statusMatch = statusFilter === "all" ? true : statusFilter === "sanctioned" ? leave.sanctioned : statusFilter === "unsanctioned" ? !leave.sanctioned : true;
+		const statusMatch =
+			statusFilter === "all"
+				? true
+				: statusFilter === "sanctioned"
+				? leave.sanctioned
+				: statusFilter === "unsanctioned"
+				? !leave.sanctioned
+				: true;
 
 		// Filter by leave type
 		const typeMatch = typeFilter === "all" ? true : leave.leaveType === typeFilter;
 
 		// Filter by tab selection
-		const tabMatch = leaveTab === "all" ? true : leaveTab === "pending" ? !leave.sanctioned && !leave.rejected : leaveTab === "approved" ? leave.sanctioned : leaveTab === "rejected" ? leave.rejected : true;
+		const tabMatch =
+			leaveTab === "all"
+				? true
+				: leaveTab === "pending"
+				? !leave.sanctioned && !leave.rejected
+				: leaveTab === "approved"
+				? leave.sanctioned
+				: leaveTab === "rejected"
+				? leave.rejected
+				: true;
 
 		// Filter by date range if set
 		let dateMatch = true;
@@ -81,15 +118,21 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 	});
 
 	// Handle sanctioned status toggle
-	const handleSanctionToggle = (employeeId, date, currentStatus) => {
-		dispatch(
-			updateLeaveSanctionStatus({
-				employeeId,
-				date,
-				sanctioned: !currentStatus,
-				branchId,
-			})
-		);
+	const handleSanctionToggle = (leave, currentStatus) => {
+		// If toggling from sanctioned to unsanctioned, use direct update
+		if (currentStatus) {
+			dispatch(
+				updateLeaveSanctionStatus({
+					employeeId: leave.employeeId,
+					date: leave.date,
+					sanctioned: false,
+					branchId,
+				})
+			);
+		} else {
+			// If toggling from unsanctioned to sanctioned, open the sanction dialog
+			openSanctionDialog(leave);
+		}
 	};
 
 	// Handle opening sanction dialog
@@ -162,7 +205,11 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 					color = "bg-orange-100 text-orange-800";
 				}
 
-				return <div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-block`}>{status}</div>;
+				return (
+					<div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-block`}>
+						{status}
+					</div>
+				);
 			},
 		},
 		{
@@ -176,13 +223,24 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 			header: "Sanctioned",
 			accessorKey: "sanctioned",
 			cell: ({ row }) => {
-				const sanctioned = row.original.sanctioned;
-				const sanctionedBy = row.original.sanctionedBy;
+				const leave = row.original;
+				const sanctioned = leave.sanctioned;
+				const sanctionedBy = leave.sanctionedBy;
 
 				return (
 					<div className="flex items-center space-x-2">
-						<Switch checked={sanctioned} onCheckedChange={() => handleSanctionToggle(row.original.employeeId, row.original.date, sanctioned)} disabled={loading} />
-						<Label>{sanctioned ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-red-600 font-medium">No</span>}</Label>
+						<Switch
+							checked={sanctioned}
+							onCheckedChange={() => handleSanctionToggle(leave, sanctioned)}
+							disabled={loading}
+						/>
+						<Label>
+							{sanctioned ? (
+								<span className="text-green-600 font-medium">Yes</span>
+							) : (
+								<span className="text-red-600 font-medium">No</span>
+							)}
+						</Label>
 					</div>
 				);
 			},
@@ -264,7 +322,9 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 	return (
 		<div className="space-y-4">
 			<div className="flex justify-between items-center">
-				<h2 className="text-3xl font-bold tracking-tight">{employeeId ? `Leave Records: ${employeeName || "Employee"}` : "Leave Management"}</h2>
+				<h2 className="text-3xl font-bold tracking-tight">
+					{employeeId ? `Leave Records: ${employeeName || "Employee"}` : "Leave Management"}
+				</h2>
 				<Badge variant="outline" className="px-3 py-1">
 					{filteredLeaves.length} Leaves
 				</Badge>
@@ -281,7 +341,11 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 			<DataTable
 				data={filteredLeaves}
 				columns={columns}
-				filterableColumns={employeeId ? ["status", "date", "leaveType"] : ["employeeName", "status", "date", "leaveType"]}
+				filterableColumns={
+					employeeId
+						? ["status", "date", "leaveType"]
+						: ["employeeName", "status", "date", "leaveType"]
+				}
 				tableActions={tableActions}
 				initialPageSize={10}
 				pagination={true}
@@ -343,7 +407,9 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 								</div>
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Leave Type</h4>
-									<p className="font-medium capitalize">{selectedLeave.leaveType || "Regular Absence"}</p>
+									<p className="font-medium capitalize">
+										{selectedLeave.leaveType || "Regular Absence"}
+									</p>
 								</div>
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Status</h4>
@@ -351,7 +417,13 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 								</div>
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Sanctioned</h4>
-									<p className={`font-medium ${selectedLeave.sanctioned ? "text-green-600" : "text-red-600"}`}>{selectedLeave.sanctioned ? "Yes" : "No"}</p>
+									<p
+										className={`font-medium ${
+											selectedLeave.sanctioned ? "text-green-600" : "text-red-600"
+										}`}
+									>
+										{selectedLeave.sanctioned ? "Yes" : "No"}
+									</p>
 								</div>
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Deduction</h4>
@@ -362,14 +434,18 @@ export function EmployeeLeaveManagement({ branchId, employeeId }) {
 							{selectedLeave.sanctionedBy && (
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Sanctioned By</h4>
-									<p className="font-medium">{selectedLeave.sanctionedByName || selectedLeave.sanctionedBy}</p>
+									<p className="font-medium">
+										{selectedLeave.sanctionedByName || selectedLeave.sanctionedBy}
+									</p>
 								</div>
 							)}
 
 							{selectedLeave.sanctionedAt && (
 								<div>
 									<h4 className="text-sm font-medium text-gray-500">Sanctioned On</h4>
-									<p className="font-medium">{format(new Date(selectedLeave.sanctionedAt), "PPP p")}</p>
+									<p className="font-medium">
+										{format(new Date(selectedLeave.sanctionedAt), "PPP p")}
+									</p>
 								</div>
 							)}
 
